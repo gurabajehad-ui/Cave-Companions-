@@ -41,6 +41,7 @@ import { CartModal } from './CartModal';
 import { MyOrdersModal } from './MyOrdersModal';
 import { ShopReviewsModal } from './ShopReviewsModal';
 import { normalizeSearchText } from '../utils/marketSearch';
+import { useLanguage } from '../context/LanguageContext';
 
 interface ShopsViewProps {
   user?: User | null;
@@ -50,23 +51,23 @@ interface ShopsViewProps {
 }
 
 const CATEGORIES = [
-  { id: 'all', labelBn: 'সকল দোকান', icon: '🏪' },
-  { id: 'books', labelBn: 'বই ও ইসলামিক সামগ্রী', icon: '📚' },
-  { id: 'food', labelBn: 'খাবার ও রেস্তোরাঁ', icon: '🍲' },
-  { id: 'grocery', labelBn: 'সুপারশপ ও গ্রোসারি', icon: '🛒' },
-  { id: 'fashion', labelBn: 'পোশাক ও ফ্যাশন', icon: '👕' },
-  { id: 'health', labelBn: 'ফার্মেসি ও হেলথ', icon: '💊' },
-  { id: 'electronics', labelBn: 'ইলেকট্রনিক্স', icon: '📱' },
-  { id: 'beauty', labelBn: 'বিউটি ও সেলুন', icon: '💇' },
-  { id: 'service', labelBn: 'সেবা খাত', icon: '🔧' }
+  { id: 'all', labelBn: 'সকল দোকান', labelEn: 'All Shops', icon: '🏪' },
+  { id: 'books', labelBn: 'বই ও ইসলামিক সামগ্রী', labelEn: 'Books & Islamic', icon: '📚' },
+  { id: 'food', labelBn: 'খাবার ও রেস্তোরাঁ', labelEn: 'Food & Restaurants', icon: '🍲' },
+  { id: 'grocery', labelBn: 'সুপারশপ ও গ্রোসারি', labelEn: 'Grocery & Supermarket', icon: '🛒' },
+  { id: 'fashion', labelBn: 'পোশাক ও ফ্যাশন', labelEn: 'Clothing & Fashion', icon: '👕' },
+  { id: 'health', labelBn: 'ফার্মেসি ও হেলথ', labelEn: 'Pharmacy & Health', icon: '💊' },
+  { id: 'electronics', labelBn: 'ইলেকট্রনিক্স', labelEn: 'Electronics', icon: '📱' },
+  { id: 'beauty', labelBn: 'বিউটি ও সেলুন', labelEn: 'Beauty & Salon', icon: '💇' },
+  { id: 'service', labelBn: 'সেবা খাত', labelEn: 'Services', icon: '🔧' }
 ];
 
-const RADIUS_OPTIONS: Array<{ id: number | 'all'; labelBn: string }> = [
-  { id: 5, labelBn: '৫ কিমি' },
-  { id: 10, labelBn: '১০ কিমি' },
-  { id: 20, labelBn: '২০ কিমি' },
-  { id: 50, labelBn: '৫০ কিমি' },
-  { id: 'all', labelBn: 'সকল দূরত্ব' }
+const RADIUS_OPTIONS: Array<{ id: number | 'all'; labelBn: string; labelEn: string }> = [
+  { id: 5, labelBn: '৫ কিমি', labelEn: '5 km' },
+  { id: 10, labelBn: '১০ কিমি', labelEn: '10 km' },
+  { id: 20, labelBn: '২০ কিমি', labelEn: '20 km' },
+  { id: 50, labelBn: '৫০ কিমি', labelEn: '50 km' },
+  { id: 'all', labelBn: 'সকল দূরত্ব', labelEn: 'All Distances' }
 ];
 
 export const ShopsView: React.FC<ShopsViewProps> = ({
@@ -75,6 +76,7 @@ export const ShopsView: React.FC<ShopsViewProps> = ({
   onNavigateToTokens,
   onNavigateToMerchant
 }) => {
+  const { t, language } = useLanguage();
   const [shops, setShops] = useState<PartnerShop[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -145,17 +147,17 @@ export const ShopsView: React.FC<ShopsViewProps> = ({
     if (distKm === undefined || isNaN(distKm)) return '';
     if (distKm < 1) {
       const meters = Math.max(10, Math.round(distKm * 1000));
-      return `${toBnNumber(meters)} মিটার দূরে`;
+      return language === 'bn' ? `${toBnNumber(meters)} মিটার দূরে` : `${meters}m away`;
     }
-    return `${toBnNumber(distKm.toFixed(1))} কিমি দূরে`;
+    return language === 'bn' ? `${toBnNumber(distKm.toFixed(1))} কিমি দূরে` : `${distKm.toFixed(1)} km away`;
   };
 
   // Request browser geolocation with proper error & permission handling
   const requestUserLocation = useCallback((silent = false) => {
     if (!navigator.geolocation) {
       const err = {
-        title: 'লোকেশন অসমর্থিত',
-        message: 'আপনার ডিভাইস বা ব্রাউজার লোকেশন সেবা সমর্থন করে না।'
+        title: language === 'bn' ? 'লোকেশন অসমর্থিত' : 'Location Unsupported',
+        message: language === 'bn' ? 'আপনার ডিভাইস বা ব্রাউজার লোকেশন সেবা সমর্থন করে না।' : 'Your device or browser does not support location services.'
       };
       setLocationError(err);
       if (!silent) onShowToast?.('error', err.title, err.message);
@@ -178,8 +180,8 @@ export const ShopsView: React.FC<ShopsViewProps> = ({
         ) {
           setIsLocating(false);
           setLocationError({
-            title: 'ভুল অবস্থান',
-            message: 'ডিভাইস থেকে সঠিক জিপিএস স্থানাঙ্ক পাওয়া যায়নি।'
+            title: language === 'bn' ? 'ভুল অবস্থান' : 'Invalid Location',
+            message: language === 'bn' ? 'ডিভাইস থেকে সঠিক জিপিএস স্থানাঙ্ক পাওয়া যায়নি।' : 'Accurate GPS coordinates could not be retrieved from the device.'
           });
           return;
         }
@@ -193,7 +195,11 @@ export const ShopsView: React.FC<ShopsViewProps> = ({
         setShowLocationModal(false);
 
         if (!silent) {
-          onShowToast?.('success', 'লোকেশন প্রাপ্ত', 'আপনার কাছাকাছি পার্টনার শপ তালিকা সাজানো হয়েছে।');
+          onShowToast?.(
+            'success',
+            language === 'bn' ? 'লোকেশন প্রাপ্ত' : 'Location Acquired',
+            language === 'bn' ? 'আপনার কাছাকাছি পার্টনার শপ তালিকা সাজানো হয়েছে।' : 'Nearby partner shops have been listed.'
+          );
         }
       },
       (err) => {
@@ -201,9 +207,9 @@ export const ShopsView: React.FC<ShopsViewProps> = ({
         setIsLocating(false);
 
         let errObj = {
-          title: 'লোকেশন ত্রুটি',
-          message: 'আপনার অবস্থান নির্ধারণ করা সম্ভব হয়নি।',
-          resolution: 'অনুগ্রহ করে আবার চেষ্টা করুন।',
+          title: language === 'bn' ? 'লোকেশন ত্রুটি' : 'Location Error',
+          message: language === 'bn' ? 'আপনার অবস্থান নির্ধারণ করা সম্ভব হয়নি।' : 'Unable to determine your location.',
+          resolution: language === 'bn' ? 'অনুগ্রহ করে আবার চেষ্টা করুন।' : 'Please try again.',
           code: err.code
         };
 
@@ -211,25 +217,25 @@ export const ShopsView: React.FC<ShopsViewProps> = ({
           // PERMISSION_DENIED
           setHasPermissionDenied(true);
           errObj = {
-            title: 'লোকেশন অনুমতি ব্লক করা আছে',
-            message: 'লোকেশন অনুমতি না দিলে আপনার কাছাকাছি দোকান দেখানো সম্ভব নয়।',
-            resolution: 'আপনার ব্রাউজারের অ্যাড্রেস বারের বাম পাশে তালা 🔒 আইকনে ট্যাপ করে "Permissions" বা "Location" থেকে "Allow" করুন এবং পুনরায় চেষ্টা করুন।',
+            title: language === 'bn' ? 'লোকেশন অনুমতি ব্লক করা আছে' : 'Location Permission Denied',
+            message: language === 'bn' ? 'লোকেশন অনুমতি না দিলে আপনার কাছাকাছি দোকান দেখানো সম্ভব নয়।' : 'Without location permission, nearby shops cannot be displayed.',
+            resolution: language === 'bn' ? 'আপনার ব্রাউজারের অ্যাড্রেস বারের বাম পাশে তালা 🔒 আইকনে ট্যাপ করে "Permissions" বা "Location" থেকে "Allow" করুন এবং পুনরায় চেষ্টা করুন।' : 'Tap the lock 🔒 icon in the browser address bar, set Location to "Allow", and try again.',
             code: 1
           };
         } else if (err.code === 2) {
           // POSITION_UNAVAILABLE
           errObj = {
-            title: 'জিপিএস / লোকেশন পাওয়া যায়নি',
-            message: 'আপনার ডিভাইসের লোকেশন সার্ভিস (GPS) বন্ধ থাকতে পারে।',
-            resolution: 'অনুগ্রহ করে ফোনের Quick Settings বা Settings থেকে Location / GPS চালু করুন এবং আবার চেষ্টা করুন।',
+            title: language === 'bn' ? 'জিপিএস / লোকেশন পাওয়া যায়নি' : 'GPS / Location Unavailable',
+            message: language === 'bn' ? 'আপনার ডিভাইসের লোকেশন সার্ভিস (GPS) বন্ধ থাকতে পারে।' : 'Location service (GPS) on your device may be disabled.',
+            resolution: language === 'bn' ? 'অনুগ্রহ করে ফোনের Quick Settings বা Settings থেকে Location / GPS চালু করুন এবং আবার চেষ্টা করুন।' : 'Please enable Location / GPS in your device Quick Settings and try again.',
             code: 2
           };
         } else if (err.code === 3) {
           // TIMEOUT
           errObj = {
-            title: 'লোকেশন টাইমআউট',
-            message: 'লোকেশন সিগন্যাল পেতে সময় বেশি লেগেছে।',
-            resolution: 'দুর্বল জিপিএস সিগন্যাল বা নেটওয়ার্ক সমস্যা হতে পারে। অনুগ্রহ করে আবার চেষ্টা করুন।',
+            title: language === 'bn' ? 'লোকেশন টাইমআউট' : 'Location Timeout',
+            message: language === 'bn' ? 'লোকেশন সিগন্যাল পেতে সময় বেশি লেগেছে।' : 'Timed out while acquiring location signal.',
+            resolution: language === 'bn' ? 'দুর্বল জিপিএস সিগন্যাল বা নেটওয়ার্ক সমস্যা হতে পারে। অনুগ্রহ করে আবার চেষ্টা করুন।' : 'Weak GPS or network signal. Please try again.',
             code: 3
           };
         }
@@ -245,7 +251,7 @@ export const ShopsView: React.FC<ShopsViewProps> = ({
         maximumAge: 30000
       }
     );
-  }, [onShowToast]);
+  }, [onShowToast, language]);
 
   // Handle click on "আমার আশে পাশের দোকান"
   const handleToggleNearby = () => {
@@ -414,7 +420,11 @@ export const ShopsView: React.FC<ShopsViewProps> = ({
   const handleOpenRedeemModal = (shop: PartnerShop) => {
     if (availableTokens.length === 0) {
       if (onShowToast) {
-        onShowToast('info', 'টোকেন প্রয়োজন', 'আপনার কোনো ব্যবহারযোগ্য টোকেন নেই। নামাজ সম্পন্ন করে টোকেন অর্জন করুন।');
+        onShowToast(
+          'info',
+          language === 'bn' ? 'টোকেন প্রয়োজন' : 'Token Required',
+          language === 'bn' ? 'আপনার কোনো ব্যবহারযোগ্য টোকেন নেই। নামাজ সম্পন্ন করে টোকেন অর্জন করুন।' : 'You do not have any usable tokens. Perform prayers to earn tokens.'
+        );
       }
       return;
     }
@@ -477,10 +487,10 @@ export const ShopsView: React.FC<ShopsViewProps> = ({
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h2 className="text-lg sm:text-xl font-black text-white">
-                পার্টনার শপ ও অনলাইন মার্কেটপ্লেস
+                {language === 'bn' ? 'পার্টনার শপ ও অনলাইন মার্কেটপ্লেস' : 'Partner Shops & Online Marketplace'}
               </h2>
               <p className="text-xs text-slate-300 mt-0.5 max-w-xl">
-                তাকওয়া • সততা • সত্যবাদিতা
+                {language === 'bn' ? 'তাকওয়া • সততা • সত্যবাদিতা' : 'Taqwa • Honesty • Truthfulness'}
               </p>
             </div>
 
@@ -493,7 +503,7 @@ export const ShopsView: React.FC<ShopsViewProps> = ({
                 className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-md active:scale-95 cursor-pointer whitespace-nowrap"
               >
                 <ShoppingCart className="w-3.5 h-3.5" />
-                <span>আমার কার্ট</span>
+                <span>{language === 'bn' ? 'আমার কার্ট' : 'My Cart'}</span>
                 {cartItemCount > 0 && (
                   <span className="w-4 h-4 bg-white text-emerald-700 rounded-full text-[9px] flex items-center justify-center font-extrabold shadow-xs">
                     {cartItemCount}
@@ -508,7 +518,7 @@ export const ShopsView: React.FC<ShopsViewProps> = ({
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold transition-all shadow-md active:scale-95 cursor-pointer whitespace-nowrap"
               >
                 <ShoppingBag className="w-3.5 h-3.5 text-emerald-400" />
-                <span>আমার অর্ডার</span>
+                <span>{language === 'bn' ? 'আমার অর্ডার' : 'My Orders'}</span>
               </button>
 
               <button
@@ -518,7 +528,7 @@ export const ShopsView: React.FC<ShopsViewProps> = ({
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold transition-all shadow-md active:scale-95 cursor-pointer whitespace-nowrap"
               >
                 <Receipt className="w-3.5 h-3.5 text-emerald-400" />
-                <span>আমার রিডেম্পশন</span>
+                <span>{language === 'bn' ? 'আমার রিডেম্পশন' : 'My Redemptions'}</span>
               </button>
             </div>
           </div>
@@ -535,7 +545,7 @@ export const ShopsView: React.FC<ShopsViewProps> = ({
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="দোকানের নাম, এলাকা বা ক্যাটাগরি অনুসন্ধান করুন..."
+            placeholder={language === 'bn' ? 'দোকানের নাম, এলাকা বা ক্যাটাগরি অনুসন্ধান করুন...' : 'Search by shop name, area, or category...'}
             className="w-full pl-9 pr-4 py-2 rounded-xl sm:rounded-2xl bg-slate-900/90 border border-slate-800 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
           />
           {searchQuery && (
@@ -543,7 +553,7 @@ export const ShopsView: React.FC<ShopsViewProps> = ({
               onClick={() => setSearchQuery('')}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs cursor-pointer"
             >
-              মুছুন
+              {language === 'bn' ? 'মুছুন' : 'Clear'}
             </button>
           )}
         </div>
@@ -559,7 +569,7 @@ export const ShopsView: React.FC<ShopsViewProps> = ({
               ? 'bg-emerald-600/30 text-emerald-300 border-emerald-500/60 shadow-lg shadow-emerald-950/40'
               : 'bg-slate-900/90 hover:bg-slate-800 text-slate-300 border-slate-800 hover:border-emerald-500/40'
           }`}
-          title="আপনার কাছাকাছি পার্টনার শপ খুঁজে পেতে ক্লিক করুন"
+          title={language === 'bn' ? 'আপনার কাছাকাছি পার্টনার শপ খুঁজে পেতে ক্লিক করুন' : 'Click to find partner shops near you'}
         >
           <Navigation
             className={`w-3.5 h-3.5 ${
@@ -568,10 +578,12 @@ export const ShopsView: React.FC<ShopsViewProps> = ({
           />
           <span>
             {isLocating
-              ? 'লোকেশন খোঁজা হচ্ছে...'
+              ? (language === 'bn' ? 'লোকেশন খোঁজা হচ্ছে...' : 'Finding location...')
               : isNearbyActive && userLocation
-              ? `নিকটবর্তী (${toBnNumber(selectedRadiusKm === 'all' ? 'সব' : selectedRadiusKm)} কিমি)`
-              : 'আমার আশেপাশের দোকান'}
+              ? (language === 'bn'
+                  ? `নিকটবর্তী (${toBnNumber(selectedRadiusKm === 'all' ? 'সব' : selectedRadiusKm)} কিমি)`
+                  : `Nearby (${selectedRadiusKm === 'all' ? 'All' : selectedRadiusKm} km)`)
+              : (language === 'bn' ? 'আমার আশেপাশের দোকান' : 'Nearby Shops')}
           </span>
         </button>
       </div>
@@ -589,15 +601,19 @@ export const ShopsView: React.FC<ShopsViewProps> = ({
               <MapPin className="w-4 h-4 text-emerald-400" />
             </div>
             <div>
-              <span className="font-extrabold text-white">আমার আশেপাশের দোকান সক্রিয়</span>
+              <span className="font-extrabold text-white">
+                {language === 'bn' ? 'আমার আশেপাশের দোকান সক্রিয়' : 'Nearby Shops Active'}
+              </span>
               <p className="text-[11px] text-emerald-400/80">
-                আপনার নিকটবর্তী দূরত্ব অনুসারে দোকানসমূহ তালিকাভুক্ত করা হয়েছে।
+                {language === 'bn' ? 'আপনার নিকটবর্তী দূরত্ব অনুসারে দোকানসমূহ তালিকাভুক্ত করা হয়েছে।' : 'Shops listed according to distance from your location.'}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[11px] font-bold text-slate-400 shrink-0">দূরত্ব ফিল্টার:</span>
+            <span className="text-[11px] font-bold text-slate-400 shrink-0">
+              {language === 'bn' ? 'দূরত্ব ফিল্টার:' : 'Radius Filter:'}
+            </span>
             <div className="flex items-center gap-1.5 bg-slate-900/80 p-1 rounded-xl border border-emerald-900/50">
               {RADIUS_OPTIONS.map((opt) => {
                 const isSelected = selectedRadiusKm === opt.id;
@@ -612,7 +628,7 @@ export const ShopsView: React.FC<ShopsViewProps> = ({
                         : 'text-slate-400 hover:text-white hover:bg-slate-800'
                     }`}
                   >
-                    {opt.labelBn}
+                    {language === 'bn' ? opt.labelBn : opt.labelEn}
                   </button>
                 );
               })}
@@ -623,7 +639,7 @@ export const ShopsView: React.FC<ShopsViewProps> = ({
               onClick={() => requestUserLocation(false)}
               disabled={isLocating}
               className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-emerald-300 border border-emerald-500/30 text-xs font-bold transition-colors flex items-center justify-center cursor-pointer active:scale-95"
-              title="বর্তমান লোকেশন রিফ্রেশ করুন"
+              title={language === 'bn' ? 'বর্তমান লোকেশন রিফ্রেশ করুন' : 'Refresh current location'}
             >
               <RotateCw className={`w-3.5 h-3.5 ${isLocating ? 'animate-spin' : ''}`} />
             </button>
@@ -632,7 +648,7 @@ export const ShopsView: React.FC<ShopsViewProps> = ({
               type="button"
               onClick={() => setIsNearbyActive(false)}
               className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800 text-xs transition-colors flex items-center justify-center cursor-pointer active:scale-95"
-              title="নিকটবর্তী ফিল্টার বন্ধ করুন"
+              title={language === 'bn' ? 'নিকটবর্তী ফিল্টার বন্ধ করুন' : 'Close nearby filter'}
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -655,7 +671,7 @@ export const ShopsView: React.FC<ShopsViewProps> = ({
                 </p>
                 {locationError.resolution && (
                   <p className="text-[11px] text-amber-400/80 bg-amber-950/60 p-2 rounded-xl border border-amber-700/40 mt-1.5">
-                    💡 <b>পরামর্শ:</b> {locationError.resolution}
+                    💡 <b>{language === 'bn' ? 'পরামর্শ:' : 'Tip:'}</b> {locationError.resolution}
                   </p>
                 )}
               </div>
@@ -668,7 +684,7 @@ export const ShopsView: React.FC<ShopsViewProps> = ({
                 disabled={isLocating}
                 className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs transition-colors whitespace-nowrap cursor-pointer active:scale-95"
               >
-                {isLocating ? 'খোঁজা হচ্ছে...' : 'আবার চেষ্টা করুন'}
+                {isLocating ? (language === 'bn' ? 'খোঁজা হচ্ছে...' : 'Locating...') : (language === 'bn' ? 'আবার চেষ্টা করুন' : 'Try Again')}
               </button>
               <button
                 type="button"
@@ -699,7 +715,7 @@ export const ShopsView: React.FC<ShopsViewProps> = ({
               }`}
             >
               <span>{cat.icon}</span>
-              <span>{cat.labelBn}</span>
+              <span>{language === 'bn' ? cat.labelBn : cat.labelEn}</span>
             </button>
           );
         })}
@@ -710,7 +726,9 @@ export const ShopsView: React.FC<ShopsViewProps> = ({
         {isLoading ? (
           <div className="py-16 text-center space-y-3">
             <div className="w-8 h-8 border-3 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-            <p className="text-xs text-slate-400">দোকান তালিকা লোড হচ্ছে...</p>
+            <p className="text-xs text-slate-400">
+              {language === 'bn' ? 'দোকান তালিকা লোড হচ্ছে...' : 'Loading shops...'}
+            </p>
           </div>
         ) : filteredShops.length === 0 ? (
           <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-8 text-center space-y-4">
@@ -720,13 +738,19 @@ export const ShopsView: React.FC<ShopsViewProps> = ({
             <div className="space-y-1 max-w-sm mx-auto">
               <h3 className="text-base font-bold text-white">
                 {isNearbyActive && selectedRadiusKm !== 'all'
-                  ? `আপনার ${toBnNumber(selectedRadiusKm)} কিমি দূরত্বের মধ্যে কোনো পার্টনার শপ পাওয়া যায়নি`
-                  : 'কোনো পার্টনার শপ পাওয়া যায়নি'}
+                  ? (language === 'bn'
+                      ? `আপনার ${toBnNumber(selectedRadiusKm)} কিমি দূরত্বের মধ্যে কোনো পার্টনার শপ পাওয়া যায়নি`
+                      : `No partner shops found within ${selectedRadiusKm} km`)
+                  : (language === 'bn' ? 'কোনো পার্টনার শপ পাওয়া যায়নি' : 'No partner shops found')}
               </h3>
               <p className="text-xs text-slate-400">
                 {isNearbyActive && selectedRadiusKm !== 'all'
-                  ? 'ব্যাসার্ধ বাড়িয়ে সকল দূরত্বের পার্টনার শপ দেখতে পারেন অথবা অন্য ক্যাটাগরি নির্বাচন করুন।'
-                  : 'অনুগ্রহ করে অন্য নাম দিয়ে অনুসন্ধান করুন অথবা ক্যাটাগরি ফিল্টার পরিবর্তন করুন।'}
+                  ? (language === 'bn'
+                      ? 'ব্যাসার্ধ বাড়িয়ে সকল দূরত্বের পার্টনার শপ দেখতে পারেন অথবা অন্য ক্যাটাগরি নির্বাচন করুন।'
+                      : 'Increase the radius to see all shops or choose another category.')
+                  : (language === 'bn'
+                      ? 'অনুগ্রহ করে অন্য নাম দিয়ে অনুসন্ধান করুন অথবা ক্যাটাগরি ফিল্টার পরিবর্তন করুন।'
+                      : 'Please search with a different keyword or change category filters.')}
               </p>
             </div>
 
@@ -738,14 +762,14 @@ export const ShopsView: React.FC<ShopsViewProps> = ({
                     onClick={() => setSelectedRadiusKm(50)}
                     className="px-3.5 py-2 rounded-xl bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 border border-emerald-500/40 text-xs font-bold transition-colors cursor-pointer"
                   >
-                    ৫০ কিমি ব্যাসার্ধ দেখুন
+                    {language === 'bn' ? '৫০ কিমি ব্যাসার্ধ দেখুন' : 'View 50 km Radius'}
                   </button>
                   <button
                     type="button"
                     onClick={() => setSelectedRadiusKm('all')}
                     className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition-colors cursor-pointer"
                   >
-                    সকল দূরত্বের দোকান দেখুন
+                    {language === 'bn' ? 'সকল দূরত্বের দোকান দেখুন' : 'View All Distances'}
                   </button>
                 </>
               )}
@@ -758,7 +782,7 @@ export const ShopsView: React.FC<ShopsViewProps> = ({
                 }}
                 className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 cursor-pointer"
               >
-                ফিল্টার রিসেট করুন
+                {language === 'bn' ? 'ফিল্টার রিসেট করুন' : 'Reset Filters'}
               </button>
             </div>
           </div>
@@ -779,8 +803,10 @@ export const ShopsView: React.FC<ShopsViewProps> = ({
                     <div className="space-y-1 min-w-0 flex-1">
                       <div className="flex items-center gap-1 flex-wrap">
                         <span className="px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
-                          {CATEGORIES.find((c) => c.id === shop.category?.toLowerCase())?.labelBn ||
-                            shop.category.toUpperCase()}
+                          {(() => {
+                            const catObj = CATEGORIES.find((c) => c.id === shop.category?.toLowerCase());
+                            return language === 'bn' ? (catObj?.labelBn || shop.category.toUpperCase()) : (catObj?.labelEn || shop.category.toUpperCase());
+                          })()}
                         </span>
                         {shop.distanceKm !== undefined && (
                           <span className="px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-emerald-950/80 text-emerald-300 border border-emerald-500/40 flex items-center gap-0.5 shadow-xs">
@@ -790,7 +816,7 @@ export const ShopsView: React.FC<ShopsViewProps> = ({
                         )}
                         <span className="px-1.5 py-0.5 rounded-md text-[9px] font-semibold bg-slate-800/80 text-slate-400 border border-slate-700/50 flex items-center gap-0.5">
                           <CheckCircle2 className="w-2.5 h-2.5 text-emerald-400" />
-                          <span>ভেরিফাইড পার্টনার</span>
+                          <span>{language === 'bn' ? 'ভেরিফাইড পার্টনার' : 'Verified Partner'}</span>
                         </span>
 
                         {/* Rating Badge */}
@@ -801,22 +827,22 @@ export const ShopsView: React.FC<ShopsViewProps> = ({
                             setSelectedShopForReviews(shop);
                           }}
                           className="px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center gap-1 transition-colors cursor-pointer ml-auto"
-                          title="গ্রাহক রিভিউ ও রেটিং দেখুন"
+                          title={language === 'bn' ? 'গ্রাহক রিভিউ ও রেটিং দেখুন' : 'View customer reviews & rating'}
                         >
                           <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
                           <span>
                             {shop.averageRating && shop.averageRating > 0
-                              ? toBnNumber(shop.averageRating.toFixed(1))
-                              : toBnNumber('৫.০')}
+                              ? (language === 'bn' ? toBnNumber(shop.averageRating.toFixed(1)) : shop.averageRating.toFixed(1))
+                              : (language === 'bn' ? toBnNumber('৫.০') : '5.0')}
                           </span>
                           <span className="text-[8px] text-slate-400">
-                            ({toBnNumber(shop.totalReviews || 0)})
+                            ({language === 'bn' ? toBnNumber(shop.totalReviews || 0) : (shop.totalReviews || 0)})
                           </span>
                         </button>
                       </div>
 
                       <h3 className="text-sm sm:text-base font-extrabold text-white group-hover:text-emerald-300 transition-colors leading-tight truncate">
-                        {shop.nameBn || shop.name}
+                        {language === 'bn' ? (shop.nameBn || shop.name) : (shop.name || shop.nameBn)}
                       </h3>
                       <p className="text-[11px] text-slate-400 flex items-center gap-1 truncate">
                         <MapPin className="w-3 h-3 text-slate-500 shrink-0" />
@@ -843,24 +869,24 @@ export const ShopsView: React.FC<ShopsViewProps> = ({
                   <div className="p-1.5 rounded-xl bg-slate-950/60 border border-slate-800/80 flex items-center justify-between gap-1 flex-wrap">
                     <div className="flex items-center gap-1 text-[10px] font-bold text-amber-400 shrink-0">
                       <Sparkles className="w-3 h-3 text-amber-400" />
-                      <span>টোকেন ছাড়:</span>
+                      <span>{language === 'bn' ? 'টোকেন ছাড়:' : 'Token Discounts:'}</span>
                     </div>
 
                     <div className="flex items-center gap-1 flex-wrap ml-auto">
                       <div className="px-1.5 py-0.5 rounded-md bg-amber-950/60 border border-amber-500/40 text-[10px] font-extrabold text-amber-300 flex items-center gap-0.5 shadow-xs">
                         <span>🥇</span>
-                        <span className="text-[9px] text-amber-400/80 font-normal">গোল্ড</span>
-                        <span>{toBnNumber(shop.goldDiscount)}%</span>
+                        <span className="text-[9px] text-amber-400/80 font-normal">{language === 'bn' ? 'গোল্ড' : 'Gold'}</span>
+                        <span>{language === 'bn' ? toBnNumber(shop.goldDiscount) : shop.goldDiscount}%</span>
                       </div>
                       <div className="px-1.5 py-0.5 rounded-md bg-slate-800/80 border border-slate-700 text-[10px] font-extrabold text-slate-200 flex items-center gap-0.5 shadow-xs">
                         <span>🥈</span>
-                        <span className="text-[9px] text-slate-400 font-normal">সিলভার</span>
-                        <span>{toBnNumber(shop.silverDiscount)}%</span>
+                        <span className="text-[9px] text-slate-400 font-normal">{language === 'bn' ? 'সিলভার' : 'Silver'}</span>
+                        <span>{language === 'bn' ? toBnNumber(shop.silverDiscount) : shop.silverDiscount}%</span>
                       </div>
                       <div className="px-1.5 py-0.5 rounded-md bg-amber-900/40 border border-amber-700/50 text-[10px] font-extrabold text-orange-300 flex items-center gap-0.5 shadow-xs">
                         <span>🥉</span>
-                        <span className="text-[9px] text-orange-400/80 font-normal">ব্রোঞ্জ</span>
-                        <span>{toBnNumber(shop.bronzeDiscount)}%</span>
+                        <span className="text-[9px] text-orange-400/80 font-normal">{language === 'bn' ? 'ব্রোঞ্জ' : 'Bronze'}</span>
+                        <span>{language === 'bn' ? toBnNumber(shop.bronzeDiscount) : shop.bronzeDiscount}%</span>
                       </div>
                     </div>
                   </div>
@@ -887,10 +913,10 @@ export const ShopsView: React.FC<ShopsViewProps> = ({
                       type="button"
                       onClick={() => setSelectedShopForProducts(shop.id)}
                       className="flex-1 py-1.5 px-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-[11px] font-black shadow-sm active:scale-95 transition-all flex items-center justify-center gap-1 cursor-pointer"
-                      title="এই দোকানের পণ্যসমূহ দেখুন ও অনলাইন অর্ডার করুন"
+                      title={language === 'bn' ? 'এই দোকানের পণ্যসমূহ দেখুন ও অনলাইন অর্ডার করুন' : 'View products and order online'}
                     >
                       <ShoppingBag className="w-3 h-3 text-white" />
-                      <span>আমাদের পণ্য</span>
+                      <span>{language === 'bn' ? 'আমাদের পণ্য' : 'Our Products'}</span>
                     </button>
 
                     {/* Secondary Button: টোকেন ছাড় (In-Store QR) */}
@@ -899,10 +925,10 @@ export const ShopsView: React.FC<ShopsViewProps> = ({
                       type="button"
                       onClick={() => handleOpenRedeemModal(shop)}
                       className="py-1.5 px-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-emerald-500/30 text-[11px] font-bold active:scale-95 transition-all flex items-center gap-1 cursor-pointer shrink-0"
-                      title="দোকানে সরাসরি টোকেন স্ক্যান করে ডিসকাউন্ট নিন"
+                      title={language === 'bn' ? 'দোকানে সরাসরি টোকেন স্ক্যান করে ডিসকাউন্ট নিন' : 'Scan token in-store for discount'}
                     >
                       <Sparkles className="w-3 h-3 text-amber-300" />
-                      <span>টোকেন ছাড়</span>
+                      <span>{language === 'bn' ? 'টোকেন ছাড়' : 'Token Discount'}</span>
                     </button>
 
                     {/* Map Button */}
@@ -911,7 +937,7 @@ export const ShopsView: React.FC<ShopsViewProps> = ({
                       type="button"
                       onClick={() => setSelectedShopForMap(shop)}
                       className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700/80 text-xs transition-all flex items-center justify-center cursor-pointer active:scale-95 shrink-0"
-                      title="ম্যাপে দোকানের অবস্থান ও রুট দেখুন"
+                      title={language === 'bn' ? 'ম্যাপে দোকানের অবস্থান ও রুট দেখুন' : 'View shop location & route on map'}
                     >
                       <MapPin className="w-3 h-3 text-emerald-400" />
                     </button>
@@ -922,7 +948,7 @@ export const ShopsView: React.FC<ShopsViewProps> = ({
                       type="button"
                       onClick={() => setSelectedShopForReviews(shop)}
                       className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700/80 text-xs transition-all flex items-center justify-center cursor-pointer active:scale-95 shrink-0"
-                      title="গ্রাহকদের মতামত ও রিভিউ দেখুন"
+                      title={language === 'bn' ? 'গ্রাহকদের মতামত ও রিভিউ দেখুন' : 'View customer reviews & ratings'}
                     >
                       <MessageSquare className="w-3 h-3 text-amber-400" />
                     </button>
@@ -948,7 +974,7 @@ export const ShopsView: React.FC<ShopsViewProps> = ({
                         }
                       }}
                       className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700/80 text-xs transition-all flex items-center justify-center cursor-pointer active:scale-95 shrink-0"
-                      title="গুগল ম্যাপে দিকনির্দেশনা নিন"
+                      title={language === 'bn' ? 'গুগল ম্যাপে দিকনির্দেশনা নিন' : 'Get directions on Google Maps'}
                     >
                       <Navigation className="w-3 h-3 text-sky-400" />
                     </button>
@@ -985,17 +1011,21 @@ export const ShopsView: React.FC<ShopsViewProps> = ({
 
               <div className="space-y-2">
                 <h3 className="text-lg font-black text-white">
-                  আপনার কাছাকাছি দোকান খুঁজুন
+                  {language === 'bn' ? 'আপনার কাছাকাছি দোকান খুঁজুন' : 'Find Shops Near You'}
                 </h3>
                 <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                  আপনার বর্তমান অবস্থান ব্যবহার করে সবচেয়ে নিকটস্থ অনুমোদিত পার্টনার শপ, টোকেন ছাড় ও আনুমানিক দূরত্ব ক্রমানুসারে প্রদর্শন করা হবে।
+                  {language === 'bn'
+                    ? 'আপনার বর্তমান অবস্থান ব্যবহার করে সবচেয়ে নিকটস্থ অনুমোদিত পার্টনার শপ, টোকেন ছাড় ও আনুমানিক দূরত্ব ক্রমানুসারে প্রদর্শন করা হবে।'
+                    : 'Using your current location, partner shops, token discounts, and estimated distances will be displayed nearest to furthest.'}
                 </p>
               </div>
 
               <div className="p-3 rounded-2xl bg-emerald-950/50 border border-emerald-800/60 text-emerald-300 text-xs flex items-center gap-2.5">
                 <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0" />
                 <span>
-                  আপনার লোকেশন শুধুমাত্র দূরত্ব হিসেবের জন্য ব্রাউজারে সাময়িকভাবে ব্যবহৃত হবে। কোনো তথ্য স্থায়ীভাবে সংরক্ষণ করা হয় না।
+                  {language === 'bn'
+                    ? 'আপনার লোকেশন শুধুমাত্র দূরত্ব হিসেবের জন্য ব্রাউজারে সাময়িকভাবে ব্যবহৃত হবে। কোনো তথ্য স্থায়ীভাবে সংরক্ষণ করা হয় না।'
+                    : 'Your location is used temporarily in your browser only to calculate distances. No data is stored permanently.'}
                 </span>
               </div>
 
@@ -1007,7 +1037,11 @@ export const ShopsView: React.FC<ShopsViewProps> = ({
                   className="w-full sm:flex-1 py-3 px-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs sm:text-sm font-extrabold shadow-lg shadow-emerald-900/40 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
                 >
                   <Navigation className={`w-4 h-4 ${isLocating ? 'animate-spin' : ''}`} />
-                  <span>{isLocating ? 'অনুমতি নেওয়া হচ্ছে...' : 'লোকেশন অনুমতি দিন ও দোকান দেখুন'}</span>
+                  <span>
+                    {isLocating
+                      ? (language === 'bn' ? 'অনুমতি নেওয়া হচ্ছে...' : 'Requesting permission...')
+                      : (language === 'bn' ? 'লোকেশন অনুমতি দিন ও দোকান দেখুন' : 'Allow Location & View Shops')}
+                  </span>
                 </button>
 
                 <button
@@ -1015,7 +1049,7 @@ export const ShopsView: React.FC<ShopsViewProps> = ({
                   onClick={() => setShowLocationModal(false)}
                   className="w-full sm:w-auto py-3 px-4 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-colors cursor-pointer"
                 >
-                  পরে করব
+                  {language === 'bn' ? 'পরে করব' : 'Maybe Later'}
                 </button>
               </div>
             </motion.div>

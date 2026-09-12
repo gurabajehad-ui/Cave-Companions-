@@ -873,7 +873,9 @@ export interface AdPageSettings {
 export interface JourneyMilestone {
   id: string;
   titleBn: string;
+  titleEn?: string;
   descBn: string;
+  descEn?: string;
   icon: string;
   target: number;
   current: number;
@@ -885,16 +887,19 @@ export interface JourneyMilestone {
 export interface DayPrayerItem {
   type: 'fajr' | 'dhuhr' | 'jumuah' | 'asr' | 'maghrib' | 'isha';
   nameBn: string;
+  nameEn?: string;
   completed: boolean;
   mosqueName?: string;
   verifiedAt?: string;
   timeBn?: string;
+  timeEn?: string;
 }
 
 export interface CalendarDayInfo {
   date: string;
   dayNumber: number;
   dayNameBn: string;
+  dayNameEn?: string;
   isFriday: boolean;
   isToday: boolean;
   isFuture: boolean;
@@ -917,7 +922,9 @@ export interface JourneyConsistencyScore {
   score: number;
   level: 'EXCELLENT' | 'VERY_GOOD' | 'IMPROVEMENT_NEEDED' | 'START_AGAIN' | 'NO_DATA';
   ratingBn: string;
+  ratingEn?: string;
   messageBn: string;
+  messageEn?: string;
 }
 
 export interface JourneyWeekStats {
@@ -967,6 +974,14 @@ export interface JourneySummaryResponse {
   showRecoveryMode: boolean;
   teaser: JourneyTeaser;
   archivedJourneysCount: number;
+}
+
+export interface ChartDataPoint {
+  label: string;
+  date: string;
+  completed: number;
+  total: number;
+  percentage: number;
 }
 
 export interface JourneyAnalyticsResponse {

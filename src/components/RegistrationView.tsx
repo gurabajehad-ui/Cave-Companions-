@@ -17,6 +17,7 @@ import {
   Calendar
 } from 'lucide-react';
 import { BANGLADESH_DISTRICTS } from '../data/bangladeshGeo';
+import { useLanguage } from '../context/LanguageContext';
 
 export interface RegistrationData {
   fullName: string;
@@ -45,6 +46,8 @@ export const RegistrationView: React.FC<RegistrationViewProps> = ({
   isLoading,
   externalError
 }) => {
+  const { language, t } = useLanguage();
+
   // Fields
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
@@ -99,71 +102,71 @@ export const RegistrationView: React.FC<RegistrationViewProps> = ({
 
     // 1. Validation: Form Completion
     if (!fullName.trim()) {
-      setError('আপনার পুরো নাম প্রদান করুন।');
+      setError(t('auth.fullNameReqErr'));
       return;
     }
 
     const cleanPhone = phone.trim();
     if (!cleanPhone) {
-      setError('মোবাইল নম্বর প্রদান করা বাধ্যতামূলক।');
+      setError(t('auth.phoneReqErr'));
       return;
     }
 
     // BD Mobile validation (11 digits, starts with 01)
     const bdPhoneRegex = /^01[3-9]\d{8}$/;
     if (!bdPhoneRegex.test(cleanPhone)) {
-      setError('অনুগ্রহ করে একটি সঠিক ১১ ডিজিটের বাংলাদেশী মোবাইল নম্বর প্রদান করুন (যেমন: 017XXXXXXXX)।');
+      setError(t('auth.bdPhoneFormatErr'));
       return;
     }
 
     if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      setError('অনুগ্রহ করে একটি সঠিক ইমেইল ঠিকানা প্রদান করুন।');
+      setError(t('auth.emailFormatErr'));
       return;
     }
 
     if (!dateOfBirth) {
-      setError('আপনার জন্ম তারিখ প্রদান করা বাধ্যতামূলক।');
+      setError(t('auth.dobReqErr'));
       return;
     }
 
     const dob = new Date(dateOfBirth);
     const today = new Date();
     if (dob > today) {
-      setError('ভবিষ্যতের তারিখ জন্ম তারিখ হতে পারে না।');
+      setError(t('auth.futureDobErr'));
       return;
     }
 
     const ageDiff = today.getFullYear() - dob.getFullYear();
     if (ageDiff < 5) {
-      setError('কমপক্ষে ৫ বছর বয়স হতে হবে।');
+      setError(t('auth.minAgeErr'));
       return;
     }
 
     const cleanAddress = address.trim();
     if (!district) {
-      setError('দয়া করে জেলা নির্বাচন করুন');
+      setError(t('auth.districtReqErr'));
       return;
     }
 
     if (!upazila) {
-      setError('দয়া করে উপজেলা নির্বাচন করুন');
+      setError(t('auth.upazilaReqErr'));
       return;
     }
 
     if (!cleanAddress) {
-      setError('দয়া করে পূর্ণ ঠিকানা লিখুন');
+      setError(t('auth.addressReqErr'));
       return;
     }
 
     // 2. Validation: Password Strength
     if (password.length < 6) {
-      setError('পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে।');
+      setError(t('auth.minPasswordLengthErr'));
       return;
     }
 
     // 3. Validation: Password Match
     if (password !== confirmPassword) {
-      setError('পাসওয়ার্ড এবং কনফার্ম পাসওয়ার্ড মিলছে না।');
+      setError(t('auth.passwordMismatchErr'));
       return;
     }
 
@@ -200,7 +203,7 @@ export const RegistrationView: React.FC<RegistrationViewProps> = ({
       {/* Full Name */}
       <div>
         <label htmlFor="reg-fullname" className="block text-xs font-semibold text-emerald-200 mb-1">
-          পুরো নাম <span className="text-amber-400">*</span>
+          {t('auth.fullNameLabel')} <span className="text-amber-400">*</span>
         </label>
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-emerald-400/70">
@@ -212,7 +215,7 @@ export const RegistrationView: React.FC<RegistrationViewProps> = ({
             required
             value={fullName}
             onChange={e => setFullName(e.target.value)}
-            placeholder="যেমন: মোঃ আব্দুল্লাহ"
+            placeholder={t('auth.fullNamePlaceholder')}
             className="w-full pl-10 pr-4 py-2.5 bg-emerald-950/60 border border-emerald-700/60 rounded-xl text-white placeholder-emerald-400/40 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50"
           />
         </div>
@@ -222,7 +225,7 @@ export const RegistrationView: React.FC<RegistrationViewProps> = ({
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label htmlFor="reg-phone" className="block text-xs font-semibold text-emerald-200 mb-1">
-            মোবাইল নম্বর <span className="text-amber-400">*</span>
+            {t('auth.phoneLabel')} <span className="text-amber-400">*</span>
           </label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-emerald-400/70">
@@ -241,7 +244,7 @@ export const RegistrationView: React.FC<RegistrationViewProps> = ({
         </div>
 
         <div>
-          <label htmlFor="reg-email" className="block text-xs font-semibold text-emerald-200 mb-1">ইমেইল (ঐচ্ছিক)</label>
+          <label htmlFor="reg-email" className="block text-xs font-semibold text-emerald-200 mb-1">{t('auth.emailOptional')}</label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-emerald-400/70">
               <Mail className="w-4 h-4" />
@@ -261,7 +264,7 @@ export const RegistrationView: React.FC<RegistrationViewProps> = ({
       {/* Gender Selection */}
       <div>
         <label className="block text-xs font-semibold text-emerald-200 mb-1">
-          লিঙ্গ <span className="text-amber-400">*</span>
+          {t('auth.gender')} <span className="text-amber-400">*</span>
         </label>
         <div className="grid grid-cols-2 gap-2">
           <button
@@ -274,7 +277,7 @@ export const RegistrationView: React.FC<RegistrationViewProps> = ({
                 : 'bg-emerald-950/40 text-emerald-300 border-emerald-700/50 hover:bg-emerald-800/40'
             }`}
           >
-            পুরুষ (Male)
+            {t('auth.male')}
           </button>
           <button
             id="reg-gender-female"
@@ -286,7 +289,7 @@ export const RegistrationView: React.FC<RegistrationViewProps> = ({
                 : 'bg-emerald-950/40 text-emerald-300 border-emerald-700/50 hover:bg-emerald-800/40'
             }`}
           >
-            নারী (Female)
+            {t('auth.female')}
           </button>
         </div>
       </div>
@@ -295,7 +298,7 @@ export const RegistrationView: React.FC<RegistrationViewProps> = ({
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label htmlFor="reg-dob" className="block text-xs font-semibold text-emerald-200 mb-1">
-            জন্ম তারিখ <span className="text-amber-400">*</span>
+            {t('auth.dobLabel')} <span className="text-amber-400">*</span>
           </label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-emerald-400/70">
@@ -311,9 +314,9 @@ export const RegistrationView: React.FC<RegistrationViewProps> = ({
             />
           </div>
         </div>
- 
+
         <div>
-          <label htmlFor="reg-marital" className="block text-xs font-semibold text-emerald-200 mb-1">বৈবাহিক অবস্থা</label>
+          <label htmlFor="reg-marital" className="block text-xs font-semibold text-emerald-200 mb-1">{t('auth.maritalStatusLabel')}</label>
           <select
             id="reg-marital"
             value={maritalStatus}
@@ -321,13 +324,13 @@ export const RegistrationView: React.FC<RegistrationViewProps> = ({
             className="w-full px-3 py-2.5 bg-emerald-950/60 border border-emerald-700/60 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50"
           >
             <option value="married" className="bg-emerald-950 text-white">
-              বিবাহিত
+              {t('auth.married')}
             </option>
             <option value="single" className="bg-emerald-950 text-white">
-              অবিবাহিত
+              {t('auth.single')}
             </option>
             <option value="other" className="bg-emerald-950 text-white">
-              অন্যান্য
+              {t('auth.maritalOther')}
             </option>
           </select>
         </div>
@@ -337,7 +340,7 @@ export const RegistrationView: React.FC<RegistrationViewProps> = ({
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label htmlFor="reg-district" className="block text-xs font-semibold text-emerald-200 mb-1">
-            জেলা <span className="text-amber-400">*</span>
+            {t('auth.district')} <span className="text-amber-400">*</span>
           </label>
           <select
             id="reg-district"
@@ -349,17 +352,17 @@ export const RegistrationView: React.FC<RegistrationViewProps> = ({
             }}
             className="w-full px-3 py-2.5 bg-emerald-950/60 border border-emerald-700/60 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50"
           >
-            <option value="" className="bg-emerald-950 text-white/50">জেলা নির্বাচন করুন</option>
+            <option value="" className="bg-emerald-950 text-white/50">{t('auth.selectDistrict')}</option>
             {BANGLADESH_DISTRICTS.map(d => (
               <option key={d.district} value={d.district} className="bg-emerald-950 text-white">
-                {d.districtBn}
+                {language === 'bn' ? d.districtBn : d.district}
               </option>
             ))}
           </select>
         </div>
         <div>
           <label htmlFor="reg-upazila" className="block text-xs font-semibold text-emerald-200 mb-1">
-            উপজেলা <span className="text-amber-400">*</span>
+            {t('auth.thana')} <span className="text-amber-400">*</span>
           </label>
           <select
             id="reg-upazila"
@@ -370,7 +373,7 @@ export const RegistrationView: React.FC<RegistrationViewProps> = ({
             className="w-full px-3 py-2.5 bg-emerald-950/60 border border-emerald-700/60 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <option value="" className="bg-emerald-950 text-white/50">
-              {!district ? 'প্রথমে জেলা নির্বাচন করুন' : 'উপজেলা নির্বাচন করুন'}
+              {!district ? t('auth.selectDistrictFirst') : t('auth.selectThana')}
             </option>
             {district && BANGLADESH_DISTRICTS.find(d => d.district === district)?.upazilas.map(u => (
               <option key={u} value={u} className="bg-emerald-950 text-white">
@@ -384,7 +387,7 @@ export const RegistrationView: React.FC<RegistrationViewProps> = ({
       {/* Address Field */}
       <div>
         <label htmlFor="reg-address" className="block text-xs font-semibold text-emerald-200 mb-1">
-          পূর্ণ ঠিকানা <span className="text-amber-400">*</span>
+          {t('auth.addressLabel')} <span className="text-amber-400">*</span>
         </label>
         <div className="relative">
           <textarea
@@ -393,7 +396,7 @@ export const RegistrationView: React.FC<RegistrationViewProps> = ({
             rows={2}
             value={address}
             onChange={e => setAddress(e.target.value)}
-            placeholder="গ্রাম/মহল্লা, রোড, বাড়ি/হোল্ডিং বা বিস্তারিত ঠিকানা লিখুন"
+            placeholder={t('auth.addressPlaceholder')}
             className="w-full px-3 py-2.5 bg-emerald-950/60 border border-emerald-700/60 rounded-xl text-white placeholder-emerald-400/40 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 resize-none"
           />
         </div>
@@ -403,7 +406,7 @@ export const RegistrationView: React.FC<RegistrationViewProps> = ({
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label htmlFor="reg-password" className="block text-xs font-semibold text-emerald-200 mb-1">
-            পাসওয়ার্ড <span className="text-amber-400">*</span>
+            {t('auth.password')} <span className="text-amber-400">*</span>
           </label>
           <div className="relative">
             <input
@@ -412,7 +415,7 @@ export const RegistrationView: React.FC<RegistrationViewProps> = ({
               required
               value={password}
               onChange={e => setPassword(e.target.value)}
-              placeholder="কমপক্ষে ৬ অক্ষর"
+              placeholder={t('auth.newPasswordPlaceholder')}
               className="w-full px-3 pr-10 py-2.5 bg-emerald-950/60 border border-emerald-700/60 rounded-xl text-white placeholder-emerald-400/40 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50"
             />
             <button
@@ -427,7 +430,7 @@ export const RegistrationView: React.FC<RegistrationViewProps> = ({
 
         <div>
           <label htmlFor="reg-confirm-password" className="block text-xs font-semibold text-emerald-200 mb-1">
-            পাসওয়ার্ড নিশ্চিত করুন <span className="text-amber-400">*</span>
+            {t('auth.confirmPasswordLabel')} <span className="text-amber-400">*</span>
           </label>
           <div className="relative">
             <input
@@ -436,7 +439,7 @@ export const RegistrationView: React.FC<RegistrationViewProps> = ({
               required
               value={confirmPassword}
               onChange={e => setConfirmPassword(e.target.value)}
-              placeholder="পুনরায় পাসওয়ার্ড"
+              placeholder={t('auth.confirmPasswordPlaceholder')}
               className="w-full px-3 pr-10 py-2.5 bg-emerald-950/60 border border-emerald-700/60 rounded-xl text-white placeholder-emerald-400/40 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50"
             />
             <button
@@ -454,13 +457,13 @@ export const RegistrationView: React.FC<RegistrationViewProps> = ({
       {passwordStrength !== 'none' && (
         <div id="password-strength-indicator" className="p-3 bg-emerald-950/40 border border-emerald-800/50 rounded-xl space-y-1.5 animate-fadeIn">
           <div className="flex justify-between items-center text-xs">
-            <span className="text-emerald-300">পাসওয়ার্ড শক্তি:</span>
+            <span className="text-emerald-300">{t('auth.passwordStrength')}</span>
             <span className={`font-bold uppercase tracking-wider text-[11px] ${
               passwordStrength === 'weak' ? 'text-rose-400' :
               passwordStrength === 'medium' ? 'text-amber-400' : 'text-emerald-400'
             }`}>
-              {passwordStrength === 'weak' ? 'দুর্বল (Weak)' :
-               passwordStrength === 'medium' ? 'মাঝারি (Medium)' : 'শক্তিশালী (Strong)'}
+              {passwordStrength === 'weak' ? t('auth.weak') :
+               passwordStrength === 'medium' ? t('auth.medium') : t('auth.strong')}
             </span>
           </div>
           {/* Progress bar */}
@@ -475,9 +478,9 @@ export const RegistrationView: React.FC<RegistrationViewProps> = ({
           {/* Helper feedback text */}
           <p className="text-[10px] text-emerald-400/75 flex items-center gap-1">
             <Info className="w-3 h-3 shrink-0" />
-            {passwordStrength === 'weak' && 'কমপক্ষে ৬টি অক্ষর ব্যবহার করুন।'}
-            {passwordStrength === 'medium' && 'একটি সংখ্যা বা বিশেষ চিহ্ন যোগ করে পাসওয়ার্ডটি আরও নিরাপদ করুন।'}
-            {passwordStrength === 'strong' && 'দারুণ! আপনার পাসওয়ার্ডটি অত্যন্ত শক্তিশালী ও নিরাপদ।'}
+            {passwordStrength === 'weak' && t('auth.weakNote')}
+            {passwordStrength === 'medium' && t('auth.mediumNote')}
+            {passwordStrength === 'strong' && t('auth.strongNote')}
           </p>
         </div>
       )}
@@ -492,11 +495,11 @@ export const RegistrationView: React.FC<RegistrationViewProps> = ({
         {isLoading ? (
           <>
             <span className="w-5 h-5 border-2 border-emerald-950 border-t-transparent rounded-full animate-spin"></span>
-            <span>সংযুক্ত হচ্ছে...</span>
+            <span>{t('auth.loggingIn')}</span>
           </>
         ) : (
           <>
-            <span>রেজিস্ট্রেশন কোড পাঠান</span>
+            <span>{t('auth.sendRegCodeBtn')}</span>
             <ArrowRight className="w-4 h-4" />
           </>
         )}
@@ -504,14 +507,14 @@ export const RegistrationView: React.FC<RegistrationViewProps> = ({
 
       {/* Back to Login link */}
       <div className="text-center pt-2">
-        <span className="text-xs text-emerald-300/80">ইতোমধ্যে অ্যাকাউন্ট আছে? </span>
+        <span className="text-xs text-emerald-300/80">{t('auth.haveAccount')}{' '}</span>
         <button
           id="reg-back-to-login"
           type="button"
           onClick={onBackToLogin}
-          className="text-xs text-amber-300 font-bold hover:underline"
+          className="text-xs text-amber-300 font-bold hover:underline ml-1"
         >
-          লগইন করুন
+          {t('auth.login')}
         </button>
       </div>
     </form>

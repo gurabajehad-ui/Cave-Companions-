@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { api } from '../services/api';
 import { SupportTicket, HelplineSettings } from '../types';
+import { useLanguage } from '../context/LanguageContext';
 
 interface SupportViewProps {
   onBack?: () => void;
@@ -27,8 +28,9 @@ interface SupportViewProps {
 }
 
 export const SupportView: React.FC<SupportViewProps> = ({ onBack, onShowToast }) => {
+  const { t, language } = useLanguage();
   const [activeTab, setActiveTab] = useState<'faq' | 'ticket' | 'my_tickets'>('faq');
-  const [faqs, setFaqs] = useState<Array<{ id: string; questionBn: string; questionEn: string; answerBn: string }>>([]);
+  const [faqs, setFaqs] = useState<Array<{ id: string; questionBn: string; questionEn: string; answerBn: string; answerEn?: string }>>([]);
   const [expandedFaq, setExpandedFaq] = useState<string | null>('faq-1');
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [helpline, setHelpline] = useState<HelplineSettings | null>(null);
@@ -65,11 +67,11 @@ export const SupportView: React.FC<SupportViewProps> = ({ onBack, onShowToast })
   const handleSubmitTicket = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!subject.trim() || subject.trim().length < 3) {
-      onShowToast('error', 'ভুল', 'বিষয়বস্তু কমপক্ষে ৩ অক্ষরের হতে হবে।');
+      onShowToast('error', t('common.error'), t('support.subjectMinError'));
       return;
     }
     if (!message.trim() || message.trim().length < 10) {
-      onShowToast('error', 'ভুল', 'বিস্তারিত বিবরণ কমপক্ষে ১০ অক্ষরের হতে হবে।');
+      onShowToast('error', t('common.error'), t('support.messageMinError'));
       return;
     }
 
@@ -80,9 +82,9 @@ export const SupportView: React.FC<SupportViewProps> = ({ onBack, onShowToast })
       setSubject('');
       setMessage('');
       setActiveTab('my_tickets');
-      onShowToast('success', 'টিকেট জমা হয়েছে', res.message);
+      onShowToast('success', t('support.ticketSubmitted'), res.message);
     } catch (err: any) {
-      onShowToast('error', 'ব্যর্থ', err.message || 'টিকেট জমা দেওয়া সম্ভব হয়নি।');
+      onShowToast('error', t('common.error'), err.message || t('support.submitFailed'));
     } finally {
       setSubmitting(false);
     }
@@ -91,14 +93,14 @@ export const SupportView: React.FC<SupportViewProps> = ({ onBack, onShowToast })
   const getStatusBadge = (status: SupportTicket['status']) => {
     switch (status) {
       case 'RESOLVED':
-        return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-950/80 text-emerald-300 border border-emerald-700/60">সমাধান হয়েছে</span>;
+        return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-950/80 text-emerald-300 border border-emerald-700/60">{t('support.statusResolved')}</span>;
       case 'IN_PROGRESS':
-        return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-950/80 text-blue-300 border border-blue-700/60">প্রক্রিয়াধীন</span>;
+        return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-950/80 text-blue-300 border border-blue-700/60">{t('support.statusInProgress')}</span>;
       case 'CLOSED':
-        return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 border border-slate-700">বন্ধ</span>;
+        return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 border border-slate-700">{t('support.statusClosed')}</span>;
       case 'OPEN':
       default:
-        return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-950/80 text-amber-300 border border-amber-700/60">ওপেন</span>;
+        return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-950/80 text-amber-300 border border-amber-700/60">{t('support.statusOpen')}</span>;
     }
   };
 
@@ -118,9 +120,9 @@ export const SupportView: React.FC<SupportViewProps> = ({ onBack, onShowToast })
           <div>
             <h1 className="text-xl font-bold text-white flex items-center gap-2">
               <LifeBuoy className="w-5 h-5 text-emerald-400" />
-              হেল্প ও সাপোর্ট (Help & Support)
+              {t('support.title')}
             </h1>
-            <p className="text-xs text-slate-400">সাধারণ জিজ্ঞাসা ও সরাসরি সাপোর্ট সহায়তা</p>
+            <p className="text-xs text-slate-400">{t('support.subtitle')}</p>
           </div>
         </div>
       </div>
@@ -136,7 +138,7 @@ export const SupportView: React.FC<SupportViewProps> = ({ onBack, onShowToast })
           }`}
         >
           <HelpCircle className="w-4 h-4" />
-          <span>সাধারণ প্রশ্নোত্তর</span>
+          <span>{t('support.faqTab')}</span>
         </button>
 
         <button
@@ -148,7 +150,7 @@ export const SupportView: React.FC<SupportViewProps> = ({ onBack, onShowToast })
           }`}
         >
           <MessageSquare className="w-4 h-4" />
-          <span>টিকেট খুলুন</span>
+          <span>{t('support.ticketTab')}</span>
         </button>
 
         <button
@@ -159,7 +161,7 @@ export const SupportView: React.FC<SupportViewProps> = ({ onBack, onShowToast })
               : 'text-slate-400 hover:text-white'
           }`}
         >
-          <span>আমার টিকেট ({tickets.length})</span>
+          <span>{t('support.myTicketsTab')} ({tickets.length})</span>
         </button>
       </div>
 
@@ -169,15 +171,17 @@ export const SupportView: React.FC<SupportViewProps> = ({ onBack, onShowToast })
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Phone className="w-4 h-4 text-emerald-400" />
-              <h3 className="text-xs font-bold text-white">জরুরি হেল্পলাইন ও সাপোর্ট</h3>
+              <h3 className="text-xs font-bold text-white">
+                {language === 'bn' ? 'জরুরি হেল্পলাইন ও সাপোর্ট' : 'Emergency Helpline & Support'}
+              </h3>
             </div>
             <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">
-              সক্রিয়
+              {language === 'bn' ? 'সক্রিয়' : 'Active'}
             </span>
           </div>
 
           <p className="text-xs text-slate-300 leading-relaxed bg-slate-950/40 p-3 rounded-2xl border border-slate-800/60">
-            {helpline.supportMessage || 'সাহায্যের জন্য ২৪-৪৮ ঘণ্টার মধ্যে আমাদের টিম আপনার অনুরোধটি রিভিউ করবে। জরুরি কোনো সাহায্যের প্রয়োজন হলে আমাদের হেল্পলাইনে যোগাযোগ করতে পারেন।'}
+            {helpline.supportMessage || (language === 'bn' ? 'সাহায্যের জন্য ২৪-৪৮ ঘণ্টার মধ্যে আমাদের টিম আপনার অনুরোধটি রিভিউ করবে। জরুরি কোনো সাহায্যের প্রয়োজন হলে আমাদের হেল্পলাইনে যোগাযোগ করতে পারেন।' : 'Our team will review your request within 24-48 hours. For emergency assistance, please contact our helpline.')}
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
@@ -191,7 +195,7 @@ export const SupportView: React.FC<SupportViewProps> = ({ onBack, onShowToast })
                 <span>{helpline.primaryPhone}</span>
               </span>
               <span className="text-[10px] bg-emerald-600 text-white font-bold px-2 py-0.5 rounded-lg">
-                কল
+                {language === 'bn' ? 'কল' : 'Call'}
               </span>
             </a>
 
@@ -206,7 +210,7 @@ export const SupportView: React.FC<SupportViewProps> = ({ onBack, onShowToast })
                   <span>{helpline.secondaryPhone}</span>
                 </span>
                 <span className="text-[10px] bg-blue-600 text-white font-bold px-2 py-0.5 rounded-lg">
-                  বিকল্প
+                  {language === 'bn' ? 'বিকল্প' : 'Alt'}
                 </span>
               </a>
             )}
@@ -224,7 +228,7 @@ export const SupportView: React.FC<SupportViewProps> = ({ onBack, onShowToast })
                   <span>{helpline.whatsappNumber}</span>
                 </span>
                 <span className="text-[10px] bg-green-600 text-white font-bold px-2 py-0.5 rounded-lg">
-                  হোয়াটসঅ্যাপ
+                  {language === 'bn' ? 'হোয়াটসঅ্যাপ' : 'WhatsApp'}
                 </span>
               </a>
             )}
@@ -240,7 +244,7 @@ export const SupportView: React.FC<SupportViewProps> = ({ onBack, onShowToast })
                   <span className="truncate">{helpline.supportEmail}</span>
                 </span>
                 <span className="text-[10px] bg-slate-800 text-slate-300 font-bold px-2 py-0.5 rounded-lg border border-slate-700 shrink-0">
-                  ইমেইল
+                  {language === 'bn' ? 'ইমেইল' : 'Email'}
                 </span>
               </a>
             )}
@@ -252,7 +256,9 @@ export const SupportView: React.FC<SupportViewProps> = ({ onBack, onShowToast })
       {activeTab === 'faq' && (
         <div className="space-y-3">
           <div className="p-4 bg-slate-900/40 border border-slate-800 rounded-2xl text-xs text-slate-300 leading-relaxed">
-            ক্যাভ কমপ্যানিয়ন্স সংক্রান্ত জরুরি নিয়মাবলি ও সচরাচর জিজ্ঞাসিত প্রশ্নের উত্তর নিচে দেওয়া হলো।
+            {language === 'bn'
+              ? 'ক্যাভ কমপ্যানিয়ন্স সংক্রান্ত জরুরি নিয়মাবলি ও সচরাচর জিজ্ঞাসিত প্রশ্নের উত্তর নিচে দেওয়া হলো।'
+              : 'Here are the important rules and frequently asked questions regarding Cave Companions.'}
           </div>
 
           {loading ? (
@@ -264,6 +270,8 @@ export const SupportView: React.FC<SupportViewProps> = ({ onBack, onShowToast })
           ) : (
             faqs.map(faq => {
               const isExpanded = expandedFaq === faq.id;
+              const question = (language === 'bn' ? faq.questionBn : (faq.questionEn || faq.questionBn));
+              const answer = (language === 'bn' ? faq.answerBn : (faq.answerEn || faq.answerBn));
               return (
                 <div
                   key={faq.id}
@@ -275,7 +283,7 @@ export const SupportView: React.FC<SupportViewProps> = ({ onBack, onShowToast })
                   >
                     <span className="text-sm font-bold text-slate-100 flex items-center gap-2">
                       <FileQuestion className="w-4 h-4 text-emerald-400 shrink-0" />
-                      {faq.questionBn}
+                      {question}
                     </span>
                     {isExpanded ? (
                       <ChevronUp className="w-4 h-4 text-slate-400 shrink-0" />
@@ -292,7 +300,7 @@ export const SupportView: React.FC<SupportViewProps> = ({ onBack, onShowToast })
                         exit={{ opacity: 0, height: 0 }}
                         className="px-4 pb-4 text-xs text-slate-300 leading-relaxed border-t border-slate-800/60 pt-3"
                       >
-                        {faq.answerBn}
+                        {answer}
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -307,16 +315,20 @@ export const SupportView: React.FC<SupportViewProps> = ({ onBack, onShowToast })
         <form onSubmit={handleSubmitTicket} className="space-y-4 bg-slate-900/80 border border-slate-800 rounded-3xl p-6 shadow-xl">
           <div className="flex items-center gap-2 pb-3 border-b border-slate-800">
             <MessageSquare className="w-5 h-5 text-emerald-400" />
-            <h3 className="text-sm font-bold text-white">সাপোর্ট টিমকে বার্তা পাঠান</h3>
+            <h3 className="text-sm font-bold text-white">
+              {language === 'bn' ? 'সাপোর্ট টিমকে বার্তা পাঠান' : 'Send Message to Support Team'}
+            </h3>
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-300">বিষয়বস্তু (Subject)</label>
+            <label className="text-xs font-semibold text-slate-300">
+              {language === 'bn' ? 'বিষয়বস্তু (Subject)' : 'Subject'}
+            </label>
             <input
               type="text"
               value={subject}
               onChange={e => setSubject(e.target.value)}
-              placeholder="উদাঃ সালাত ভেরিফিকেশন সমস্যা / টোকেন ডিসকাউন্ট সংক্রান্ত"
+              placeholder={language === 'bn' ? 'উদাঃ সালাত ভেরিফিকেশন সমস্যা / টোকেন ডিসকাউন্ট সংক্রান্ত' : 'e.g. Prayer verification issue / Token discount query'}
               maxLength={150}
               required
               className="w-full px-4 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-emerald-500 transition-colors placeholder:text-slate-600"
@@ -324,11 +336,13 @@ export const SupportView: React.FC<SupportViewProps> = ({ onBack, onShowToast })
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-300">বিস্তারিত বিবরণ (Message)</label>
+            <label className="text-xs font-semibold text-slate-300">
+              {language === 'bn' ? 'বিস্তারিত বিবরণ (Message)' : 'Message Details'}
+            </label>
             <textarea
               value={message}
               onChange={e => setMessage(e.target.value)}
-              placeholder="আপনার সমস্যার বিবরণ বিস্তারিত লিখুন যাতে আমাদের টিম দ্রুত সমাধান দিতে পারে..."
+              placeholder={language === 'bn' ? 'আপনার সমস্যার বিবরণ বিস্তারিত লিখুন যাতে আমাদের টিম দ্রুত সমাধান দিতে পারে...' : 'Write detailed description of your issue so our team can resolve it quickly...'}
               rows={4}
               maxLength={2000}
               required
@@ -342,11 +356,11 @@ export const SupportView: React.FC<SupportViewProps> = ({ onBack, onShowToast })
             className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-sm rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/50 disabled:opacity-50 transition-all cursor-pointer"
           >
             {submitting ? (
-              <span>জমা দেওয়া হচ্ছে...</span>
+              <span>{language === 'bn' ? 'জমা দেওয়া হচ্ছে...' : 'Submitting...'}</span>
             ) : (
               <>
                 <Send className="w-4 h-4" />
-                <span>টিকেট সাবমিট করুন</span>
+                <span>{language === 'bn' ? 'টিকেট সাবমিট করুন' : 'Submit Ticket'}</span>
               </>
             )}
           </button>
@@ -358,8 +372,12 @@ export const SupportView: React.FC<SupportViewProps> = ({ onBack, onShowToast })
           {tickets.length === 0 ? (
             <div className="text-center py-16 bg-slate-900/30 border border-dashed border-slate-800 rounded-3xl p-6">
               <MessageSquare className="w-10 h-10 mx-auto text-slate-600 mb-2" />
-              <h3 className="text-sm font-bold text-slate-300">কোনো সাপোর্ট টিকেট নেই</h3>
-              <p className="text-xs text-slate-500 mt-1">আপনার কোনো সহায়তার প্রয়োজন হলে "টিকেট খুলুন" ট্যাব থেকে বার্তা পাঠান।</p>
+              <h3 className="text-sm font-bold text-slate-300">
+                {language === 'bn' ? 'কোনো সাপোর্ট টিকেট নেই' : 'No Support Tickets'}
+              </h3>
+              <p className="text-xs text-slate-500 mt-1">
+                {language === 'bn' ? 'আপনার কোনো সহায়তার প্রয়োজন হলে "টিকেট খুলুন" ট্যাব থেকে বার্তা পাঠান।' : 'If you need help, send a message from the "New Ticket" tab.'}
+              </p>
             </div>
           ) : (
             tickets.map(ticket => (
@@ -373,7 +391,7 @@ export const SupportView: React.FC<SupportViewProps> = ({ onBack, onShowToast })
                     {getStatusBadge(ticket.status)}
                   </div>
                   <span className="text-[11px] text-slate-500">
-                    {new Date(ticket.createdAt).toLocaleDateString('bn-BD', {
+                    {new Date(ticket.createdAt).toLocaleDateString(language === 'bn' ? 'bn-BD' : 'en-US', {
                       day: 'numeric',
                       month: 'short',
                       year: 'numeric'
@@ -390,7 +408,7 @@ export const SupportView: React.FC<SupportViewProps> = ({ onBack, onShowToast })
                   <div className="bg-emerald-950/40 border border-emerald-800/60 rounded-xl p-3 text-xs space-y-1">
                     <span className="font-bold text-emerald-400 flex items-center gap-1.5">
                       <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                      সাপোর্ট টিম উত্তরঃ
+                      {language === 'bn' ? 'সাপোর্ট টিম উত্তরঃ' : 'Support Team Response:'}
                     </span>
                     <p className="text-slate-200 leading-relaxed">{ticket.adminResponse}</p>
                   </div>

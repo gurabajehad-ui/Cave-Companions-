@@ -3,6 +3,7 @@ import { Search, Store, RefreshCw, ChevronRight, Plus, Loader2, MapPin, Building
 import { api } from '../services/api';
 import { MerchantVerificationRecord } from '../types';
 import { BANGLADESH_DISTRICTS, isLocationMatchingDistrict, isLocationMatchingUpazila } from '../data/bangladeshGeo';
+import { useLanguage } from '../context/LanguageContext';
 
 interface PartnerShopsViewProps {
   onSelectShop: (shop: MerchantVerificationRecord) => void;
@@ -12,6 +13,7 @@ interface PartnerShopsViewProps {
 }
 
 export function PartnerShopsView({ onSelectShop, onAddShopClick, initialStatus = 'ACTIVE', hideStatusFilter = false }: PartnerShopsViewProps) {
+  const { t, language } = useLanguage();
   const [shops, setShops] = useState<MerchantVerificationRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -128,14 +130,14 @@ export function PartnerShopsView({ onSelectShop, onAddShopClick, initialStatus =
                 className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-colors flex items-center gap-1.5 shadow-lg shadow-emerald-950/50 cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
-                <span>Add New Partner Shop</span>
+                <span>{language === 'bn' ? 'নতুন পার্টনার শপ যুক্ত করুন' : 'Add New Partner Shop'}</span>
               </button>
             )}
             
             <button
               onClick={fetchShops}
               className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors cursor-pointer"
-              title="Refresh List"
+              title={language === 'bn' ? 'রিফ্রেশ করুন' : 'Refresh List'}
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-amber-500' : ''}`} />
             </button>
@@ -149,7 +151,7 @@ export function PartnerShopsView({ onSelectShop, onAddShopClick, initialStatus =
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Search by shop name, owner, area, phone..."
+              placeholder={t('shop.searchPlaceholder')}
               className="w-full pl-9 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 transition-colors"
             />
             <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />

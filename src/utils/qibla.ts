@@ -95,9 +95,22 @@ export function calculateQiblaBearing(latitude: number, longitude: number): numb
 }
 
 /**
- * Returns descriptive Bengali direction for the Qibla (e.g., পশ্চিম-উত্তর-পশ্চিম / West-Northwest)
+ * Returns descriptive direction for the Qibla (e.g., পশ্চিম-উত্তর-পশ্চিম / West-Northwest)
  */
-export function getQiblaDirectionDescription(bearing: number): string {
+export function getQiblaDirectionDescription(bearing: number, lang: 'bn' | 'en' = 'bn'): string {
+  if (lang === 'en') {
+    if (bearing >= 260 && bearing <= 285) {
+      return 'West-Northwest (W-NW)';
+    } else if (bearing > 285 && bearing <= 315) {
+      return 'Northwest (NW)';
+    } else if (bearing >= 240 && bearing < 260) {
+      return 'West-Southwest (W-SW)';
+    } else if (bearing >= 265 && bearing <= 275) {
+      return 'Due West (W)';
+    }
+    return 'West (W)';
+  }
+
   if (bearing >= 260 && bearing <= 285) {
     return 'পশ্চিম-উত্তর-পশ্চিম (W-NW)';
   } else if (bearing > 285 && bearing <= 315) {

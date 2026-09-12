@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { BookOpen, Compass, Book, FileText, Users, Activity, Bell, X, Landmark } from 'lucide-react';
 import { PrayerReminderCard } from './PrayerReminderCard';
+import { useLanguage } from '../context/LanguageContext';
 
 interface FeaturesGridProps {
   onNavigate: (tab: any) => void;
@@ -11,14 +12,14 @@ interface FeaturesGridProps {
 }
 
 const FEATURE_ITEMS = [
-  { id: 'quran', label: 'কুরআন', icon: BookOpen },
-  { id: 'tasbih', label: 'তাসবিহ', icon: Activity },
-  { id: 'hisnul_muslim', label: 'হিসনূল মুসলিম', icon: Book },
-  { id: 'qibla', label: 'কিবলা', icon: Compass },
-  { id: 'blog', label: 'ব্লগ', icon: FileText },
-  { id: 'mosque', label: 'মসজিদ', icon: Landmark },
-  { id: 'cave_circle', label: 'কেভ সার্কেল', icon: Users },
-  { id: 'prayer_reminder', label: 'সালাত অ্যালার্ট', icon: Bell },
+  { id: 'quran', translationKey: 'features.quran', icon: BookOpen },
+  { id: 'tasbih', translationKey: 'features.tasbih', icon: Activity },
+  { id: 'hisnul_muslim', translationKey: 'features.hisnulMuslim', icon: Book },
+  { id: 'qibla', translationKey: 'features.qibla', icon: Compass },
+  { id: 'blog', translationKey: 'features.blog', icon: FileText },
+  { id: 'mosque', translationKey: 'features.mosque', icon: Landmark },
+  { id: 'cave_circle', translationKey: 'features.caveCircle', icon: Users },
+  { id: 'prayer_reminder', translationKey: 'features.prayerReminder', icon: Bell },
 ];
 
 export const FeaturesGrid: React.FC<FeaturesGridProps> = ({ 
@@ -28,6 +29,7 @@ export const FeaturesGrid: React.FC<FeaturesGridProps> = ({
   onShowToast,
   onOpenMosques 
 }) => {
+  const { t } = useLanguage();
   const [showReminderModal, setShowReminderModal] = useState(false);
 
   const handleItemClick = (id: string) => {
@@ -69,7 +71,7 @@ export const FeaturesGrid: React.FC<FeaturesGridProps> = ({
         className="w-full rounded-[28px] border border-amber-500/30 bg-gradient-to-b from-[#04241b] to-[#021812] p-5 shadow-[0_0_15px_rgba(245,158,11,0.1)] text-white"
         style={{ contain: 'layout style', transform: 'translateZ(0)' }}
       >
-        <h3 className="text-sm font-bold text-amber-200/90 mb-5 tracking-wide px-1">ফিচার সমূহ</h3>
+        <h3 className="text-sm font-bold text-amber-200/90 mb-5 tracking-wide px-1">{t('features.title')}</h3>
         <div className="grid grid-cols-4 gap-y-6 gap-x-2">
           {FEATURE_ITEMS.map((item) => (
             <button
@@ -81,7 +83,7 @@ export const FeaturesGrid: React.FC<FeaturesGridProps> = ({
                 <item.icon className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-100/90 group-hover:text-amber-300 transition-colors" strokeWidth={1.2} />
               </div>
               <span className="text-[11px] sm:text-xs font-medium text-emerald-100/80 group-hover:text-amber-200 text-center leading-tight">
-                {item.label}
+                {t(item.translationKey)}
               </span>
             </button>
           ))}

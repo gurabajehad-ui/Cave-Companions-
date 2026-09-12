@@ -18,6 +18,7 @@ import { PrayerInfo, TodayPrayerStatus, PrayerType } from '../types';
 import { PRAYERS_CONFIG, toBnNumber, formatBnTime } from '../data/prayerConfig';
 import { getSavedOrGpsLocation, getFastInitialLocation, getDhakaDateClient, isFridayClient } from '../services/prayerTimeService';
 import { offlineSyncService, PendingCheckIn } from '../services/offlineSyncService';
+import { useLanguage } from '../context/LanguageContext';
 
 interface CompactPrayersCardProps {
   todayStatus: TodayPrayerStatus | null;
@@ -38,13 +39,14 @@ export const CompactPrayersCard: React.FC<CompactPrayersCardProps> = React.memo(
   onShowToast,
   todayDateStr
 }) => {
+  const { t, language } = useLanguage();
   const [coords, setCoords] = useState<{ lat: number; lng: number; source: 'gps' | 'district' | 'default'; name: string } | null>(() => {
     const init = getFastInitialLocation(userDistrict);
     return {
       lat: init.latitude,
       lng: init.longitude,
       source: init.source,
-      name: init.locationName || 'ঢাকা'
+      name: init.locationName || (language === 'bn' ? 'ঢাকা' : 'Dhaka')
     };
   });
   const [loadingCoords, setLoadingCoords] = useState(false);
@@ -78,13 +80,14 @@ export const CompactPrayersCard: React.FC<CompactPrayersCardProps> = React.memo(
 
     try {
       const loc = await getSavedOrGpsLocation(userDistrict);
+      const defaultLocName = language === 'bn' ? 'ঢাকা' : 'Dhaka';
       setCoords(prev => {
         if (
           prev &&
           Math.abs(prev.lat - loc.latitude) < 0.0001 &&
           Math.abs(prev.lng - loc.longitude) < 0.0001 &&
           prev.source === loc.source &&
-          prev.name === (loc.locationName || 'ঢাকা')
+          prev.name === (loc.locationName || defaultLocName)
         ) {
           return prev;
         }
@@ -92,14 +95,16 @@ export const CompactPrayersCard: React.FC<CompactPrayersCardProps> = React.memo(
           lat: loc.latitude,
           lng: loc.longitude,
           source: loc.source,
-          name: loc.locationName || 'ঢাকা'
+          name: loc.locationName || defaultLocName
         };
       });
       if (manual && onShowToast) {
         onShowToast(
           'success',
-          'লোকেশন আপডেট সফল',
-          loc.source === 'gps' ? 'জিপিএস (GPS) অনুযায়ী সময়সূচী সেট করা হয়েছে।' : `আপনার জেলা (${loc.locationName}) অনুযায়ী সেট করা হয়েছে।`
+          language === 'bn' ? 'লোকেশন আপডেট সফল' : 'Location Updated',
+          loc.source === 'gps'
+            ? (language === 'bn' ? 'জিপিএস (GPS) অনুযায়ী সময়সূচী সেট করা হয়েছে।' : 'Schedule set according to GPS.')
+            : (language === 'bn' ? `আপনার জেলা (${loc.locationName}) অনুযায়ী সেট করা হয়েছে।` : `Set according to district (${loc.locationName}).`)
         );
       }
     } catch (err) {
@@ -108,7 +113,7 @@ export const CompactPrayersCard: React.FC<CompactPrayersCardProps> = React.memo(
         lat: 23.8103,
         lng: 90.4125,
         source: 'default',
-        name: 'ঢাকা (ডিফল্ট)'
+        name: language === 'bn' ? 'ঢাকা (ডিফল্ট)' : 'Dhaka (Default)'
       });
     } finally {
       setLoadingCoords(false);
@@ -146,7 +151,10 @@ export const CompactPrayersCard: React.FC<CompactPrayersCardProps> = React.memo(
       const m = date.getMinutes();
       const hStr = h < 10 ? `0${h}` : `${h}`;
       const mStr = m < 10 ? `0${m}` : `${m}`;
-      return `${toBnNumber(hStr)}:${toBnNumber(mStr)}`;
+      if (language === 'bn') {
+        return `${toBnNumber(hStr)}:${toBnNumber(mStr)}`;
+      }
+      return `${hStr}:${mStr}`;
     };
 
     return {
@@ -157,7 +165,7 @@ export const CompactPrayersCard: React.FC<CompactPrayersCardProps> = React.memo(
       maghrib: { start: pt.maghrib, end: pt.isha, str: `${formatTime(pt.maghrib)} - ${formatTime(pt.isha)}` },
       isha: { start: pt.isha, end: ptTomorrow.fajr, str: `${formatTime(pt.isha)} - ${formatTime(ptTomorrow.fajr)}` }
     };
-  }, [coords, currentTime]);
+  }, [coords, currentTime, language]);
 
   const activePrayerType = useMemo(() => {
     if (!calculatedTimes) return null;
@@ -205,12 +213,28 @@ export const CompactPrayersCard: React.FC<CompactPrayersCardProps> = React.memo(
         }
       };
 
+      const displayName = language === 'bn'
+        ? (config?.nameBn || (type === 'jumuah' ? 'জুম\'আহ' : 'যোহর'))
+        : (config?.nameEn || type.toUpperCase());
+
+      const englishRakatsMap: Record<string, string> = {
+        fajr: "2 Rak'ah Fard",
+        dhuhr: "4 Rak'ah Fard",
+        jumuah: "2 Rak'ah Fard",
+        asr: "4 Rak'ah Fard",
+        maghrib: "3 Rak'ah Fard",
+        isha: "4 Rak'ah Fard",
+      };
+
+      const displayRakats = language === 'bn'
+        ? config?.rakats
+        : (englishRakatsMap[type] || config?.rakats || '');
+
       return {
         type,
-        nameBn: config?.nameBn || (type === 'jumuah' ? 'জুম\'আহ' : 'যোহর'),
-        nameEn: config?.nameEn || '',
-        rakats: config?.rakats || '',
-        timeRangeStr: calTime ? calTime.str : config?.timeWindowBn || '',
+        displayName,
+        rakats: displayRakats,
+        timeRangeStr: calTime ? calTime.str : (language === 'bn' ? config?.timeWindowBn : config?.timeWindowEn) || '',
         isCompleted,
         pendingOffline,
         attendance: statusItem.attendance,
@@ -220,7 +244,7 @@ export const CompactPrayersCard: React.FC<CompactPrayersCardProps> = React.memo(
         config
       };
     });
-  }, [calculatedTimes, todayStatus, offlinePendingState, activePrayerType, currentTime, actionLoadingPrayerType]);
+  }, [calculatedTimes, todayStatus, offlinePendingState, activePrayerType, currentTime, actionLoadingPrayerType, language]);
 
   return (
     <div 
@@ -232,7 +256,7 @@ export const CompactPrayersCard: React.FC<CompactPrayersCardProps> = React.memo(
         <div className="flex items-center gap-2">
           <CalendarDays className="w-4 h-4 text-amber-400 shrink-0" />
           <span className="text-xs sm:text-sm font-bold text-slate-100">
-            আজকের সালাত সময়সূচী ও ট্র্যাকিং
+            {t('prayer.todaySchedule')}
           </span>
         </div>
 
@@ -243,7 +267,7 @@ export const CompactPrayersCard: React.FC<CompactPrayersCardProps> = React.memo(
             onClick={() => fetchLocation(true)}
             disabled={isRefreshing}
             className="p-1 rounded bg-[#033024] border border-[#0a4838] text-emerald-300 hover:text-amber-300 transition-colors ml-0.5 cursor-pointer shrink-0"
-            title="লোকেশন রিফ্রেশ করুন"
+            title={t('prayer.refreshLocation')}
           >
             <RefreshCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin' : ''}`} />
           </button>
@@ -255,7 +279,7 @@ export const CompactPrayersCard: React.FC<CompactPrayersCardProps> = React.memo(
         {loadingCoords ? (
           <div className="py-6 flex flex-col items-center justify-center space-y-1.5 text-emerald-300/70 text-xs">
             <Loader2 className="w-5 h-5 animate-spin text-amber-400" />
-            <span>সময়সূচী লোড হচ্ছে...</span>
+            <span>{t('prayer.loadingSchedule')}</span>
           </div>
         ) : (
           prayerRows.map(row => (
@@ -269,7 +293,7 @@ export const CompactPrayersCard: React.FC<CompactPrayersCardProps> = React.memo(
             >
               {/* Main Prayer Line */}
               <div className="flex items-center justify-between gap-2.5">
-                {/* Left: Icon + Bengali Name + Rakats */}
+                {/* Left: Icon + Name + Rakats */}
                 <div className="flex items-center gap-2.5 min-w-0">
                   <div className={`p-1.5 rounded-lg shrink-0 ${
                     row.isCompleted
@@ -286,7 +310,7 @@ export const CompactPrayersCard: React.FC<CompactPrayersCardProps> = React.memo(
                       <span className={`text-sm font-bold truncate ${
                         row.isActive ? 'text-amber-300' : 'text-slate-100'
                       }`}>
-                        {row.nameBn}
+                        {row.displayName}
                       </span>
                       {row.isActive && (
                         <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
@@ -308,7 +332,7 @@ export const CompactPrayersCard: React.FC<CompactPrayersCardProps> = React.memo(
                   {row.isCompleted ? (
                     <div className="flex items-center gap-1 text-[11px] font-bold text-amber-300 bg-[#033024] border border-[#0a4838] px-2.5 py-1 rounded-lg">
                       <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>{row.pendingOffline ? 'অফলাইন' : (row.attendance?.attendanceType === 'home' || isFemale ? 'সম্পন্ন' : 'জামাতে')}</span>
+                      <span>{row.pendingOffline ? t('common.offline') : (row.attendance?.attendanceType === 'home' || isFemale ? t('common.completed') : t('common.jamaah'))}</span>
                     </div>
                   ) : (
                     <button
@@ -325,12 +349,12 @@ export const CompactPrayersCard: React.FC<CompactPrayersCardProps> = React.memo(
                       {row.isVerifying ? (
                         <>
                           <Loader2 className="w-3 h-3 animate-spin text-amber-400" />
-                          <span>যাচাই হচ্ছে...</span>
+                          <span>{t('common.verifying')}</span>
                         </>
                       ) : (
                         <>
                           <CheckCircle2 className="w-3.5 h-3.5 text-amber-300 shrink-0" />
-                          <span>সালাত পড়েছি</span>
+                          <span>{t('prayer.prayed')}</span>
                         </>
                       )}
                     </button>

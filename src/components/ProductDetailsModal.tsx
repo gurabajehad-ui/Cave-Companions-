@@ -18,6 +18,7 @@ import {
 import { Product, User } from '../types';
 import { api } from '../services/api';
 import { toBnNumber } from '../data/prayerConfig';
+import { useLanguage } from '../context/LanguageContext';
 
 interface ProductDetailsModalProps {
   isOpen: boolean;
@@ -40,6 +41,9 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
   onShowToast,
   onBuyClick
 }) => {
+  const { language } = useLanguage();
+  const formatNum = (val: number | string) => language === 'bn' ? toBnNumber(val) : String(val);
+
   const [reviews, setReviews] = useState<any[]>([]);
   const [averageRating, setAverageRating] = useState<number>(0);
   const [totalReviews, setTotalReviews] = useState<number>(0);
@@ -93,12 +97,20 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
     e.preventDefault();
     const hasToken = localStorage.getItem('cave_companions_auth_token');
     if (!currentUser && !hasToken) {
-      onShowToast('error', 'লগইন প্রয়োজন', 'রিভিউ দিতে অনুগ্রহ করে আগে লগইন করুন।');
+      onShowToast(
+        'error', 
+        language === 'bn' ? 'লগইন প্রয়োজন' : 'Login Required', 
+        language === 'bn' ? 'রিভিউ দিতে অনুগ্রহ করে আগে লগইন করুন।' : 'Please log in first to submit a review.'
+      );
       return;
     }
 
     if (!comment.trim()) {
-      onShowToast('error', 'মন্তব্য লিখুন', 'দয়া করে আপনার মন্তব্য বা রিভিউ লিখুন।');
+      onShowToast(
+        'error', 
+        language === 'bn' ? 'মন্তব্য লিখুন' : 'Enter Review', 
+        language === 'bn' ? 'দয়া করে আপনার মন্তব্য বা রিভিউ লিখুন।' : 'Please write your comment or review.'
+      );
       return;
     }
 
@@ -106,29 +118,46 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
       setIsSubmitting(true);
       const res = await api.submitProductReview(product.id, userRating, comment.trim());
       if (res.success) {
-        onShowToast('success', 'সফল', res.message || 'আপনার রিভিউ সফলভাবে সংরক্ষিত হয়েছে।');
+        onShowToast(
+          'success', 
+          language === 'bn' ? 'সফল' : 'Success', 
+          res.message || (language === 'bn' ? 'আপনার রিভিউ সফলভাবে সংরক্ষিত হয়েছে।' : 'Your review has been saved successfully.')
+        );
         await loadReviews();
         setComment('');
       }
     } catch (err: any) {
       console.error('Error submitting product review:', err);
-      onShowToast('error', 'ব্যর্থ', err.message || 'রিভিউ সংরক্ষণ করতে সমস্যা হয়েছে।');
+      onShowToast(
+        'error', 
+        language === 'bn' ? 'ব্যর্থ' : 'Failed', 
+        err.message || (language === 'bn' ? 'রিভিউ সংরক্ষণ করতে সমস্যা হয়েছে।' : 'Failed to save review.')
+      );
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleDeleteReview = async (reviewId: string) => {
-    if (!window.confirm('আপনি কি নিশ্চিত যে এই রিভিউটি মুছে ফেলতে চান?')) return;
+    const confirmMsg = language === 'bn' ? 'আপনি কি নিশ্চিত যে এই রিভিউটি মুছে ফেলতে চান?' : 'Are you sure you want to delete this review?';
+    if (!window.confirm(confirmMsg)) return;
     try {
       setDeletingReviewId(reviewId);
       const res = await api.deleteProductReview(product.id, reviewId);
       if (res.success) {
-        onShowToast('success', 'মুছে ফেলা হয়েছে', res.message || 'রিভিউ মুছে ফেলা হয়েছে।');
+        onShowToast(
+          'success', 
+          language === 'bn' ? 'মুছে ফেলা হয়েছে' : 'Deleted', 
+          res.message || (language === 'bn' ? 'রিভিউ মুছে ফেলা হয়েছে।' : 'Review deleted.')
+        );
         await loadReviews();
       }
     } catch (err: any) {
-      onShowToast('error', 'ব্যর্থ', err.message || 'রিভিউ মুছতে সমস্যা হয়েছে।');
+      onShowToast(
+        'error', 
+        language === 'bn' ? 'ব্যর্থ' : 'Failed', 
+        err.message || (language === 'bn' ? 'রিভিউ মুছতে সমস্যা হয়েছে।' : 'Failed to delete review.')
+      );
     } finally {
       setDeletingReviewId(null);
     }
@@ -151,8 +180,12 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
               <ShoppingBag className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-sm sm:text-base font-extrabold text-white">পণ্যের বিস্তারিত ও রিভিউ</h3>
-              <p className="text-[11px] text-slate-400">কেভ মার্কেট পার্টনার শপ পণ্য</p>
+              <h3 className="text-sm sm:text-base font-extrabold text-white">
+                {language === 'bn' ? 'পণ্যের বিস্তারিত ও রিভিউ' : 'Product Details & Reviews'}
+              </h3>
+              <p className="text-[11px] text-slate-400">
+                {language === 'bn' ? 'কেভ মার্কেট পার্টনার শপ পণ্য' : 'Cave Market Partner Shop Product'}
+              </p>
             </div>
           </div>
           <button
@@ -181,7 +214,9 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
               
               <div className="absolute top-3 right-3">
                 <span className={`px-2.5 py-1 text-[10px] font-black rounded-lg shadow-lg ${product.isAvailable ? 'bg-emerald-600 text-white' : 'bg-slate-700 text-slate-200'}`}>
-                  {product.isAvailable ? 'স্টকে আছে' : 'অনুপলব্ধ'}
+                  {product.isAvailable 
+                    ? (language === 'bn' ? 'স্টকে আছে' : 'In Stock') 
+                    : (language === 'bn' ? 'অনুপলব্ধ' : 'Unavailable')}
                 </span>
               </div>
             </div>
@@ -223,7 +258,7 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
             <div className="space-y-2">
               <div className="flex items-center gap-1.5 text-xs text-amber-400 font-bold">
                 <Store className="w-4 h-4" />
-                <span>{product.shopName || 'পার্টনার শপ'}</span>
+                <span>{product.shopName || (language === 'bn' ? 'পার্টনার শপ' : 'Partner Shop')}</span>
               </div>
 
               <h2 className="text-xl sm:text-2xl font-black text-white leading-tight">
@@ -233,17 +268,25 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
               {maxDiscount > 0 && (
                 <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-xl text-[11px] font-black w-fit animate-pulse">
                   <Award className="w-4 h-4 text-amber-400 shrink-0" />
-                  <span>সর্বোচ্চ {toBnNumber(maxDiscount)}% টোকেন ছাড় প্রযোজ্য</span>
+                  <span>
+                    {language === 'bn' 
+                      ? `সর্বোচ্চ ${formatNum(maxDiscount)}% টোকেন ছাড় প্রযোজ্য` 
+                      : `Up to ${formatNum(maxDiscount)}% token discount applicable`}
+                  </span>
                 </div>
               )}
             </div>
 
             <div className="flex items-end justify-between gap-4 pt-4 border-t border-slate-800/50">
               <div>
-                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest block mb-1">মূল্য</span>
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest block mb-1">
+                  {language === 'bn' ? 'মূল্য' : 'Price'}
+                </span>
                 <span className="text-2xl sm:text-3xl font-black text-emerald-400 font-mono flex items-baseline gap-1">
                   <span className="text-lg">৳</span>
-                  {Number(product.originalPrice || 0).toLocaleString('bn-BD')}
+                  {language === 'bn' 
+                    ? Number(product.originalPrice || 0).toLocaleString('bn-BD') 
+                    : Number(product.originalPrice || 0).toLocaleString('en-US')}
                 </span>
               </div>
 
@@ -256,7 +299,11 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
                 className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 disabled:text-slate-500 text-white text-sm font-black rounded-2xl transition shadow-xl shadow-emerald-950/40 cursor-pointer flex items-center gap-2 active:scale-95"
               >
                 <ShoppingBag className="w-5 h-5" />
-                <span>{product.isAvailable ? 'এখনই কিনুন' : 'স্টক আউট'}</span>
+                <span>
+                  {product.isAvailable 
+                    ? (language === 'bn' ? 'এখনই কিনুন' : 'Buy Now') 
+                    : (language === 'bn' ? 'স্টক আউট' : 'Out of Stock')}
+                </span>
               </button>
             </div>
           </div>
@@ -268,7 +315,7 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
                 <div className="w-1.5 h-5 bg-amber-500 rounded-full"></div>
                 <h4 className="text-sm sm:text-base font-black text-white uppercase tracking-tight flex items-center gap-2">
                   <FileText className="w-4 h-4 text-amber-500" />
-                  <span>মার্চেন্ট কর্তৃক পণ্যের বিবরণ</span>
+                  <span>{language === 'bn' ? 'মার্চেন্ট কর্তৃক পণ্যের বিবরণ' : 'Merchant Product Description'}</span>
                 </h4>
               </div>
               <div className="bg-slate-950/60 p-5 sm:p-6 rounded-3xl border border-amber-500/20 shadow-2xl relative overflow-hidden group">
@@ -286,7 +333,9 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
                       <div className="w-6 h-6 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-[10px]">✨</div>
                       <div className="w-6 h-6 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-[10px]">💯</div>
                     </div>
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Premium Quality Product</span>
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                      {language === 'bn' ? 'প্রিমিয়াম কোয়ালিটি পণ্য' : 'Premium Quality Product'}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -297,7 +346,7 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
           <div className="bg-slate-950/40 p-4 sm:p-5 rounded-2xl border border-slate-800 flex flex-col sm:flex-row items-center gap-5">
             <div className="text-center sm:border-r sm:border-slate-800 sm:pr-6 shrink-0 w-full sm:w-auto">
               <div className="text-3xl sm:text-4xl font-black text-amber-400 tracking-tight">
-                {averageRating > 0 ? toBnNumber(averageRating.toFixed(1)) : toBnNumber('০.০')}
+                {averageRating > 0 ? formatNum(averageRating.toFixed(1)) : formatNum('0.0')}
               </div>
               <div className="flex items-center justify-center gap-1 my-1 text-amber-400">
                 {[1, 2, 3, 4, 5].map((star) => (
@@ -308,7 +357,9 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
                 ))}
               </div>
               <span className="text-[11px] font-bold text-slate-400">
-                সর্বমোট {toBnNumber(totalReviews)} টি রেটিং ও রিভিউ
+                {language === 'bn' 
+                  ? `সর্বমোট ${formatNum(totalReviews)} টি রেটিং ও রিভিউ` 
+                  : `Total ${formatNum(totalReviews)} ratings & reviews`}
               </span>
             </div>
 
@@ -320,13 +371,13 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
                 return (
                   <div key={stars} className="flex items-center gap-2">
                     <span className="w-10 text-[11px] font-bold text-slate-300 flex items-center gap-0.5">
-                      {toBnNumber(stars)} <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
+                      {formatNum(stars)} <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
                     </span>
                     <div className="flex-1 h-2 bg-slate-800 rounded-full overflow-hidden">
                       <div className="h-full bg-amber-400 rounded-full transition-all duration-500" style={{ width: `${percent}%` }} />
                     </div>
                     <span className="w-12 text-right text-[10px] text-slate-400 font-mono">
-                      {toBnNumber(count)} ({toBnNumber(percent)}%)
+                      {formatNum(count)} ({formatNum(percent)}%)
                     </span>
                   </div>
                 );
@@ -338,7 +389,7 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
           <form onSubmit={handleSubmitReview} className="bg-slate-800/40 p-4 rounded-2xl border border-slate-700/60 space-y-3">
             <h4 className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5">
               <MessageSquare className="w-4 h-4 text-emerald-400" />
-              <span>এই পণ্যের ওপর আপনার রেটিং ও রিভিউ দিন</span>
+              <span>{language === 'bn' ? 'এই পণ্যের ওপর আপনার রেটিং ও রিভিউ দিন' : 'Rate and review this product'}</span>
             </h4>
 
             {/* Interactive Stars */}
@@ -362,14 +413,14 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
                 </button>
               ))}
               <span className="ml-2 text-xs font-bold text-amber-400">
-                {toBnNumber(hoverRating || userRating)} স্টার
+                {language === 'bn' ? `${formatNum(hoverRating || userRating)} স্টার` : `${formatNum(hoverRating || userRating)} Stars`}
               </span>
             </div>
 
             <textarea
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              placeholder="পণ্যের মান, কোয়ালিটি এবং ব্যবহার সম্পর্কে আপনার অভিজ্ঞতা লিখুন..."
+              placeholder={language === 'bn' ? 'পণ্যের মান, কোয়ালিটি এবং ব্যবহার সম্পর্কে আপনার অভিজ্ঞতা লিখুন...' : 'Write your experience about product quality and use...'}
               rows={2}
               className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500 resize-none"
             />
@@ -380,7 +431,9 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
                 disabled={isSubmitting || !comment.trim()}
                 className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-bold text-xs flex items-center gap-1.5 cursor-pointer transition shadow-md"
               >
-                {isSubmitting ? 'প্রসেসিং...' : <><Send className="w-3.5 h-3.5" /> রিভিউ জমা দিন</>}
+                {isSubmitting 
+                  ? (language === 'bn' ? 'প্রসেসিং...' : 'Processing...') 
+                  : <><Send className="w-3.5 h-3.5" /> {language === 'bn' ? 'রিভিউ জমা দিন' : 'Submit Review'}</>}
               </button>
             </div>
           </form>
@@ -388,14 +441,16 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
           {/* Reviews List */}
           <div className="space-y-3">
             <h4 className="text-xs sm:text-sm font-bold text-slate-300">
-              গ্রাহক মতামত ({toBnNumber(reviews.length)})
+              {language === 'bn' ? `গ্রাহক মতামত (${formatNum(reviews.length)})` : `Customer Reviews (${formatNum(reviews.length)})`}
             </h4>
 
             {isLoading ? (
-              <div className="py-8 text-center text-xs text-slate-400">রিভিউ লোড হচ্ছে...</div>
+              <div className="py-8 text-center text-xs text-slate-400">
+                {language === 'bn' ? 'রিভিউ লোড হচ্ছে...' : 'Loading reviews...'}
+              </div>
             ) : reviews.length === 0 ? (
               <div className="bg-slate-950/40 border border-slate-800 rounded-2xl p-6 text-center text-xs text-slate-400">
-                এই পণ্যে এখনও কোনো রিভিউ দেওয়া হয়নি। প্রথম রিভিউটি আপনিই দিন!
+                {language === 'bn' ? 'এই পণ্যে এখনও কোনো রিভিউ দেওয়া হয়নি। প্রথম রিভিউটি আপনিই দিন!' : 'No reviews yet for this product. Be the first to leave one!'}
               </div>
             ) : (
               <div className="space-y-2.5">
@@ -412,9 +467,9 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
                             {rev.userName ? rev.userName[0].toUpperCase() : 'U'}
                           </div>
                           <div>
-                            <span className="text-xs font-bold text-white">{rev.userName || 'গ্রাহক'}</span>
+                            <span className="text-xs font-bold text-white">{rev.userName || (language === 'bn' ? 'গ্রাহক' : 'Customer')}</span>
                             <span className="text-[10px] text-slate-500 block">
-                              {new Date(rev.createdAt).toLocaleDateString('bn-BD', { day: 'numeric', month: 'short', year: 'numeric' })}
+                              {new Date(rev.createdAt).toLocaleDateString(language === 'bn' ? 'bn-BD' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
                             </span>
                           </div>
                         </div>
@@ -422,14 +477,14 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
                         <div className="flex items-center gap-2">
                           <div className="flex items-center gap-0.5 px-2 py-0.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-bold">
                             <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                            <span>{toBnNumber(rev.rating)}</span>
+                            <span>{formatNum(rev.rating)}</span>
                           </div>
                           {canDelete && (
                             <button
                               onClick={() => handleDeleteReview(rev.id)}
                               disabled={deletingReviewId === rev.id}
                               className="p-1 rounded text-slate-500 hover:text-rose-400 hover:bg-slate-800 cursor-pointer"
-                              title="রিভিউ মুছুন"
+                              title={language === 'bn' ? 'রিভিউ মুছুন' : 'Delete Review'}
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
@@ -454,7 +509,7 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
             onClick={onClose}
             className="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold cursor-pointer"
           >
-            বন্ধ করুন
+            {language === 'bn' ? 'বন্ধ করুন' : 'Close'}
           </button>
         </div>
       </motion.div>

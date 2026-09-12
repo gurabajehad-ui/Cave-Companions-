@@ -8,6 +8,8 @@ import {
 import { Mosque } from '../types';
 import { api, getStoredAdminToken, getStoredUser } from '../services/api';
 import { MosqueSubmissionModal } from './MosqueSubmissionModal';
+import { toBnNumber } from '../data/prayerConfig';
+import { useLanguage } from '../context/LanguageContext';
 
 interface MosqueDirectoryModalProps {
   onClose: () => void;
@@ -28,6 +30,7 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
 }
 
 export const MosqueDirectoryModal: React.FC<MosqueDirectoryModalProps> = ({ onClose, onSelectForScan }) => {
+  const { language } = useLanguage();
   const isAdmin = !!getStoredAdminToken() || !!localStorage.getItem('admin_role');
   const currentUser = getStoredUser();
 
@@ -97,7 +100,7 @@ export const MosqueDirectoryModal: React.FC<MosqueDirectoryModalProps> = ({ onCl
           setUserLocation({ lat: 23.8103, lng: 90.4125 });
           setViewMode('nearby');
           setIsLocating(false);
-          setLocationError('জিপিএস লোকেশন নেওয়া যায়নি। ডিফল্ট লোকেশন (ঢাকা) থেকে দূরত্ব দেখানো হচ্ছে।');
+          setLocationError(language === 'bn' ? 'জিপিএস লোকেশন নেওয়া যায়নি। ডিফল্ট লোকেশন (ঢাকা) থেকে দূরত্ব দেখানো হচ্ছে।' : 'GPS location not available. Showing distance from default location (Dhaka).');
         },
         { timeout: 10000, enableHighAccuracy: true, maximumAge: 0 }
       );
@@ -105,7 +108,7 @@ export const MosqueDirectoryModal: React.FC<MosqueDirectoryModalProps> = ({ onCl
       setUserLocation({ lat: 23.8103, lng: 90.4125 });
       setViewMode('nearby');
       setIsLocating(false);
-      setLocationError('ব্রাউজার লোকেশন সাপোর্ট না করায় ডিফল্ট লোকেশন (ঢাকা) থেকে দূরত্ব দেখানো হচ্ছে।');
+      setLocationError(language === 'bn' ? 'ব্রাউজার লোকেশন সাপোর্ট না করায় ডিফল্ট লোকেশন (ঢাকা) থেকে দূরত্ব দেখানো হচ্ছে।' : 'Browser does not support geolocation. Showing distance from default location (Dhaka).');
     }
   };
 
@@ -165,10 +168,10 @@ export const MosqueDirectoryModal: React.FC<MosqueDirectoryModalProps> = ({ onCl
             </div>
             <div>
               <h2 className="text-base font-bold text-white leading-tight">
-                মসজিদ ডিরেক্টরি ও জিপিএস নেভিগেশন
+                {language === 'bn' ? 'মসজিদ ডিরেক্টরি ও জিপিএস নেভিগেশন' : 'Mosque Directory & Navigation'}
               </h2>
               <p className="text-xs text-emerald-300/80 mt-0.5">
-                আপনার আশেপাশের অনুমোদিত মসজিদ ও ডিরেকশন খুঁজুন
+                {language === 'bn' ? 'আপনার আশেপাশের অনুমোদিত মসজিদ ও ডিরেকশন খুঁজুন' : 'Find nearby verified mosques and get directions'}
               </p>
             </div>
           </div>
@@ -194,13 +197,13 @@ export const MosqueDirectoryModal: React.FC<MosqueDirectoryModalProps> = ({ onCl
               }`}
             >
               <Landmark className="w-3.5 h-3.5" />
-              <span>সকল মসজিদ ({mosques.length})</span>
+              <span>{language === 'bn' ? `সকল মসজিদ (${toBnNumber(mosques.length)})` : `All Mosques (${mosques.length})`}</span>
             </button>
 
             <button
               onClick={handleFetchNearby}
               disabled={isLocating}
-              title="ক্লিক করে আপনার বর্তমান জিপিএস লোকেশন রিফ্রেশ করুন"
+              title={language === 'bn' ? 'ক্লিক করে আপনার বর্তমান জিপিএস লোকেশন রিফ্রেশ করুন' : 'Refresh GPS location'}
               className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 ${
                 viewMode === 'nearby'
                   ? 'bg-amber-500 text-slate-950 shadow-md font-black ring-2 ring-amber-400/40'
@@ -212,17 +215,17 @@ export const MosqueDirectoryModal: React.FC<MosqueDirectoryModalProps> = ({ onCl
               ) : (
                 <Compass className="w-3.5 h-3.5" />
               )}
-              <span>{isLocating ? 'রিফ্রেশ হচ্ছে...' : 'আমার আশেপাশের মসজিদ'}</span>
+              <span>{isLocating ? (language === 'bn' ? 'রিফ্রেশ হচ্ছে...' : 'Refreshing...') : (language === 'bn' ? 'আমার আশেপাশের মসজিদ' : 'Nearby Mosques')}</span>
             </button>
 
             {/* Plus (+) Button directly next to "আমার আশেপাশের মসজিদ" */}
             <button
               onClick={() => setIsSubmissionModalOpen(true)}
               className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-emerald-950/60 transition-all cursor-pointer shrink-0"
-              title="নতুন মসজিদ যুক্ত করার আবেদন করুন"
+              title={language === 'bn' ? 'নতুন মসজিদ যুক্ত করার আবেদন করুন' : 'Apply to add new mosque'}
             >
               <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">মসজিদ যুক্ত করুন</span>
+              <span className="hidden sm:inline">{language === 'bn' ? 'মসজিদ যুক্ত করুন' : 'Add Mosque'}</span>
             </button>
           </div>
 
@@ -238,7 +241,7 @@ export const MosqueDirectoryModal: React.FC<MosqueDirectoryModalProps> = ({ onCl
                 }`}
               >
                 <Clock className="w-3 h-3 text-amber-400" />
-                <span>আমার আবেদনসমূহ ({myRequests.length})</span>
+                <span>{language === 'bn' ? `আমার আবেদনসমূহ (${toBnNumber(myRequests.length)})` : `My Requests (${myRequests.length})`}</span>
               </button>
             </div>
           )}
@@ -258,7 +261,7 @@ export const MosqueDirectoryModal: React.FC<MosqueDirectoryModalProps> = ({ onCl
                 type="text"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                placeholder="মসজিদের নাম, এলাকা বা জেলা দিয়ে খুঁজুন..."
+                placeholder={language === 'bn' ? 'মসজিদের নাম, এলাকা বা জেলা দিয়ে খুঁজুন...' : 'Search by mosque name, area, or district...'}
                 className="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-700/60 rounded-xl text-white placeholder-slate-500 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
               />
             </div>
@@ -270,7 +273,7 @@ export const MosqueDirectoryModal: React.FC<MosqueDirectoryModalProps> = ({ onCl
           {isLoading ? (
             <div className="py-12 text-center text-slate-400">
               <div className="w-8 h-8 border-3 border-emerald-400 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-              <p className="text-xs">মসজিদ তালিকা লোড হচ্ছে...</p>
+              <p className="text-xs">{language === 'bn' ? 'মসজিদ তালিকা লোড হচ্ছে...' : 'Loading mosque list...'}</p>
             </div>
           ) : viewMode === 'my_requests' ? (
             /* User's Submitted Requests */
@@ -278,19 +281,19 @@ export const MosqueDirectoryModal: React.FC<MosqueDirectoryModalProps> = ({ onCl
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
                   <Clock className="w-4 h-4" />
-                  <span>আপনার প্রেরিত মসজিদ আবেদনসমূহ</span>
+                  <span>{language === 'bn' ? 'আপনার প্রেরিত মসজিদ আবেদনসমূহ' : 'Your Mosque Applications'}</span>
                 </h3>
                 <button
                   onClick={() => setViewMode('all')}
                   className="text-xs text-emerald-400 hover:underline"
                 >
-                  সকল মসজিদে ফিরে যান
+                  {language === 'bn' ? 'সকল মসজিদে ফিরে যান' : 'Back to all mosques'}
                 </button>
               </div>
 
               {myRequests.length === 0 ? (
                 <div className="py-12 text-center text-slate-400 bg-slate-900/40 rounded-2xl border border-slate-800 p-6">
-                  <p className="text-xs">আপনি এখনও কোনো মসজিদ যুক্ত করার আবেদন করেননি।</p>
+                  <p className="text-xs">{language === 'bn' ? 'আপনি এখনও কোনো মসজিদ যুক্ত করার আবেদন করেননি।' : 'You have not submitted any mosque applications yet.'}</p>
                 </div>
               ) : (
                 myRequests.map(req => (
@@ -316,7 +319,7 @@ export const MosqueDirectoryModal: React.FC<MosqueDirectoryModalProps> = ({ onCl
                             : 'bg-amber-950 text-amber-300 border border-amber-600/60'
                         }`}
                       >
-                        {req.status === 'active' ? '✓ অনুমোদিত' : req.status === 'rejected' ? '✕ বাতিলকৃত' : '⏳ যাচাই চলছে (Pending)'}
+                        {req.status === 'active' ? (language === 'bn' ? '✓ অনুমোদিত' : '✓ Approved') : req.status === 'rejected' ? (language === 'bn' ? '✕ বাতিলকৃত' : '✕ Rejected') : (language === 'bn' ? '⏳ যাচাই চলছে (Pending)' : '⏳ Pending')}
                       </span>
                     </div>
 
@@ -324,14 +327,14 @@ export const MosqueDirectoryModal: React.FC<MosqueDirectoryModalProps> = ({ onCl
                       <div className="p-2.5 bg-rose-950/40 border border-rose-900/60 rounded-xl text-xs text-rose-200 flex items-start gap-2">
                         <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
                         <div>
-                          <span className="font-bold">বাতিলের কারণ: </span>
+                          <span className="font-bold">{language === 'bn' ? 'বাতিলের কারণ: ' : 'Rejection reason: '}</span>
                           <span>{req.rejectionReason}</span>
                         </div>
                       </div>
                     )}
 
                     <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1 border-t border-slate-800">
-                      <span>আবেদনের তারিখ: {new Date(req.createdAt).toLocaleDateString('bn-BD')}</span>
+                      <span>{language === 'bn' ? `আবেদনের তারিখ: ${new Date(req.createdAt).toLocaleDateString('bn-BD')}` : `Applied: ${new Date(req.createdAt).toLocaleDateString('en-US')}`}</span>
                     </div>
                   </div>
                 ))
@@ -339,13 +342,13 @@ export const MosqueDirectoryModal: React.FC<MosqueDirectoryModalProps> = ({ onCl
             </div>
           ) : filteredMosques.length === 0 ? (
             <div className="py-12 text-center text-slate-400 bg-slate-900/40 rounded-2xl border border-slate-800 p-6 space-y-3">
-              <p className="text-xs">কোনো মসজিদ পাওয়া যায়নি।</p>
+              <p className="text-xs">{language === 'bn' ? 'কোনো মসজিদ পাওয়া যায়নি।' : 'No mosques found.'}</p>
               <button
                 onClick={() => setIsSubmissionModalOpen(true)}
                 className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs inline-flex items-center gap-1.5 transition-all cursor-pointer shadow-md"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>আপনার মসজিদটি যুক্ত করার আবেদন করুন</span>
+                <span>{language === 'bn' ? 'আপনার মসজিদটি যুক্ত করার আবেদন করুন' : 'Submit a request to add your mosque'}</span>
               </button>
             </div>
           ) : (
@@ -362,7 +365,7 @@ export const MosqueDirectoryModal: React.FC<MosqueDirectoryModalProps> = ({ onCl
                     <h3 className="text-sm font-bold text-white">{mosque.nameBn || mosque.name}</h3>
                     {mosque.distance !== undefined && mosque.distance >= 0 && (
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                        📍 {mosque.distance} কিমি দূরে
+                        📍 {language === 'bn' ? `${toBnNumber(mosque.distance)} কিমি দূরে` : `${mosque.distance} km away`}
                       </span>
                     )}
                   </div>
@@ -379,7 +382,7 @@ export const MosqueDirectoryModal: React.FC<MosqueDirectoryModalProps> = ({ onCl
                   {mosque.imamName && (
                     <p className="text-[11px] text-slate-400 flex items-center gap-1 pt-0.5">
                       <UserCheck className="w-3 h-3 text-amber-400" />
-                      <span>ইমাম: {mosque.imamName}</span>
+                      <span>{language === 'bn' ? 'ইমাম:' : 'Imam:'} {mosque.imamName}</span>
                     </p>
                   )}
                 </div>
@@ -389,10 +392,10 @@ export const MosqueDirectoryModal: React.FC<MosqueDirectoryModalProps> = ({ onCl
                   <button
                     onClick={() => openDirections(mosque)}
                     className="px-3 py-2 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
-                    title="গুগল ম্যাপসে ডিরেকশন দেখুন"
+                    title={language === 'bn' ? 'গুগল ম্যাপসে ডিরেকশন দেখুন' : 'Get directions on Google Maps'}
                   >
                     <Navigation className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>ডিরেকশন</span>
+                    <span>{language === 'bn' ? 'ডিরেকশন' : 'Directions'}</span>
                   </button>
                 </div>
               </div>
@@ -415,13 +418,13 @@ export const MosqueDirectoryModal: React.FC<MosqueDirectoryModalProps> = ({ onCl
 
         {/* Footer */}
         <div className="bg-slate-900 px-5 py-3 border-t border-slate-800 text-xs text-slate-400 flex flex-wrap items-center justify-between gap-2">
-          <span>প্রতিটি অনুমোদিত মসজিদের জিপিএস লোকেশন কেন্দ্রীয় ডাটাবেজে সুরক্ষিত।</span>
+          <span>{language === 'bn' ? 'প্রতিটি অনুমোদিত মসজিদের জিপিএস লোকেশন কেন্দ্রীয় ডাটাবেজে সুরক্ষিত।' : 'GPS location of every approved mosque is securely stored in the central database.'}</span>
           <button
             onClick={() => setIsSubmissionModalOpen(true)}
-            className="text-emerald-400 hover:text-emerald-300 font-bold flex items-center gap-1"
+            className="text-emerald-400 hover:text-emerald-300 font-bold flex items-center gap-1 cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>নতুন মসজিদ আবেদন</span>
+            <span>{language === 'bn' ? 'নতুন মসজিদ আবেদন' : 'Add New Mosque'}</span>
           </button>
         </div>
       </motion.div>

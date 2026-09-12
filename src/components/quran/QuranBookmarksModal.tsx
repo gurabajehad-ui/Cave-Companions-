@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, Bookmark, Trash2, ChevronRight, BookOpen } from 'lucide-react';
 import { QuranBookmark } from '../../types/quran';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface QuranBookmarksModalProps {
   isOpen: boolean;
@@ -17,6 +18,8 @@ export const QuranBookmarksModal: React.FC<QuranBookmarksModalProps> = ({
   onRemoveBookmark,
   onSelectBookmark
 }) => {
+  const { language } = useLanguage();
+
   if (!isOpen) return null;
 
   return (
@@ -29,8 +32,12 @@ export const QuranBookmarksModal: React.FC<QuranBookmarksModalProps> = ({
               <Bookmark className="w-5 h-5 fill-amber-300" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-white">আমার বুকমার্কস</h2>
-              <p className="text-xs text-emerald-300/80">সংরক্ষিত আয়াতসমূহের তালিকা</p>
+              <h2 className="text-base font-bold text-white">
+                {language === 'bn' ? 'আমার বুকমার্কস' : 'My Bookmarks'}
+              </h2>
+              <p className="text-xs text-emerald-300/80">
+                {language === 'bn' ? 'সংরক্ষিত আয়াতসমূহের তালিকা' : 'List of saved Ayahs'}
+              </p>
             </div>
           </div>
           <button
@@ -49,9 +56,13 @@ export const QuranBookmarksModal: React.FC<QuranBookmarksModalProps> = ({
                 <Bookmark className="w-8 h-8" />
               </div>
               <div className="space-y-1">
-                <p className="text-sm font-bold text-emerald-200">কোনো বুকমার্ক পাওয়া যায়নি</p>
+                <p className="text-sm font-bold text-emerald-200">
+                  {language === 'bn' ? 'কোনো বুকমার্ক পাওয়া যায়নি' : 'No bookmarks found'}
+                </p>
                 <p className="text-xs text-emerald-400/70 max-w-[240px] mx-auto">
-                  সূরা পড়ার সময় আয়াতের পাশে বুকমার্ক আইকনে চাপ দিয়ে গুরুত্বপূর্ণ আয়াতগুলো এখানে জমা রাখতে পারেন।
+                  {language === 'bn'
+                    ? 'সূরা পড়ার সময় আয়াতের পাশে বুকমার্ক আইকনে চাপ দিয়ে গুরুত্বপূর্ণ আয়াতগুলো এখানে জমা রাখতে পারেন।'
+                    : 'Tap the bookmark icon next to any ayah while reading to save it here.'}
                 </p>
               </div>
             </div>
@@ -59,16 +70,16 @@ export const QuranBookmarksModal: React.FC<QuranBookmarksModalProps> = ({
             bookmarks.map((bm) => (
               <div
                 key={bm.id}
-                className="group p-4 rounded-2xl bg-[#04261c] hover:bg-[#053225] border border-emerald-850 hover:border-emerald-700/50 transition-all duration-200 flex flex-col gap-2.5 relative"
+                className="group p-4 rounded-2xl bg-[#04261c] hover:bg-[#053225] border border-emerald-855 hover:border-emerald-700/50 transition-all duration-200 flex flex-col gap-2.5 relative"
               >
                 {/* Top Info */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="w-6 h-6 rounded-lg bg-emerald-900/60 text-amber-300 font-bold text-[11px] flex items-center justify-center border border-emerald-800">
+                    <span className="w-6 h-6 rounded-lg bg-emerald-900/60 text-amber-300 font-bold text-[11px] flex items-center justify-center border border-emerald-800 font-mono">
                       {bm.surahNumber}
                     </span>
                     <span className="font-bold text-sm text-white">
-                      {bm.surahNameBn} : আয়াত {bm.ayahNumber}
+                      {bm.surahNameBn} : {language === 'bn' ? `আয়াত ${bm.ayahNumber}` : `Ayah ${bm.ayahNumber}`}
                     </span>
                   </div>
                   <button
@@ -77,7 +88,7 @@ export const QuranBookmarksModal: React.FC<QuranBookmarksModalProps> = ({
                       onRemoveBookmark(bm.surahNumber, bm.ayahNumber);
                     }}
                     className="p-1.5 rounded-lg bg-red-950/40 hover:bg-red-900/60 text-red-400 border border-red-900/40 cursor-pointer transition"
-                    title="মুছে ফেলুন"
+                    title={language === 'bn' ? 'মুছে ফেলুন' : 'Delete'}
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -96,7 +107,7 @@ export const QuranBookmarksModal: React.FC<QuranBookmarksModalProps> = ({
                 {/* Date & Jump */}
                 <div className="flex items-center justify-between text-[10px] text-emerald-400/70 pt-1">
                   <span>
-                    {new Date(bm.timestamp).toLocaleDateString('bn-BD', {
+                    {new Date(bm.timestamp).toLocaleDateString(language === 'bn' ? 'bn-BD' : 'en-US', {
                       day: 'numeric',
                       month: 'long'
                     })}
@@ -106,7 +117,7 @@ export const QuranBookmarksModal: React.FC<QuranBookmarksModalProps> = ({
                     className="flex items-center gap-0.5 text-xs text-amber-300 font-semibold hover:text-amber-200 cursor-pointer"
                   >
                     <BookOpen className="w-3.5 h-3.5" />
-                    <span>পাঠ করুন</span>
+                    <span>{language === 'bn' ? 'পাঠ করুন' : 'Read'}</span>
                     <ChevronRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -121,7 +132,7 @@ export const QuranBookmarksModal: React.FC<QuranBookmarksModalProps> = ({
             onClick={onClose}
             className="w-full py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs transition cursor-pointer shadow-md"
           >
-            বন্ধ করুন
+            {language === 'bn' ? 'বন্ধ করুন' : 'Close'}
           </button>
         </div>
       </div>

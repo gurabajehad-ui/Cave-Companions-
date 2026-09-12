@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, BookOpen, Sparkles, MessageSquareText, Layers, RefreshCw } from 'lucide-react';
 import { AyahItem } from '../../types/quran';
 import { quranService } from '../../services/quranService';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface AyahExplanationModalProps {
   isOpen: boolean;
@@ -20,13 +21,15 @@ export const AyahExplanationModal: React.FC<AyahExplanationModalProps> = ({
   ayah,
   targetFootnoteNumber
 }) => {
+  const { language } = useLanguage();
   const [loading, setLoading] = useState<boolean>(false);
   const [footnotes, setFootnotes] = useState<string | null>(null);
   const [tafsir, setTafsir] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'footnotes' | 'tafsir'>('footnotes');
 
-  // Convert English numbers to Bengali
+  // Convert English numbers to Bengali if language is bn
   const toBnNum = (num: number | string): string => {
+    if (language === 'en') return num.toString();
     const en = num.toString();
     const bn = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
     return en.replace(/[0-9]/g, (w) => bn[parseInt(w, 10)]);
@@ -86,13 +89,13 @@ export const AyahExplanationModal: React.FC<AyahExplanationModalProps> = ({
             </div>
             <div>
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <span>ব্যাখ্যা ও টীকাসমূহ</span>
+                <span>{language === 'bn' ? 'ব্যাখ্যা ও টীকাসমূহ' : 'Explanation & Footnotes'}</span>
                 <span className="text-[10px] bg-amber-400/20 text-amber-300 font-mono px-2 py-0.5 rounded-full border border-amber-400/30">
-                  আয়াত {toBnNum(ayah.ayahNumber)}
+                  {language === 'bn' ? `আয়াত ${toBnNum(ayah.ayahNumber)}` : `Ayah ${ayah.ayahNumber}`}
                 </span>
               </h3>
               <p className="text-[11px] text-emerald-400/80">
-                সূরা {surahNameBn} (সূরা #{surahNumber})
+                {language === 'bn' ? `সূরা ${surahNameBn} (সূরা #${surahNumber})` : `Surah ${surahNameBn} (Surah #${surahNumber})`}
               </p>
             </div>
           </div>
@@ -129,7 +132,7 @@ export const AyahExplanationModal: React.FC<AyahExplanationModalProps> = ({
                 }`}
               >
                 <MessageSquareText className="w-3.5 h-3.5" />
-                <span>টীকাসমূহ ({parsedFootnotes.length})</span>
+                <span>{language === 'bn' ? `টীকাসমূহ (${parsedFootnotes.length})` : `Footnotes (${parsedFootnotes.length})`}</span>
               </button>
               {tafsir && (
                 <button
@@ -141,7 +144,7 @@ export const AyahExplanationModal: React.FC<AyahExplanationModalProps> = ({
                   }`}
                 >
                   <Layers className="w-3.5 h-3.5" />
-                  <span>বিস্তারিত তাফসীর</span>
+                  <span>{language === 'bn' ? 'বিস্তারিত তাফসীর' : 'Detailed Tafsir'}</span>
                 </button>
               )}
             </div>
@@ -151,7 +154,9 @@ export const AyahExplanationModal: React.FC<AyahExplanationModalProps> = ({
           {loading && (
             <div className="py-8 flex flex-col items-center justify-center space-y-3 text-center">
               <RefreshCw className="w-7 h-7 text-amber-400 animate-spin" />
-              <p className="text-xs text-emerald-300">প্রামাণ্য টীকা ও ব্যাখ্যা লোড হচ্ছে...</p>
+              <p className="text-xs text-emerald-300">
+                {language === 'bn' ? 'প্রামাণ্য টীকা ও ব্যাখ্যা লোড হচ্ছে...' : 'Loading authentic footnotes & tafsir...'}
+              </p>
             </div>
           )}
 
@@ -172,7 +177,7 @@ export const AyahExplanationModal: React.FC<AyahExplanationModalProps> = ({
                     >
                       <div className="flex items-center gap-2 mb-2">
                         <span className="px-2 py-0.5 rounded-md bg-amber-400 text-[#02110c] font-bold text-[11px] font-mono">
-                          টীকা
+                          {language === 'bn' ? 'টীকা' : 'Note'}
                         </span>
                         <Sparkles className="w-3.5 h-3.5 text-amber-400" />
                       </div>
@@ -185,14 +190,14 @@ export const AyahExplanationModal: React.FC<AyahExplanationModalProps> = ({
               ) : (
                 <div className="py-6 text-center space-y-2 bg-[#021812] rounded-2xl border border-emerald-900/60 p-4">
                   <p className="text-xs text-emerald-300/80">
-                    এই আয়াতের জন্য কোনো বিশেষ টীকা সংকেত প্রয়োজন হয়নি।
+                    {language === 'bn' ? 'এই আয়াতের জন্য কোনো বিশেষ টীকা সংকেত প্রয়োজন হয়নি।' : 'No specific footnote markers were needed for this Ayah.'}
                   </p>
                   {tafsir && (
                     <button
                       onClick={() => setActiveTab('tafsir')}
                       className="mt-2 text-xs text-amber-300 font-bold underline cursor-pointer"
                     >
-                      বিস্তারিত তাফসীর দেখুন
+                      {language === 'bn' ? 'বিস্তারিত তাফসীর দেখুন' : 'View Detailed Tafsir'}
                     </button>
                   )}
                 </div>
@@ -205,7 +210,7 @@ export const AyahExplanationModal: React.FC<AyahExplanationModalProps> = ({
             <div className="p-4 rounded-2xl bg-[#021812]/90 border border-emerald-800/60 space-y-3">
               <div className="flex items-center gap-2 pb-2 border-b border-emerald-900/60">
                 <span className="px-2 py-0.5 rounded-md bg-emerald-800 text-amber-300 font-bold text-[11px]">
-                  আহসানুল বায়ান / ইবনে কাসীর তাফসীর
+                  {language === 'bn' ? 'আহসানুল বায়ান / ইবনে কাসীর তাফসীর' : 'Ahsanul Bayan / Ibn Kathir Tafsir'}
                 </span>
               </div>
               <p className="text-xs text-emerald-100 leading-relaxed font-normal whitespace-pre-line text-justify">
@@ -218,13 +223,13 @@ export const AyahExplanationModal: React.FC<AyahExplanationModalProps> = ({
         {/* Modal Footer */}
         <div className="p-4 border-t border-emerald-900/60 bg-[#021812]/95 flex items-center justify-between shrink-0">
           <p className="text-[10px] text-emerald-400/70">
-            সূত্র: কুরআনএকাদেমী / ড. আবু বকর মুহাম্মাদ যাকারিয়া তাফসীর
+            {language === 'bn' ? 'সূত্র: কুরআনএকাদেমী / ড. আবু বকর মুহাম্মাদ যাকারিয়া তাফসীর' : 'Source: Quran Academy / Dr. Abu Bakr Muhammad Zakaria Tafsir'}
           </p>
           <button
             onClick={onClose}
             className="px-5 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-[#02110c] font-bold text-xs transition cursor-pointer active:scale-95"
           >
-            বন্ধ করুন
+            {language === 'bn' ? 'বন্ধ করুন' : 'Close'}
           </button>
         </div>
       </div>

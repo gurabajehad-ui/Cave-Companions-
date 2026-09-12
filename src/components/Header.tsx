@@ -1,6 +1,7 @@
 import React from 'react';
 import { Bell, MapPin, Orbit } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { AppLogo } from './AppLogo';
 
 interface HeaderProps {
@@ -17,6 +18,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
   onOpenTasbih
 }) => {
   const { user } = useAuth();
+  const { t } = useLanguage();
 
   return (
     <header className="w-full px-3.5 pt-2 pb-1 max-w-2xl mx-auto" style={{ contain: 'layout style', transform: 'translateZ(0)' }}>
@@ -45,8 +47,8 @@ export const Header: React.FC<HeaderProps> = React.memo(({
               <button
                 onClick={onOpenNotifications}
                 className="relative w-9 h-9 rounded-full bg-[#033024] hover:bg-[#043f2f] border border-[#0a4838] text-amber-300 flex items-center justify-center transition cursor-pointer active:scale-95 shadow-xs"
-                title="বিজ্ঞপ্তি"
-                aria-label="বিজ্ঞপ্তি"
+                title={t('header.notifications')}
+                aria-label={t('header.notifications')}
               >
                 <Bell className="w-4 h-4" />
                 {unreadNotificationsCount > 0 && (
@@ -64,7 +66,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
           <div className="flex items-center gap-2 min-w-0">
             <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
             <span className="text-xs sm:text-[13px] font-medium text-emerald-100/90 truncate">
-              আসসালামু আলাইকুম,{' '}
+              {t('header.greeting')},{' '}
               <span className="text-amber-300 font-bold">
                 {user?.fullName || 'Jameul Islam'}
               </span>

@@ -35,9 +35,11 @@ import {
   JourneyDayDetailResponse,
   CalendarDayInfo,
   DayPrayerItem,
-  JourneyMilestone
+  JourneyMilestone,
+  ChartDataPoint
 } from '../types';
 import { toBnNumber, formatBnDate, getHijriDate } from '../data/prayerConfig';
+import { useLanguage } from '../context/LanguageContext';
 
 interface SalahJourneyViewProps {
   onBack?: () => void;
@@ -45,6 +47,58 @@ interface SalahJourneyViewProps {
 }
 
 export const SalahJourneyView: React.FC<SalahJourneyViewProps> = ({ onBack, onShowToast }) => {
+  const { language, t } = useLanguage();
+  const formatNum = (val: number | string) => language === 'bn' ? toBnNumber(val) : String(val);
+
+  const getChartItemLabel = (item: ChartDataPoint | undefined) => {
+    if (!item) return '';
+    if (language === 'bn') return item.label;
+    if (item.date) {
+      const d = new Date(item.date + 'T12:00:00Z');
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+    return item.label;
+  };
+
+  const localizeInsight = (insight: string) => {
+    if (language === 'bn') return insight;
+    if (insight.includes('আপনার সালাত জার্নিতে স্বাগতম')) return 'Welcome to your Salah Journey. Record your consistency by verifying Jama\'ah prayers at the mosque.';
+    if (insight.includes('আপনি আজ ৫/৫ ওয়াক্ত সালাত সম্পন্ন করেছেন')) return 'You completed all 5 prayers today. Alhamdulillah!';
+    if (insight.includes('আজ আপনি')) {
+      return insight.replace('আজ আপনি', 'You completed ').replace('ওয়াক্ত সালাত আদায় করেছেন। বাকি ওয়াক্তগুলোতে জামাতে উপস্থিত থাকুন।', 'prayers today. Stay steadfast for the remaining prayers.');
+    }
+    if (insight.includes('মাশাআল্লাহ! আপনার টানা')) {
+      return insight.replace('মাশাআল্লাহ! আপনার টানা', 'MashaAllah! You have maintained a ').replace('দিনের পূর্ণ ধারাবাহিকতা বজায় রয়েছে 🔥', '-day streak 🔥');
+    }
+    if (insight.includes('আপনি গত সপ্তাহের তুলনায়')) {
+      return insight.replace('আপনি গত সপ্তাহের তুলনায়', 'You completed ').replace('% বেশি সালাত আদায় করেছেন।', '% more prayers compared to last week.');
+    }
+    if (insight.includes('এই সপ্তাহে আপনি')) {
+      return insight.replace('এই সপ্তাহে আপনি', 'You completed ').replace('ওয়াক্ত সালাত আদায় করেছেন, যা অত্যন্ত প্রশংসনীয়।', 'prayers this week, which is highly commendable.');
+    }
+    if (insight.includes('সালাতে আপনার উপস্থিতি সবচেয়ে বেশি')) {
+      return insight.replace('সালাতে আপনার উপস্থিতি সবচেয়ে বেশি', 'has highest Jama\'ah attendance');
+    }
+    if (insight.includes('সালাতের জামাতে নিয়মিততায় কিছুটা বাড়তি মনোযোগ প্রয়োজন')) {
+      return insight.replace('সালাতের জামাতে নিয়মিততায় কিছুটা বাড়তি মনোযোগ প্রয়োজন।', 'needs extra attention for regular Jama\'ah attendance.');
+    }
+    if (insight.includes('টি পূর্ণ দিনে')) {
+      return insight.replace('আপনি মোট', 'You completed ').replace('টি পূর্ণ দিনে (৫/৫ ওয়াক্ত) সালাত আদায় সম্পন্ন করেছেন ⭐', 'perfect days (5/5 prayers) ⭐');
+    }
+    return insight;
+  };
+
+  const localizeRecommendation = (rec: string) => {
+    if (language === 'bn') return rec;
+    if (rec.includes('আজকের প্রথম ওয়াক্তের')) return 'Start your spiritual journey today from the very next prayer.';
+    if (rec.includes('ফজরের জামাত ধরতে')) return 'To catch Fajr in Jama\'ah, try sleeping early and set an alarm.';
+    if (rec.includes('আপনার ধারাবাহিকতা দুর্দান্ত!')) return 'Your consistency is excellent! May Allah accept your deeds and keep you steadfast.';
+    if (rec.includes('ধারাবাহিকতা কিছুটা কমলেও')) return 'Do not be discouraged by minor drops in consistency. Focus on today\'s prayers.';
+    if (rec.includes('প্রতিটি সালাতের জন্য')) return 'Aim to reach the mosque early for every prayer.';
+    if (rec.includes('সালাত শেষে আত্মশুদ্ধি')) return 'Pray regularly after prayer for self-purification and steadfastness in faith.';
+    return rec;
+  };
+
   // Main view states
   const [activeTab, setActiveTab] = useState<'dashboard' | 'calendar' | 'analytics' | 'milestones'>('dashboard');
   const [loadingSummary, setLoadingSummary] = useState(true);
@@ -83,11 +137,11 @@ export const SalahJourneyView: React.FC<SalahJourneyViewProps> = ({ onBack, onSh
       setSummary(res);
     } catch (err: any) {
       console.error('Failed to load journey summary:', err);
-      onShowToast('error', 'ত্রুটি', err?.message || 'সালাত জার্নি তথ্য লোড করা সম্ভব হয়নি।');
+      onShowToast('error', language === 'bn' ? 'ত্রুটি' : 'Error', err?.message || (language === 'bn' ? 'সালাত জার্নি তথ্য লোড করা সম্ভব হয়নি।' : 'Failed to load Salah Journey data.'));
     } finally {
       setLoadingSummary(false);
     }
-  }, [onShowToast]);
+  }, [onShowToast, language]);
 
   // 2. Fetch Calendar Data
   const fetchCalendar = useCallback(async (year: number, month: number) => {
@@ -110,11 +164,11 @@ export const SalahJourneyView: React.FC<SalahJourneyViewProps> = ({ onBack, onSh
       }
     } catch (err: any) {
       console.error('Failed to load calendar data:', err);
-      onShowToast('error', 'ত্রুটি', 'ক্যালেন্ডার তথ্য লোড করা যায়নি।');
+      onShowToast('error', language === 'bn' ? 'ত্রুটি' : 'Error', language === 'bn' ? 'ক্যালেন্ডার তথ্য লোড করা যায়নি।' : 'Failed to load calendar data.');
     } finally {
       setLoadingCalendar(false);
     }
-  }, [onShowToast]);
+  }, [onShowToast, language]);
 
   // 3. Fetch Day Detail
   const fetchDayDetail = useCallback(async (dateStr: string) => {
@@ -125,11 +179,11 @@ export const SalahJourneyView: React.FC<SalahJourneyViewProps> = ({ onBack, onSh
       setDayDetail(res);
     } catch (err: any) {
       console.error('Failed to load day detail:', err);
-      onShowToast('error', 'ত্রুটি', 'দিনের বিস্তারিত তথ্য লোড করা যায়নি।');
+      onShowToast('error', language === 'bn' ? 'ত্রুটি' : 'Error', language === 'bn' ? 'দিনের বিস্তারিত তথ্য লোড করা যায়নি।' : 'Failed to load day details.');
     } finally {
       setLoadingDayDetail(false);
     }
-  }, [onShowToast]);
+  }, [onShowToast, language]);
 
   // 4. Fetch Analytics Data
   const fetchAnalytics = useCallback(async (period: 'week' | 'month' | 'year' | 'custom', start?: string, end?: string) => {
@@ -140,14 +194,14 @@ export const SalahJourneyView: React.FC<SalahJourneyViewProps> = ({ onBack, onSh
     } catch (err: any) {
       console.error('Failed to load analytics:', err);
       if (err.message?.includes('আপনার অ্যাকাউন্ট সাসপেন্ড করা হয়েছে।') || err.status === 403) {
-        onShowToast('error', 'অ্যাকাউন্ট স্থগিত', 'আপনার অ্যাকাউন্ট সাসপেন্ড করা হয়েছে।');
+        onShowToast('error', language === 'bn' ? 'অ্যাকাউন্ট স্থগিত' : 'Account Suspended', language === 'bn' ? 'আপনার অ্যাকাউন্ট সাসপেন্ড করা হয়েছে।' : 'Your account has been suspended.');
       } else {
-        onShowToast('error', 'ত্রুটি', 'অ্যানালিটিক্স তথ্য লোড করা যায়নি।');
+        onShowToast('error', language === 'bn' ? 'ত্রুটি' : 'Error', language === 'bn' ? 'অ্যানালিটিক্স তথ্য লোড করা যায়নি।' : 'Failed to load analytics data.');
       }
     } finally {
       setLoadingAnalytics(false);
     }
-  }, [onShowToast]);
+  }, [onShowToast, language]);
 
   // Initial load
   useEffect(() => {
@@ -197,19 +251,19 @@ export const SalahJourneyView: React.FC<SalahJourneyViewProps> = ({ onBack, onSh
 
   // Start New Journey
   const handleStartNewJourney = async () => {
-    if (!window.confirm('আপনি কি নিশ্চিত যে নতুন সালাত জার্নি শুরু করতে চান? আপনার পূর্ববর্তী জার্নি আর্কাইভ হিসেবে সংরক্ষিত থাকবে।')) {
+    if (!window.confirm(language === 'bn' ? 'আপনি কি নিশ্চিত যে নতুন সালাত জার্নি শুরু করতে চান? আপনার পূর্ববর্তী জার্নি আর্কাইভ হিসেবে সংরক্ষিত থাকবে।' : 'Are you sure you want to start a new Salah journey? Your previous journey will be archived.')) {
       return;
     }
     try {
       setActionInProgress(true);
       const res = await api.startNewJourney();
-      onShowToast('success', 'সফল', res.message || 'নতুন সালাত জার্নি শুরু হয়েছে!');
+      onShowToast('success', language === 'bn' ? 'সফল' : 'Success', res.message || (language === 'bn' ? 'নতুন সালাত জার্নি শুরু হয়েছে!' : 'New Salah Journey started!'));
       setShowManageModal(false);
       await fetchSummary();
       await fetchCalendar(currentYear, currentMonth);
       await fetchAnalytics(analyticsPeriod);
     } catch (err: any) {
-      onShowToast('error', 'ত্রুটি', err?.message || 'নতুন জার্নি শুরু করা যায়নি।');
+      onShowToast('error', language === 'bn' ? 'ত্রুটি' : 'Error', err?.message || (language === 'bn' ? 'নতুন জার্নি শুরু করা যায়নি।' : 'Failed to start new journey.'));
     } finally {
       setActionInProgress(false);
     }
@@ -220,7 +274,7 @@ export const SalahJourneyView: React.FC<SalahJourneyViewProps> = ({ onBack, onSh
     try {
       setActionInProgress(true);
       const res = await api.deleteJourneyHistoryDay(dateStr);
-      onShowToast('success', 'সফল', res.message);
+      onShowToast('success', language === 'bn' ? 'সফল' : 'Success', res.message);
       setShowDeleteConfirm(null);
       await fetchSummary();
       await fetchCalendar(currentYear, currentMonth);
@@ -229,7 +283,7 @@ export const SalahJourneyView: React.FC<SalahJourneyViewProps> = ({ onBack, onSh
       }
       await fetchAnalytics(analyticsPeriod);
     } catch (err: any) {
-      onShowToast('error', 'ত্রুটি', err?.message || 'ইতিহাস মুছতে ব্যর্থ হয়েছে।');
+      onShowToast('error', language === 'bn' ? 'ত্রুটি' : 'Error', err?.message || (language === 'bn' ? 'ইতিহাস মুছতে ব্যর্থ হয়েছে।' : 'Failed to delete history.'));
     } finally {
       setActionInProgress(false);
     }
@@ -238,20 +292,20 @@ export const SalahJourneyView: React.FC<SalahJourneyViewProps> = ({ onBack, onSh
   // Delete Range History
   const handleDeleteRange = async () => {
     if (!deleteRangeStart || !deleteRangeEnd) {
-      onShowToast('error', 'ত্রুটি', 'শুরু ও শেষের তারিখ নির্বাচন করুন।');
+      onShowToast('error', language === 'bn' ? 'ত্রুটি' : 'Error', language === 'bn' ? 'শুরু ও শেষের তারিখ নির্বাচন করুন।' : 'Please select start and end dates.');
       return;
     }
     try {
       setActionInProgress(true);
       const res = await api.deleteJourneyHistoryRange(deleteRangeStart, deleteRangeEnd);
-      onShowToast('success', 'সফল', res.message);
+      onShowToast('success', language === 'bn' ? 'সফল' : 'Success', res.message);
       setShowDeleteConfirm(null);
       setShowManageModal(false);
       await fetchSummary();
       await fetchCalendar(currentYear, currentMonth);
       await fetchAnalytics(analyticsPeriod);
     } catch (err: any) {
-      onShowToast('error', 'ত্রুটি', err?.message || 'ইতিহাস মুছতে ব্যর্থ হয়েছে।');
+      onShowToast('error', language === 'bn' ? 'ত্রুটি' : 'Error', err?.message || (language === 'bn' ? 'ইতিহাস মুছতে ব্যর্থ হয়েছে।' : 'Failed to delete history.'));
     } finally {
       setActionInProgress(false);
     }
@@ -262,7 +316,7 @@ export const SalahJourneyView: React.FC<SalahJourneyViewProps> = ({ onBack, onSh
     try {
       setActionInProgress(true);
       const res = await api.deleteJourneyHistoryAll();
-      onShowToast('success', 'সফল', res.message);
+      onShowToast('success', language === 'bn' ? 'সফল' : 'Success', res.message);
       setShowDeleteConfirm(null);
       setShowManageModal(false);
       await fetchSummary();
@@ -270,7 +324,7 @@ export const SalahJourneyView: React.FC<SalahJourneyViewProps> = ({ onBack, onSh
       await fetchAnalytics(analyticsPeriod);
       setDayDetail(null);
     } catch (err: any) {
-      onShowToast('error', 'ত্রুটি', err?.message || 'সম্পূর্ণ ইতিহাস মুছতে ব্যর্থ হয়েছে।');
+      onShowToast('error', language === 'bn' ? 'ত্রুটি' : 'Error', err?.message || (language === 'bn' ? 'সম্পূর্ণ ইতিহাস মুছতে ব্যর্থ হয়েছে।' : 'Failed to delete all history.'));
     } finally {
       setActionInProgress(false);
     }
@@ -279,6 +333,11 @@ export const SalahJourneyView: React.FC<SalahJourneyViewProps> = ({ onBack, onSh
   const monthNamesBn = [
     '', 'জানুয়ারি', 'ফেব্রুয়ারি', 'মার্চ', 'এপ্রিল', 'মে', 'জুন',
     'জুলাই', 'আগস্ট', 'সেপ্টেম্বর', 'অক্টোবর', 'নভেম্বর', 'ডিসেম্বর'
+  ];
+
+  const monthNamesEn = [
+    '', 'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
   ];
 
   return (
@@ -290,7 +349,7 @@ export const SalahJourneyView: React.FC<SalahJourneyViewProps> = ({ onBack, onSh
             <button
               onClick={onBack}
               className="p-2.5 rounded-2xl bg-slate-900/90 border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800 transition-all cursor-pointer shadow-sm"
-              title="ফিরে যান"
+              title={language === 'bn' ? 'ফিরে যান' : 'Go Back'}
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
@@ -301,11 +360,11 @@ export const SalahJourneyView: React.FC<SalahJourneyViewProps> = ({ onBack, onSh
                 <Sparkles className="w-4 h-4" />
               </span>
               <h1 className="text-lg sm:text-xl font-black text-white tracking-tight">
-                সালাত জার্নি ও আত্মিক উন্নতি
+                {language === 'bn' ? 'সালাত জার্নি ও আত্মিক উন্নতি' : 'Salah Journey & Spiritual Growth'}
               </h1>
             </div>
             <p className="text-xs text-slate-400 font-medium mt-0.5">
-              ধারাবাহিকতা, বিশ্লেষণ ও অনুপ্রেরণামূলক ট্র্যাকার
+              {language === 'bn' ? 'ধারাবাহিকতা, বিশ্লেষণ ও অনুপ্রেরণামূলক ট্র্যাকার' : 'Consistency, analytics & inspirational tracker'}
             </p>
           </div>
         </div>
@@ -313,20 +372,20 @@ export const SalahJourneyView: React.FC<SalahJourneyViewProps> = ({ onBack, onSh
         {/* Options / Management Button */}
         <button
           onClick={() => setShowManageModal(true)}
-          className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-emerald-700/60 text-xs font-bold text-slate-300 hover:text-emerald-400 transition-all flex items-center gap-1.5 shadow-sm"
+          className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-emerald-700/60 text-xs font-bold text-slate-300 hover:text-emerald-400 transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
         >
           <RotateCcw className="w-3.5 h-3.5 text-emerald-400" />
-          <span>অপশন</span>
+          <span>{language === 'bn' ? 'অপশন' : 'Options'}</span>
         </button>
       </div>
 
       {/* Main Navigation Tabs */}
       <div className="grid grid-cols-4 gap-1.5 p-1 bg-slate-900/90 border border-slate-800 rounded-2xl">
         {[
-          { id: 'dashboard', label: 'ড্যাশবোর্ড', icon: Zap },
-          { id: 'calendar', label: 'ক্যালেন্ডার', icon: CalendarIcon },
-          { id: 'analytics', label: 'গ্রাফ ও বিশ্লেষণ', icon: BarChart3 },
-          { id: 'milestones', label: 'মাইলফলক', icon: Trophy }
+          { id: 'dashboard', label: language === 'bn' ? 'ড্যাশবোর্ড' : 'Dashboard', icon: Zap },
+          { id: 'calendar', label: language === 'bn' ? 'ক্যালেন্ডার' : 'Calendar', icon: CalendarIcon },
+          { id: 'analytics', label: language === 'bn' ? 'গ্রাফ ও বিশ্লেষণ' : 'Analytics', icon: BarChart3 },
+          { id: 'milestones', label: language === 'bn' ? 'মাইলফলক' : 'Milestones', icon: Trophy }
         ].map(tab => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -334,7 +393,7 @@ export const SalahJourneyView: React.FC<SalahJourneyViewProps> = ({ onBack, onSh
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`py-2 px-1 rounded-xl text-xs font-bold transition-all flex flex-col sm:flex-row items-center justify-center gap-1 ${
+              className={`py-2 px-1 rounded-xl text-xs font-bold transition-all flex flex-col sm:flex-row items-center justify-center gap-1 cursor-pointer ${
                 isActive
                   ? 'bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-md'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
@@ -361,10 +420,14 @@ export const SalahJourneyView: React.FC<SalahJourneyViewProps> = ({ onBack, onSh
             >
               <div className="flex items-center gap-2">
                 <HeartHandshake className="w-5 h-5 text-amber-400 shrink-0" />
-                <h3 className="text-sm font-bold text-white">আজ থেকেই আবার নতুন উদ্যমে শুরু করুন!</h3>
+                <h3 className="text-sm font-bold text-white">
+                  {language === 'bn' ? 'আজ থেকেই আবার নতুন উদ্যমে শুরু করুন!' : 'Start fresh with renewed zeal today!'}
+                </h3>
               </div>
               <p className="text-xs text-amber-300/90 leading-relaxed">
-                অতীতের দিনগুলোতে কোনো ওয়াক্ত ছুটে গিয়ে থাকলে হতাশ হবেন না। আজকের সালাতের জামাত থেকেই নতুনভাবে আপনার আত্মিক জার্নি শুরু করুন। আল্লাহ তওবাকারী ও সচেষ্ট বান্দাদের ভালোবাসেন।
+                {language === 'bn'
+                  ? 'অতীতের দিনগুলোতে কোনো ওয়াক্ত ছুটে গিয়ে থাকলে হতাশ হবেন না। আজকের সালাতের জামাত থেকেই নতুনভাবে আপনার আত্মিক জার্নি শুরু করুন। আল্লাহ তওবাকারী ও সচেষ্ট বান্দাদের ভালোবাসেন।'
+                  : 'Do not lose heart if prayers were missed in the past. Renew your spiritual journey starting with today\'s Jama\'ah. Allah loves those who strive and return to Him.'}
               </p>
             </motion.div>
           )}
@@ -374,61 +437,85 @@ export const SalahJourneyView: React.FC<SalahJourneyViewProps> = ({ onBack, onSh
             {/* 1. Current Streak */}
             <div className="bg-gradient-to-br from-slate-900 to-slate-950 border border-orange-700/40 rounded-3xl p-3.5 relative overflow-hidden shadow-md">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-[11px] font-bold text-orange-300">বর্তমান স্ট্রিক</span>
+                <span className="text-[11px] font-bold text-orange-300">
+                  {language === 'bn' ? 'বর্তমান স্ট্রিক' : 'Current Streak'}
+                </span>
                 <Flame className="w-4 h-4 text-orange-400 animate-pulse" />
               </div>
               <div className="flex items-baseline gap-1">
                 <span className="text-2xl sm:text-3xl font-black text-white">
-                  {toBnNumber(summary?.currentStreak || 0)}
+                  {formatNum(summary?.currentStreak || 0)}
                 </span>
-                <span className="text-xs font-bold text-orange-400">দিন</span>
+                <span className="text-xs font-bold text-orange-400">
+                  {language === 'bn' ? 'দিন' : 'Days'}
+                </span>
               </div>
-              <span className="text-[10px] text-slate-400 mt-1 block">টানা ৫/৫ ওয়াক্ত</span>
+              <span className="text-[10px] text-slate-400 mt-1 block">
+                {language === 'bn' ? 'টানা ৫/৫ ওয়াক্ত' : '5/5 prayers streak'}
+              </span>
             </div>
 
             {/* 2. Best Streak */}
             <div className="bg-gradient-to-br from-slate-900 to-slate-950 border border-amber-700/40 rounded-3xl p-3.5 relative overflow-hidden shadow-md">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-[11px] font-bold text-amber-300">সেরা স্ট্রিক</span>
+                <span className="text-[11px] font-bold text-amber-300">
+                  {language === 'bn' ? 'সেরা স্ট্রিক' : 'Best Streak'}
+                </span>
                 <Trophy className="w-4 h-4 text-amber-400" />
               </div>
               <div className="flex items-baseline gap-1">
                 <span className="text-2xl sm:text-3xl font-black text-amber-300">
-                  {toBnNumber(summary?.bestStreak || 0)}
+                  {formatNum(summary?.bestStreak || 0)}
                 </span>
-                <span className="text-xs font-bold text-amber-400">দিন</span>
+                <span className="text-xs font-bold text-amber-400">
+                  {language === 'bn' ? 'দিন' : 'Days'}
+                </span>
               </div>
-              <span className="text-[10px] text-slate-400 mt-1 block">সর্বোচ্চ রেকর্ড</span>
+              <span className="text-[10px] text-slate-400 mt-1 block">
+                {language === 'bn' ? 'সর্বোচ্চ রেকর্ড' : 'Personal Best'}
+              </span>
             </div>
 
             {/* 3. Perfect Days */}
             <div className="bg-gradient-to-br from-slate-900 to-slate-950 border border-emerald-700/40 rounded-3xl p-3.5 relative overflow-hidden shadow-md">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-[11px] font-bold text-emerald-300">পারফেক্ট দিন</span>
+                <span className="text-[11px] font-bold text-emerald-300">
+                  {language === 'bn' ? 'পারফেক্ট দিন' : 'Perfect Days'}
+                </span>
                 <Award className="w-4 h-4 text-emerald-400" />
               </div>
               <div className="flex items-baseline gap-1">
                 <span className="text-2xl sm:text-3xl font-black text-emerald-400">
-                  {toBnNumber(summary?.perfectDaysCount || 0)}
+                  {formatNum(summary?.perfectDaysCount || 0)}
                 </span>
-                <span className="text-xs font-bold text-emerald-500">টি</span>
+                <span className="text-xs font-bold text-emerald-500">
+                  {language === 'bn' ? 'টি' : ''}
+                </span>
               </div>
-              <span className="text-[10px] text-slate-400 mt-1 block">পূর্ণ ৫ ওয়াক্ত</span>
+              <span className="text-[10px] text-slate-400 mt-1 block">
+                {language === 'bn' ? 'পূর্ণ ৫ ওয়াক্ত' : 'Full 5/5 daily'}
+              </span>
             </div>
 
             {/* 4. Total Completed Jama'at */}
             <div className="bg-gradient-to-br from-slate-900 to-slate-950 border border-teal-700/40 rounded-3xl p-3.5 relative overflow-hidden shadow-md">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-[11px] font-bold text-teal-300">মোট জামাত</span>
+                <span className="text-[11px] font-bold text-teal-300">
+                  {language === 'bn' ? 'মোট জামাত' : 'Total Jama\'ah'}
+                </span>
                 <ShieldCheck className="w-4 h-4 text-teal-400" />
               </div>
               <div className="flex items-baseline gap-1">
                 <span className="text-2xl sm:text-3xl font-black text-teal-300">
-                  {toBnNumber(summary?.totalCompletedPrayers || 0)}
+                  {formatNum(summary?.totalCompletedPrayers || 0)}
                 </span>
-                <span className="text-xs font-bold text-teal-400">ওয়াক্ত</span>
+                <span className="text-xs font-bold text-teal-400">
+                  {language === 'bn' ? 'ওয়াক্ত' : 'prayers'}
+                </span>
               </div>
-              <span className="text-[10px] text-slate-400 mt-1 block">যাচাইকৃত সালাত</span>
+              <span className="text-[10px] text-slate-400 mt-1 block">
+                {language === 'bn' ? 'যাচাইকৃত সালাত' : 'Verified prayers'}
+              </span>
             </div>
           </div>
 
@@ -440,15 +527,19 @@ export const SalahJourneyView: React.FC<SalahJourneyViewProps> = ({ onBack, onSh
                   <Sparkles className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-white">সালাত ধারাবাহিকতা ও হেলথ স্কোর</h3>
+                  <h3 className="text-sm font-bold text-white">
+                    {language === 'bn' ? 'সালাত ধারাবাহিকতা ও হেলথ স্কোর' : 'Salah Consistency & Health Score'}
+                  </h3>
                   <p className="text-[11px] text-emerald-300/80 font-medium">
-                    {summary?.consistencyScore?.ratingBn || 'অগ্রগতি বিশ্লেষণ'}
+                    {language === 'bn' 
+                      ? (summary?.consistencyScore?.ratingBn || 'অগ্রগতি বিশ্লেষণ')
+                      : (summary?.consistencyScore?.ratingEn || 'Progress Analysis')}
                   </p>
                 </div>
               </div>
 
               <div className="px-3 py-1 rounded-full bg-emerald-900/90 border border-emerald-600/50 text-white text-xs font-black">
-                {toBnNumber(summary?.consistencyScore?.score || 0)}%
+                {formatNum(summary?.consistencyScore?.score || 0)}%
               </div>
             </div>
 
@@ -461,7 +552,9 @@ export const SalahJourneyView: React.FC<SalahJourneyViewProps> = ({ onBack, onSh
             </div>
 
             <p className="text-xs text-slate-300 leading-relaxed font-medium">
-              {summary?.consistencyScore?.messageBn || 'সালাতে নিয়মিত উপস্থিতির মাধ্যমে আপনার স্কোর বৃদ্ধি পাবে।'}
+              {language === 'bn'
+                ? (summary?.consistencyScore?.messageBn || 'সালাতে নিয়মিত উপস্থিতির মাধ্যমে আপনার স্কোর বৃদ্ধি পাবে।')
+                : (summary?.consistencyScore?.messageEn || 'Attending regular prayers will increase your spiritual health score.')}
             </p>
           </div>
 
@@ -470,9 +563,11 @@ export const SalahJourneyView: React.FC<SalahJourneyViewProps> = ({ onBack, onSh
             {/* Week Card */}
             <div className="p-4 rounded-3xl bg-slate-900/90 border border-slate-800 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-300">এই সপ্তাহের অগ্রগতি</span>
+                <span className="text-xs font-bold text-slate-300">
+                  {language === 'bn' ? 'এই সপ্তাহের অগ্রগতি' : 'This Week\'s Progress'}
+                </span>
                 <span className="text-xs font-black text-emerald-400">
-                  {toBnNumber(summary?.weekStats?.thisWeekCompleted || 0)}/{toBnNumber(summary?.weekStats?.totalPossible || 35)} ওয়াক্ত
+                  {formatNum(summary?.weekStats?.thisWeekCompleted || 0)}/{formatNum(summary?.weekStats?.totalPossible || 35)} {language === 'bn' ? 'ওয়াক্ত' : 'prayers'}
                 </span>
               </div>
               <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden">
@@ -482,9 +577,11 @@ export const SalahJourneyView: React.FC<SalahJourneyViewProps> = ({ onBack, onSh
                 />
               </div>
               <div className="flex items-center justify-between text-[11px] text-slate-400">
-                <span>সমাপ্তির হার: {toBnNumber(summary?.weekStats?.completionPercentage || 0)}%</span>
+                <span>
+                  {language === 'bn' ? `সমাপ্তির হার: ${formatNum(summary?.weekStats?.completionPercentage || 0)}%` : `Completion Rate: ${formatNum(summary?.weekStats?.completionPercentage || 0)}%`}
+                </span>
                 <span className={`font-bold ${summary?.weekStats?.direction === 'UP' ? 'text-emerald-400' : summary?.weekStats?.direction === 'DOWN' ? 'text-amber-400' : 'text-slate-400'}`}>
-                  {summary?.weekStats?.textBn}
+                  {language === 'bn' ? summary?.weekStats?.textBn : (summary?.weekStats?.direction === 'UP' ? 'Improving' : summary?.weekStats?.direction === 'DOWN' ? 'Decreasing' : 'Steady')}
                 </span>
               </div>
             </div>
@@ -492,9 +589,11 @@ export const SalahJourneyView: React.FC<SalahJourneyViewProps> = ({ onBack, onSh
             {/* Month Card */}
             <div className="p-4 rounded-3xl bg-slate-900/90 border border-slate-800 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-300">এই মাসের অগ্রগতি (৩০ দিন)</span>
+                <span className="text-xs font-bold text-slate-300">
+                  {language === 'bn' ? 'এই মাসের অগ্রগতি (৩০ দিন)' : 'This Month\'s Progress (30 Days)'}
+                </span>
                 <span className="text-xs font-black text-teal-400">
-                  {toBnNumber(summary?.monthStats?.thisMonthCompleted || 0)}/{toBnNumber(summary?.monthStats?.totalPossible || 150)} ওয়াক্ত
+                  {formatNum(summary?.monthStats?.thisMonthCompleted || 0)}/{formatNum(summary?.monthStats?.totalPossible || 150)} {language === 'bn' ? 'ওয়াক্ত' : 'prayers'}
                 </span>
               </div>
               <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden">
@@ -504,9 +603,11 @@ export const SalahJourneyView: React.FC<SalahJourneyViewProps> = ({ onBack, onSh
                 />
               </div>
               <div className="flex items-center justify-between text-[11px] text-slate-400">
-                <span>সমাপ্তির হার: {toBnNumber(summary?.monthStats?.completionPercentage || 0)}%</span>
+                <span>
+                  {language === 'bn' ? `সমাপ্তির হার: ${formatNum(summary?.monthStats?.completionPercentage || 0)}%` : `Completion Rate: ${formatNum(summary?.monthStats?.completionPercentage || 0)}%`}
+                </span>
                 <span className={`font-bold ${summary?.monthStats?.direction === 'UP' ? 'text-emerald-400' : summary?.monthStats?.direction === 'DOWN' ? 'text-amber-400' : 'text-slate-400'}`}>
-                  {summary?.monthStats?.textBn}
+                  {language === 'bn' ? summary?.monthStats?.textBn : (summary?.monthStats?.direction === 'UP' ? 'Improving' : summary?.monthStats?.direction === 'DOWN' ? 'Decreasing' : 'Steady')}
                 </span>
               </div>
             </div>
@@ -518,7 +619,9 @@ export const SalahJourneyView: React.FC<SalahJourneyViewProps> = ({ onBack, onSh
               <div className="p-1.5 rounded-xl bg-teal-950 text-teal-300 border border-teal-800">
                 <Zap className="w-4 h-4" />
               </div>
-              <h3 className="text-sm font-bold text-white">স্মার্ট সালাত ইনসাইটস ও দিকনির্দেশনা</h3>
+              <h3 className="text-sm font-bold text-white">
+                {language === 'bn' ? 'স্মার্ট সালাত ইনসাইটস ও দিকনির্দেশনা' : 'Smart Salah Insights & Recommendations'}
+              </h3>
             </div>
 
             {summary?.insights && summary.insights.length > 0 ? (
@@ -529,22 +632,26 @@ export const SalahJourneyView: React.FC<SalahJourneyViewProps> = ({ onBack, onSh
                     className="p-3 rounded-2xl bg-slate-950/70 border border-slate-800/80 flex items-start gap-2.5 text-xs text-slate-200"
                   >
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
-                    <p className="leading-relaxed">{insight}</p>
+                    <p className="leading-relaxed">{localizeInsight(insight)}</p>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-slate-400">পর্যাপ্ত সালাত ভেরিফাই হলে ইনসাইট তৈরি হবে।</p>
+              <p className="text-xs text-slate-400">
+                {language === 'bn' ? 'পর্যাপ্ত সালাত ভেরিফাই হলে ইনসাইট তৈরি হবে।' : 'Insights will appear once prayers are verified.'}
+              </p>
             )}
 
             {/* Recommendations */}
             {summary?.recommendations && summary.recommendations.length > 0 && (
               <div className="pt-2 border-t border-slate-800/80 space-y-2">
-                <span className="text-[11px] font-bold text-amber-300 block">💡 ইসলামিক পরামর্শ:</span>
+                <span className="text-[11px] font-bold text-amber-300 block">
+                  {language === 'bn' ? '💡 ইসলামিক পরামর্শ:' : '💡 Islamic Guidance:'}
+                </span>
                 {summary.recommendations.map((rec, idx) => (
                   <p key={idx} className="text-xs text-slate-300/90 italic flex items-center gap-2">
                     <span>•</span>
-                    <span>{rec}</span>
+                    <span>{localizeRecommendation(rec)}</span>
                   </p>
                 ))}
               </div>
@@ -569,13 +676,13 @@ export const SalahJourneyView: React.FC<SalahJourneyViewProps> = ({ onBack, onSh
 
             <div className="text-center">
               <h2 className="text-sm sm:text-base font-bold text-white">
-                {monthNamesBn[currentMonth]} {toBnNumber(currentYear)}
+                {language === 'bn' ? `${monthNamesBn[currentMonth]} ${formatNum(currentYear)}` : `${monthNamesEn[currentMonth]} ${formatNum(currentYear)}`}
               </h2>
               <button
                 onClick={handleJumpToToday}
-                className="text-[11px] font-semibold text-emerald-400 hover:underline mt-0.5 inline-block"
+                className="text-[11px] font-semibold text-emerald-400 hover:underline mt-0.5 inline-block cursor-pointer"
               >
-                আজকে যান
+                {language === 'bn' ? 'আজকে যান' : 'Go to Today'}
               </button>
             </div>
 
@@ -591,7 +698,10 @@ export const SalahJourneyView: React.FC<SalahJourneyViewProps> = ({ onBack, onSh
           <div className="p-4 sm:p-5 rounded-3xl bg-slate-900/90 border border-slate-800 shadow-md space-y-3">
             {/* Weekday Headers */}
             <div className="grid grid-cols-7 gap-1 text-center text-xs font-bold text-slate-400 pb-2 border-b border-slate-800">
-              {['রবি', 'সোম', 'মঙ্গল', 'বুধ', 'বৃহঃ', 'শুক্র', 'শনি'].map((d, i) => (
+              {(language === 'bn' 
+                ? ['রবি', 'সোম', 'মঙ্গল', 'বুধ', 'বৃহঃ', 'শুক্র', 'শনি'] 
+                : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+              ).map((d, i) => (
                 <div key={d} className={i === 5 ? 'text-amber-400' : ''}>
                   {d}
                 </div>
@@ -600,7 +710,9 @@ export const SalahJourneyView: React.FC<SalahJourneyViewProps> = ({ onBack, onSh
 
             {/* Days Grid */}
             {loadingCalendar ? (
-              <div className="py-12 text-center text-xs text-slate-400">ক্যালেন্ডার লোড হচ্ছে...</div>
+              <div className="py-12 text-center text-xs text-slate-400">
+                {language === 'bn' ? 'ক্যালেন্ডার লোড হচ্ছে...' : 'Loading calendar...'}
+              </div>
             ) : calendarData?.days ? (
               <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
                 {/* Empty offset padding for the first day of month */}
@@ -616,17 +728,13 @@ export const SalahJourneyView: React.FC<SalahJourneyViewProps> = ({ onBack, onSh
                 {calendarData.days.map(day => {
                   const isSelected = selectedDate === day.date;
                   let bgStyle = 'bg-slate-950/60 border-slate-800/80 text-slate-400';
-                  let badgeColor = '';
 
                   if (day.level === 'EXCELLENT') {
                     bgStyle = 'bg-emerald-950/90 border-emerald-600 text-emerald-300 shadow-[0_0_8px_rgba(16,185,129,0.3)]';
-                    badgeColor = 'bg-amber-400 text-amber-950';
                   } else if (day.level === 'VERY_GOOD') {
                     bgStyle = 'bg-emerald-950/60 border-teal-700 text-emerald-200';
-                    badgeColor = 'bg-slate-300 text-slate-950';
                   } else if (day.level === 'MODERATE') {
                     bgStyle = 'bg-amber-950/40 border-amber-800 text-amber-200';
-                    badgeColor = 'bg-amber-600 text-amber-100';
                   } else if (day.level === 'NEEDS_IMPROVEMENT') {
                     bgStyle = 'bg-slate-900 border-slate-700 text-slate-300';
                   }
@@ -641,7 +749,7 @@ export const SalahJourneyView: React.FC<SalahJourneyViewProps> = ({ onBack, onSh
                     >
                       <div className="flex items-center justify-between">
                         <span className={`text-xs font-bold ${day.isToday ? 'text-amber-300 underline' : ''}`}>
-                          {toBnNumber(day.dayNumber)}
+                          {formatNum(day.dayNumber)}
                         </span>
                         {day.tokenEarned && (
                           <span className="text-[10px]">
@@ -653,10 +761,12 @@ export const SalahJourneyView: React.FC<SalahJourneyViewProps> = ({ onBack, onSh
                       {/* Mini indicator */}
                       <div className="flex items-center justify-between mt-1">
                         <span className="text-[9px] font-semibold opacity-90">
-                          {day.completedCount > 0 ? `${toBnNumber(day.completedCount)}/৫` : '-'}
+                          {day.completedCount > 0 ? `${formatNum(day.completedCount)}/5` : '-'}
                         </span>
                         {day.isFriday && (
-                          <span className="text-[8px] text-amber-300 font-bold">জুমআ</span>
+                          <span className="text-[8px] text-amber-300 font-bold">
+                            {language === 'bn' ? 'জুমআ' : 'Jum\'ah'}
+                          </span>
                         )}
                       </div>
                     </button>
@@ -668,16 +778,16 @@ export const SalahJourneyView: React.FC<SalahJourneyViewProps> = ({ onBack, onSh
             {/* Legend */}
             <div className="flex flex-wrap items-center justify-center gap-3 pt-3 border-t border-slate-800 text-[10px] text-slate-400">
               <span className="flex items-center gap-1">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> ৫/৫ ওয়াক্ত (গোল্ড)
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> {language === 'bn' ? '৫/৫ ওয়াক্ত (গোল্ড)' : '5/5 Prayers (Gold)'}
               </span>
               <span className="flex items-center gap-1">
-                <span className="w-2.5 h-2.5 rounded-full bg-teal-500" /> ৪/৫ ওয়াক্ত (সিলভার)
+                <span className="w-2.5 h-2.5 rounded-full bg-teal-500" /> {language === 'bn' ? '৪/৫ ওয়াক্ত (সিলভার)' : '4/5 Prayers (Silver)'}
               </span>
               <span className="flex items-center gap-1">
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-500" /> ৩/৫ ওয়াক্ত (ব্রোঞ্জ)
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-500" /> {language === 'bn' ? '৩/৫ ওয়াক্ত (ব্রোঞ্জ)' : '3/5 Prayers (Bronze)'}
               </span>
               <span className="flex items-center gap-1">
-                <span className="w-2.5 h-2.5 rounded-full bg-slate-700" /> ১-২ ওয়াক্ত
+                <span className="w-2.5 h-2.5 rounded-full bg-slate-700" /> {language === 'bn' ? '১-২ ওয়াক্ত' : '1-2 Prayers'}
               </span>
             </div>
           </div>
@@ -689,10 +799,13 @@ export const SalahJourneyView: React.FC<SalahJourneyViewProps> = ({ onBack, onSh
                 <div>
                   <h3 className="text-sm font-bold text-white flex items-center gap-2">
                     <CalendarIcon className="w-4 h-4 text-emerald-400" />
-                    {formatBnDate(selectedDate)}
+                    {language === 'bn' ? formatBnDate(selectedDate) : selectedDate}
                   </h3>
                   <p className="text-xs text-slate-400 mt-0.5">
-                    {getHijriDate(selectedDate)?.bengali || ''} • {dayDetail?.summaryText || ''}
+                    {language === 'bn' 
+                      ? `${getHijriDate(selectedDate)?.bengali || ''} • ${dayDetail?.summaryText || ''}`
+                      : `${getHijriDate(selectedDate)?.english || ''} • Completed ${dayDetail?.completedCount || 0}/5 prayers in Jama'ah`
+                    }
                   </p>
                 </div>
 
@@ -700,13 +813,15 @@ export const SalahJourneyView: React.FC<SalahJourneyViewProps> = ({ onBack, onSh
                 {dayDetail?.tokenEarned && (
                   <div className="px-3 py-1 rounded-full bg-amber-950 border border-amber-600 text-amber-300 text-xs font-bold flex items-center gap-1">
                     <span>{dayDetail.tokenEarned === 'GOLD' ? '🥇' : dayDetail.tokenEarned === 'SILVER' ? '🥈' : '🥉'}</span>
-                    <span>{dayDetail.tokenEarned} টোকেন</span>
+                    <span>{dayDetail.tokenEarned} {language === 'bn' ? 'টোকেন' : 'Token'}</span>
                   </div>
                 )}
               </div>
 
               {loadingDayDetail ? (
-                <div className="py-6 text-center text-xs text-slate-400">দিনের তথ্য লোড হচ্ছে...</div>
+                <div className="py-6 text-center text-xs text-slate-400">
+                  {language === 'bn' ? 'দিনের তথ্য লোড হচ্ছে...' : 'Loading day details...'}
+                </div>
               ) : dayDetail?.prayers ? (
                 <div className="space-y-2">
                   {dayDetail.prayers.map(prayer => (
@@ -729,7 +844,9 @@ export const SalahJourneyView: React.FC<SalahJourneyViewProps> = ({ onBack, onSh
                           {prayer.completed ? <Check className="w-4 h-4" /> : <Minus className="w-3.5 h-3.5" />}
                         </div>
                         <div className="min-w-0">
-                          <span className="font-bold text-sm block text-white">{prayer.nameBn}</span>
+                          <span className="font-bold text-sm block text-white">
+                            {language === 'bn' ? prayer.nameBn : prayer.nameEn || prayer.nameBn}
+                          </span>
                           {prayer.mosqueName && (
                             <p className="text-[11px] text-emerald-300 flex items-center gap-1 truncate mt-0.5">
                               <MapPin className="w-3 h-3 text-amber-400 shrink-0" />
@@ -742,11 +859,17 @@ export const SalahJourneyView: React.FC<SalahJourneyViewProps> = ({ onBack, onSh
                       <div className="text-right shrink-0">
                         {prayer.completed ? (
                           <>
-                            <span className="text-[11px] font-semibold text-slate-300 block">{prayer.timeBn}</span>
-                            <span className="text-[10px] text-emerald-400 font-bold">যাচাইকৃত</span>
+                            <span className="text-[11px] font-semibold text-slate-300 block">
+                              {language === 'bn' ? prayer.timeBn : prayer.timeEn || prayer.timeBn}
+                            </span>
+                            <span className="text-[10px] text-emerald-400 font-bold">
+                              {language === 'bn' ? 'যাচাইকৃত' : 'Verified'}
+                            </span>
                           </>
                         ) : (
-                          <span className="text-[11px] text-slate-500 font-medium">আদায় হয়নি</span>
+                          <span className="text-[11px] text-slate-500 font-medium">
+                            {language === 'bn' ? 'আদায় হয়নি' : 'Not prayed'}
+                          </span>
                         )}
                       </div>
                     </div>
@@ -760,7 +883,7 @@ export const SalahJourneyView: React.FC<SalahJourneyViewProps> = ({ onBack, onSh
                         className="text-xs text-rose-400 hover:text-rose-300 flex items-center gap-1 py-1 px-2.5 rounded-lg bg-rose-950/30 border border-rose-900/50 cursor-pointer"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
-                        <span>এই দিনের ইতিহাস মুছুন</span>
+                        <span>{language === 'bn' ? 'এই দিনের ইতিহাস মুছুন' : 'Delete this day\'s history'}</span>
                       </button>
                     </div>
                   )}
@@ -779,15 +902,15 @@ export const SalahJourneyView: React.FC<SalahJourneyViewProps> = ({ onBack, onSh
           {/* Period Filter Tabs */}
           <div className="flex gap-1.5 overflow-x-auto pb-1 text-xs">
             {[
-              { id: 'week', label: 'এই সপ্তাহ (৭ দিন)' },
-              { id: 'month', label: 'এই মাস (৩০ দিন)' },
-              { id: 'year', label: 'বাৎসরিক (৩৬৫ দিন)' },
-              { id: 'custom', label: 'কাস্টম রেঞ্জ' }
+              { id: 'week', label: language === 'bn' ? 'এই সপ্তাহ (৭ দিন)' : 'This Week (7 Days)' },
+              { id: 'month', label: language === 'bn' ? 'এই মাস (৩০ দিন)' : 'This Month (30 Days)' },
+              { id: 'year', label: language === 'bn' ? 'বাৎসরিক (৩৬৫ দিন)' : 'Yearly (365 Days)' },
+              { id: 'custom', label: language === 'bn' ? 'কাস্টম রেঞ্জ' : 'Custom Range' }
             ].map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setAnalyticsPeriod(tab.id as any)}
-                className={`px-3.5 py-2 rounded-xl font-bold whitespace-nowrap transition-all ${
+                className={`px-3.5 py-2 rounded-xl font-bold whitespace-nowrap transition-all cursor-pointer ${
                   analyticsPeriod === tab.id
                     ? 'bg-emerald-600 text-white shadow-md'
                     : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
@@ -802,7 +925,9 @@ export const SalahJourneyView: React.FC<SalahJourneyViewProps> = ({ onBack, onSh
           {analyticsPeriod === 'custom' && (
             <div className="p-3.5 rounded-2xl bg-slate-900 border border-slate-800 grid grid-cols-2 sm:grid-cols-3 gap-2 items-end">
               <div>
-                <label className="text-[11px] text-slate-400 font-medium block mb-1">শুরু</label>
+                <label className="text-[11px] text-slate-400 font-medium block mb-1">
+                  {language === 'bn' ? 'শুরু' : 'Start'}
+                </label>
                 <input
                   type="date"
                   value={customStartDate}
@@ -811,7 +936,9 @@ export const SalahJourneyView: React.FC<SalahJourneyViewProps> = ({ onBack, onSh
                 />
               </div>
               <div>
-                <label className="text-[11px] text-slate-400 font-medium block mb-1">শেষ</label>
+                <label className="text-[11px] text-slate-400 font-medium block mb-1">
+                  {language === 'bn' ? 'শেষ' : 'End'}
+                </label>
                 <input
                   type="date"
                   value={customEndDate}
@@ -823,7 +950,7 @@ export const SalahJourneyView: React.FC<SalahJourneyViewProps> = ({ onBack, onSh
                 onClick={() => fetchAnalytics('custom', customStartDate, customEndDate)}
                 className="w-full py-2 bg-emerald-700 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
               >
-                ফিল্টার করুন
+                {language === 'bn' ? 'ফিল্টার করুন' : 'Apply Filter'}
               </button>
             </div>
           )}
@@ -831,25 +958,33 @@ export const SalahJourneyView: React.FC<SalahJourneyViewProps> = ({ onBack, onSh
           {/* Period Summary Metric Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
             <div className="p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800 text-center">
-              <span className="text-[11px] text-slate-400 font-semibold block mb-1">মোট আদায়কৃত সালাত</span>
+              <span className="text-[11px] text-slate-400 font-semibold block mb-1">
+                {language === 'bn' ? 'মোট আদায়কৃত সালাত' : 'Total Prayers Completed'}
+              </span>
               <span className="text-xl font-black text-emerald-400">
-                {toBnNumber(analyticsData?.totalCompleted || 0)}
+                {formatNum(analyticsData?.totalCompleted || 0)}
               </span>
               <span className="text-[10px] text-slate-500 block mt-0.5">
-                সম্ভাব্য {toBnNumber(analyticsData?.totalPossible || 0)} ওয়াক্তের মধ্যে
+                {language === 'bn' ? `সম্ভাব্য ${formatNum(analyticsData?.totalPossible || 0)} ওয়াক্তের মধ্যে` : `Out of ${formatNum(analyticsData?.totalPossible || 0)} possible`}
               </span>
             </div>
 
             <div className="p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800 text-center">
-              <span className="text-[11px] text-slate-400 font-semibold block mb-1">সমাপ্তির হার</span>
-              <span className="text-xl font-black text-amber-400">
-                {toBnNumber(analyticsData?.completionPercentage || 0)}%
+              <span className="text-[11px] text-slate-400 font-semibold block mb-1">
+                {language === 'bn' ? 'সমাপ্তির হার' : 'Completion Rate'}
               </span>
-              <span className="text-[10px] text-slate-500 block mt-0.5">ধারাবাহিকতা সূচক</span>
+              <span className="text-xl font-black text-amber-400">
+                {formatNum(analyticsData?.completionPercentage || 0)}%
+              </span>
+              <span className="text-[10px] text-slate-500 block mt-0.5">
+                {language === 'bn' ? 'ধারাবাহিকতা সূচক' : 'Consistency Index'}
+              </span>
             </div>
 
             <div className="p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800 text-center col-span-2 sm:col-span-1">
-              <span className="text-[11px] text-slate-400 font-semibold block mb-1">উন্নতি / অবনতি</span>
+              <span className="text-[11px] text-slate-400 font-semibold block mb-1">
+                {language === 'bn' ? 'উন্নতি / অবনতি' : 'Growth / Trend'}
+              </span>
               <div className="flex items-center justify-center gap-1">
                 {analyticsData?.improvementRate?.direction === 'UP' ? (
                   <TrendingUp className="w-4 h-4 text-emerald-400" />
@@ -859,7 +994,7 @@ export const SalahJourneyView: React.FC<SalahJourneyViewProps> = ({ onBack, onSh
                   <Minus className="w-4 h-4 text-slate-400" />
                 )}
                 <span className="text-sm font-bold text-white">
-                  {analyticsData?.improvementRate?.textBn || 'অপরিবর্তিত'}
+                  {language === 'bn' ? (analyticsData?.improvementRate?.textBn || 'অপরিবর্তিত') : (analyticsData?.improvementRate?.direction === 'UP' ? 'Improving' : analyticsData?.improvementRate?.direction === 'DOWN' ? 'Decreasing' : 'Steady')}
                 </span>
               </div>
             </div>
@@ -870,16 +1005,20 @@ export const SalahJourneyView: React.FC<SalahJourneyViewProps> = ({ onBack, onSh
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
                 <BarChart3 className="w-4 h-4 text-emerald-400" />
-                সালাত ধারাবাহিকতা গ্রাফ
+                {language === 'bn' ? 'সালাত ধারাবাহিকতা গ্রাফ' : 'Salah Consistency Chart'}
               </h3>
-              <span className="text-[11px] text-slate-400 font-medium">দৈনিক ৫ ওয়াক্ত স্কেল</span>
+              <span className="text-[11px] text-slate-400 font-medium">
+                {language === 'bn' ? 'দৈনিক ৫ ওয়াক্ত স্কেল' : 'Daily 5 Prayer Scale'}
+              </span>
             </div>
 
             {loadingAnalytics ? (
-              <div className="py-16 text-center text-xs text-slate-400">গ্রাফ তথ্য লোড হচ্ছে...</div>
+              <div className="py-16 text-center text-xs text-slate-400">
+                {language === 'bn' ? 'গ্রাফ তথ্য লোড হচ্ছে...' : 'Loading chart data...'}
+              </div>
             ) : !analyticsData?.chartData || analyticsData.chartData.length === 0 ? (
               <div className="py-16 text-center text-xs text-slate-500">
-                কোনো তথ্য পাওয়া যায়নি।
+                {language === 'bn' ? 'কোনো তথ্য পাওয়া যায়নি।' : 'No records found.'}
               </div>
             ) : (
               <div className="space-y-2">
@@ -907,7 +1046,7 @@ export const SalahJourneyView: React.FC<SalahJourneyViewProps> = ({ onBack, onSh
                         {/* Tooltip */}
                         {isHovered && (
                           <div className="absolute -top-10 bg-slate-950 border border-emerald-600 px-2 py-1 rounded-lg text-[10px] text-white shadow-xl whitespace-nowrap z-20 pointer-events-none">
-                            <span className="font-bold text-amber-300">{item.label}</span>: {toBnNumber(item.completed)}/৫ ওয়াক্ত ({toBnNumber(item.percentage)}%)
+                            <span className="font-bold text-amber-300">{getChartItemLabel(item)}</span>: {formatNum(item.completed)}/5 {language === 'bn' ? 'ওয়াক্ত' : 'prayers'} ({formatNum(item.percentage)}%)
                           </div>
                         )}
 
@@ -931,11 +1070,11 @@ export const SalahJourneyView: React.FC<SalahJourneyViewProps> = ({ onBack, onSh
 
                 {/* X Axis Labels */}
                 <div className="flex justify-between text-[10px] text-slate-400 px-1 pt-1 font-medium overflow-hidden">
-                  <span>{analyticsData.chartData[0]?.label}</span>
+                  <span>{getChartItemLabel(analyticsData.chartData[0])}</span>
                   {analyticsData.chartData.length > 2 && (
-                    <span>{analyticsData.chartData[Math.floor(analyticsData.chartData.length / 2)]?.label}</span>
+                    <span>{getChartItemLabel(analyticsData.chartData[Math.floor(analyticsData.chartData.length / 2)])}</span>
                   )}
-                  <span>{analyticsData.chartData[analyticsData.chartData.length - 1]?.label}</span>
+                  <span>{getChartItemLabel(analyticsData.chartData[analyticsData.chartData.length - 1])}</span>
                 </div>
               </div>
             )}
@@ -952,12 +1091,14 @@ export const SalahJourneyView: React.FC<SalahJourneyViewProps> = ({ onBack, onSh
             <div>
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
                 <Trophy className="w-4 h-4 text-amber-400" />
-                সালাত মাইলফলক ও অর্জন
+                {language === 'bn' ? 'সালাত মাইলফলক ও অর্জন' : 'Salah Milestones & Achievements'}
               </h3>
-              <p className="text-xs text-slate-400 mt-0.5">আপনার আধ্যাত্মিক ধারাবাহিকতার স্বীকৃতি</p>
+              <p className="text-xs text-slate-400 mt-0.5">
+                {language === 'bn' ? 'আপনার আধ্যাত্মিক ধারাবাহিকতার স্বীকৃতি' : 'Recognizing your spiritual persistence'}
+              </p>
             </div>
             <span className="px-3 py-1 rounded-full bg-amber-950/80 border border-amber-600/60 text-amber-300 text-xs font-bold">
-              {toBnNumber(summary?.milestones.filter(m => m.unlocked).length || 0)} / {toBnNumber(summary?.milestones.length || 8)} আনলকড
+              {formatNum(summary?.milestones.filter(m => m.unlocked).length || 0)} / {formatNum(summary?.milestones.length || 8)} {language === 'bn' ? 'আনলকড' : 'Unlocked'}
             </span>
           </div>
 
@@ -981,14 +1122,16 @@ export const SalahJourneyView: React.FC<SalahJourneyViewProps> = ({ onBack, onSh
                       </div>
                       <div>
                         <h4 className="text-sm font-bold text-white flex items-center gap-1.5">
-                          <span>{m.titleBn}</span>
+                          <span>{language === 'bn' ? m.titleBn : m.titleEn || m.titleBn}</span>
                           {m.unlocked && (
                             <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/40 font-bold">
-                              অর্জিত
+                              {language === 'bn' ? 'অর্জিত' : 'Unlocked'}
                             </span>
                           )}
                         </h4>
-                        <p className="text-xs text-slate-400 mt-0.5">{m.descBn}</p>
+                        <p className="text-xs text-slate-400 mt-0.5">
+                          {language === 'bn' ? m.descBn : m.descEn || m.descBn}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -996,9 +1139,11 @@ export const SalahJourneyView: React.FC<SalahJourneyViewProps> = ({ onBack, onSh
                   {/* Progress Bar */}
                   <div className="space-y-1">
                     <div className="flex items-center justify-between text-[11px]">
-                      <span className="text-slate-400 font-medium">অগ্রগতি</span>
+                      <span className="text-slate-400 font-medium">
+                        {language === 'bn' ? 'অগ্রগতি' : 'Progress'}
+                      </span>
                       <span className="font-bold text-emerald-400">
-                        {toBnNumber(m.current)} / {toBnNumber(m.target)}
+                        {formatNum(m.current)} / {formatNum(m.target)}
                       </span>
                     </div>
                     <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
@@ -1033,11 +1178,11 @@ export const SalahJourneyView: React.FC<SalahJourneyViewProps> = ({ onBack, onSh
             <div className="flex items-center justify-between">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
                 <RotateCcw className="w-5 h-5 text-emerald-400" />
-                সালাত জার্নি ও হিস্ট্রি অপশন
+                {language === 'bn' ? 'সালাত জার্নি ও হিস্ট্রি অপশন' : 'Salah Journey & History Options'}
               </h3>
               <button
                 onClick={() => setShowManageModal(false)}
-                className="p-1.5 rounded-full hover:bg-slate-800 text-slate-400 hover:text-white"
+                className="p-1.5 rounded-full hover:bg-slate-800 text-slate-400 hover:text-white cursor-pointer"
               >
                 ✕
               </button>
@@ -1048,17 +1193,23 @@ export const SalahJourneyView: React.FC<SalahJourneyViewProps> = ({ onBack, onSh
               <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
                 <div className="flex items-center gap-2">
                   <Archive className="w-4 h-4 text-emerald-400" />
-                  <h4 className="text-xs font-bold text-white">নতুন সালাত জার্নি শুরু করুন</h4>
+                  <h4 className="text-xs font-bold text-white">
+                    {language === 'bn' ? 'নতুন সালাত জার্নি শুরু করুন' : 'Start New Salah Journey'}
+                  </h4>
                 </div>
                 <p className="text-xs text-slate-400 leading-relaxed">
-                  বর্তমান অগ্রগতি আর্কাইভ হয়ে যাবে এবং আজ থেকে নতুন জার্নির স্ট্রিক ও পরিসংখ্যান গণনা শুরু হবে।
+                  {language === 'bn' 
+                    ? 'বর্তমান অগ্রগতি আর্কাইভ হয়ে যাবে এবং আজ থেকে নতুন জার্নির স্ট্রিক ও পরিসংখ্যান গণনা শুরু হবে।'
+                    : 'Current progress will be archived, and new streak/statistics calculation will start from today.'}
                 </p>
                 <button
                   disabled={actionInProgress}
                   onClick={handleStartNewJourney}
                   className="w-full py-2 bg-emerald-700 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-md disabled:opacity-50"
                 >
-                  {actionInProgress ? 'প্রসেস হচ্ছে...' : 'নতুন জার্নি শুরু করুন'}
+                  {actionInProgress 
+                    ? (language === 'bn' ? 'প্রসেস হচ্ছে...' : 'Processing...') 
+                    : (language === 'bn' ? 'নতুন জার্নি শুরু করুন' : 'Start New Journey')}
                 </button>
               </div>
 
@@ -1066,7 +1217,9 @@ export const SalahJourneyView: React.FC<SalahJourneyViewProps> = ({ onBack, onSh
               <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
                 <div className="flex items-center gap-2">
                   <CalendarIcon className="w-4 h-4 text-amber-400" />
-                  <h4 className="text-xs font-bold text-white">তারিখ সীমার ইতিহাস মুছুন</h4>
+                  <h4 className="text-xs font-bold text-white">
+                    {language === 'bn' ? 'তারিখ সীমার ইতিহাস মুছুন' : 'Delete Date Range History'}
+                  </h4>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <input
@@ -1087,7 +1240,7 @@ export const SalahJourneyView: React.FC<SalahJourneyViewProps> = ({ onBack, onSh
                   onClick={handleDeleteRange}
                   className="w-full py-2 bg-slate-800 hover:bg-rose-900/60 text-rose-300 border border-rose-800/40 rounded-xl text-xs font-bold transition-all cursor-pointer disabled:opacity-40"
                 >
-                  সীমার ইতিহাস মুছুন
+                  {language === 'bn' ? 'সীমার ইতিহাস মুছুন' : 'Delete Range History'}
                 </button>
               </div>
 
@@ -1095,17 +1248,21 @@ export const SalahJourneyView: React.FC<SalahJourneyViewProps> = ({ onBack, onSh
               <div className="p-4 rounded-2xl bg-slate-950 border border-rose-950/60 space-y-2">
                 <div className="flex items-center gap-2 text-rose-400">
                   <AlertTriangle className="w-4 h-4" />
-                  <h4 className="text-xs font-bold">সম্পূর্ণ সালাত ইতিহাস মুছুন</h4>
+                  <h4 className="text-xs font-bold">
+                    {language === 'bn' ? 'সম্পূর্ণ সালাত ইতিহাস মুছুন' : 'Delete All Salah History'}
+                  </h4>
                 </div>
                 <p className="text-[11px] text-slate-400">
-                  আপনার অ্যাকাউন্টের সম্পূর্ণ সালাতের ইতিহাস স্থায়ীভাবে মুছে ফেলা হবে।
+                  {language === 'bn'
+                    ? 'আপনার অ্যাকাউন্টের সম্পূর্ণ সালাতের ইতিহাস স্থায়ীভাবে মুছে ফেলা হবে।'
+                    : 'All recorded prayer history in your account will be permanently deleted.'}
                 </p>
                 <button
                   disabled={actionInProgress}
                   onClick={() => setShowDeleteConfirm('all')}
                   className="w-full py-2 bg-rose-950/80 hover:bg-rose-900 border border-rose-700 text-rose-200 rounded-xl text-xs font-bold transition-all cursor-pointer disabled:opacity-50"
                 >
-                  সম্পূর্ণ ইতিহাস মুছুন
+                  {language === 'bn' ? 'সম্পূর্ণ ইতিহাস মুছুন' : 'Delete All History'}
                 </button>
               </div>
             </div>
@@ -1126,11 +1283,17 @@ export const SalahJourneyView: React.FC<SalahJourneyViewProps> = ({ onBack, onSh
             </div>
 
             <div>
-              <h3 className="text-base font-bold text-white">আপনি কি নিশ্চিত?</h3>
+              <h3 className="text-base font-bold text-white">
+                {language === 'bn' ? 'আপনি কি নিশ্চিত?' : 'Are you sure?'}
+              </h3>
               <p className="text-xs text-slate-300 mt-1 leading-relaxed">
                 {showDeleteConfirm === 'all'
-                  ? 'আপনার সম্পূর্ণ সালাত হিস্ট্রি এবং অর্জিত অগ্রগতি মুছে ফেলা হবে। এই কাজটি আর ফিরিয়ে আনা সম্ভব নয়।'
-                  : `${selectedDate} তারিখের সালাত রেকর্ড মুছে ফেলা হবে।`}
+                  ? (language === 'bn' 
+                    ? 'আপনার সম্পূর্ণ সালাত হিস্ট্রি এবং অর্জিত অগ্রগতি মুছে ফেলা হবে। এই কাজটি আর ফিরিয়ে আনা সম্ভব নয়।'
+                    : 'All your prayer history and achievements will be deleted. This action cannot be undone.')
+                  : (language === 'bn'
+                    ? `${selectedDate} তারিখের সালাত রেকর্ড মুছে ফেলা হবে।`
+                    : `Prayer records for ${selectedDate} will be deleted.`)}
               </p>
             </div>
 
@@ -1139,7 +1302,7 @@ export const SalahJourneyView: React.FC<SalahJourneyViewProps> = ({ onBack, onSh
                 onClick={() => setShowDeleteConfirm(null)}
                 className="py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs cursor-pointer"
               >
-                বাতিল
+                {language === 'bn' ? 'বাতিল' : 'Cancel'}
               </button>
               <button
                 disabled={actionInProgress}
@@ -1149,7 +1312,9 @@ export const SalahJourneyView: React.FC<SalahJourneyViewProps> = ({ onBack, onSh
                 }}
                 className="py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs cursor-pointer shadow-lg disabled:opacity-50"
               >
-                {actionInProgress ? 'মুছে ফেলা হচ্ছে...' : 'হ্যাঁ, মুছে ফেলুন'}
+                {actionInProgress 
+                  ? (language === 'bn' ? 'মুছে ফেলা হচ্ছে...' : 'Deleting...') 
+                  : (language === 'bn' ? 'হ্যাঁ, মুছে ফেলুন' : 'Yes, Delete')}
               </button>
             </div>
           </motion.div>

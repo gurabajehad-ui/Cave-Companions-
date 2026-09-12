@@ -106,17 +106,31 @@ export function getTodayPrayerOrder(dateInput?: string | Date): PrayerType[] {
 export const HADITHS = [
   {
     textBn: 'রাসূলুল্লাহ ﷺ বলেছেন: "জামাতে নামাজের মর্যাদা একাকী নামাজের চেয়ে সাতাশ (২৭) গুণ বেশি।"',
-    sourceBn: 'সহিহ বুখারি: ৬৪৫, সহিহ মুসলিম: ৬৫০'
+    textEn: 'The Messenger of Allah ﷺ said: "Prayer in congregation is twenty-seven times more meritorious than a prayer performed individually."',
+    sourceBn: 'সহিহ বুখারি: ৬৪৫, সহিহ মুসলিম: ৬৫০',
+    sourceEn: 'Sahih Bukhari: 645, Sahih Muslim: 650'
   },
   {
     textBn: 'রাসূলুল্লাহ ﷺ বলেছেন: "যে ব্যক্তি এশার নামাজ জামাতে আদায় করল, সে যেন অর্ধেক রাত সালাত আদায় করল। আর যে ফজরের নামাজও জামাতে আদায় করল, সে যেন সারা রাত সালাত আদায় করল।"',
-    sourceBn: 'সহিহ মুসলিম: ৬৫৬'
+    textEn: 'The Messenger of Allah ﷺ said: "He who prays Isha in congregation, it is as if he prayed half the night; and whoever prays Fajr in congregation, it is as if he prayed the whole night."',
+    sourceBn: 'সহিহ মুসলিম: ৬৫৬',
+    sourceEn: 'Sahih Muslim: 656'
   },
   {
     textBn: 'রাসূলুল্লাহ ﷺ বলেছেন: "যে ব্যক্তি চল্লিশ দিন যাবত প্রথম তাকবিরের সাথে জামাতে নামাজ আদায় করবে, তার জন্য দুটি মুক্তিপত্র লেখা হবে: জাহান্নাম থেকে মুক্তি এবং মুনাফেকি থেকে মুক্তি।"',
-    sourceBn: 'জামে আত-তিরমিজি: ২৪১'
+    textEn: 'The Messenger of Allah ﷺ said: "Whoever prays to Allah in congregation for forty days, catching the first takbir, two freedoms are written for him: freedom from the Fire and freedom from hypocrisy."',
+    sourceBn: 'জামে আত-তিরমিজি: ২৪১',
+    sourceEn: 'Jami at-Tirmidhi: 241'
   }
 ];
+
+export function formatNumber(num: number | string | null | undefined, lang: 'bn' | 'en' = 'bn'): string {
+  if (num === null || num === undefined) return lang === 'bn' ? '০' : '0';
+  if (lang === 'bn') {
+    return toBnNumber(num);
+  }
+  return String(num);
+}
 
 export function toBnNumber(num: number | string | null | undefined): string {
   if (num === null || num === undefined) return '০';
@@ -146,16 +160,25 @@ const ISLAMIC_MONTHS_BN = [
   'রমজান', 'শাওয়াল', 'জিলকদ', 'জিলহজ্জ'
 ];
 
+const ISLAMIC_MONTHS_EN = [
+  'Muharram', 'Safar', 'Rabi al-Awwal', 'Rabi al-Thani',
+  'Jumada al-Awwal', 'Jumada al-Thani', 'Rajab', 'Sha\'ban',
+  'Ramadan', 'Shawwal', 'Dhu al-Qi\'dah', 'Dhu al-Hijjah'
+];
+
 const GREGORIAN_MONTHS_BN = [
   'জানুয়ারি', 'ফেব্রুয়ারি', 'মার্চ', 'এপ্রিল', 'মে', 'জুন',
   'জুলাই', 'আগস্ট', 'সেপ্টেম্বর', 'অক্টোবর', 'নভেম্বর', 'ডিসেম্বর'
 ];
 
 const BN_WEEKDAYS = ['রবিবার', 'সোমবার', 'মঙ্গলবার', 'বুধবার', 'বৃহস্পতিবার', 'শুক্রবার', 'শনিবার'];
+const EN_WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 export interface HijriDateInfo {
   bengali: string;
   bengaliWithDay: string;
+  english: string;
+  englishWithDay: string;
   monthBn: string;
   dayBn: string;
   yearBn: string;
@@ -289,15 +312,19 @@ export function getHijriDate(dateInput?: string | Date): HijriDateInfo {
 
     const monthIndex = Math.max(0, Math.min(11, month - 1));
     const monthBn = ISLAMIC_MONTHS_BN[monthIndex] || 'রবিউল আউয়াল';
+    const monthEn = ISLAMIC_MONTHS_EN[monthIndex] || 'Rabi al-Awwal';
+    const weekdayEn = EN_WEEKDAYS[date.getDay()] || '';
     const dayBn = toBnNumber(day);
     const yearBn = toBnNumber(year);
 
     const bengali = `${dayBn} ই ${monthBn} ${yearBn} হিজরী`;
     const bengaliWithDay = `${weekdayBn}, ${bengali}`;
+    const english = `${day} ${monthEn} ${year} AH`;
+    const englishWithDay = `${weekdayEn}, ${english}`;
 
-    return { bengali, bengaliWithDay, monthBn, dayBn, yearBn, weekdayBn };
+    return { bengali, bengaliWithDay, english, englishWithDay, monthBn, dayBn, yearBn, weekdayBn };
   } catch (e) {
-    return { bengali: '', bengaliWithDay: '', monthBn: '', dayBn: '', yearBn: '', weekdayBn: '' };
+    return { bengali: '', bengaliWithDay: '', english: '', englishWithDay: '', monthBn: '', dayBn: '', yearBn: '', weekdayBn: '' };
   }
 }
 

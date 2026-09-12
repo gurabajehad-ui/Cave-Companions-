@@ -4,7 +4,9 @@ import { getTodayDateString, getYesterdayDateString, isFriday, getDhakaDate } fr
 export interface JourneyMilestone {
   id: string;
   titleBn: string;
+  titleEn?: string;
   descBn: string;
+  descEn?: string;
   icon: string;
   target: number;
   current: number;
@@ -414,7 +416,7 @@ export class SalahJourneyService {
         ? ['fajr', 'jumuah', 'asr', 'maghrib', 'isha']
         : ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'];
 
-      const prayerNames: Record<string, string> = {
+      const prayerNamesBn: Record<string, string> = {
         fajr: 'ফজর',
         dhuhr: 'যোহর',
         jumuah: 'জুমআ',
@@ -422,16 +424,26 @@ export class SalahJourneyService {
         maghrib: 'মাগরিব',
         isha: 'এশা'
       };
+      const prayerNamesEn: Record<string, string> = {
+        fajr: 'Fajr',
+        dhuhr: 'Dhuhr',
+        jumuah: "Jum'ah",
+        asr: 'Asr',
+        maghrib: 'Maghrib',
+        isha: 'Isha'
+      };
 
       const prayers: DayPrayerItem[] = prayerTypes.map(pType => {
         const found = dayAtts.find(a => a.prayer_type === pType || (isFri && pType === 'jumuah' && a.prayer_type === 'dhuhr') || (!isFri && pType === 'dhuhr' && a.prayer_type === 'jumuah'));
         return {
           type: pType,
-          nameBn: prayerNames[pType] || pType,
+          nameBn: prayerNamesBn[pType] || pType,
+          nameEn: prayerNamesEn[pType] || pType,
           completed: !!found,
           mosqueName: found?.mosque_name || undefined,
           verifiedAt: found?.verified_at ? new Date(found.verified_at).toISOString() : undefined,
-          timeBn: found?.verified_at ? formatTimeBengali(found.verified_at) : undefined
+          timeBn: found?.verified_at ? formatTimeBengali(found.verified_at) : undefined,
+          timeEn: found?.verified_at ? new Date(found.verified_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }) : undefined
         };
       });
 
@@ -480,7 +492,7 @@ export class SalahJourneyService {
       ? ['fajr', 'jumuah', 'asr', 'maghrib', 'isha']
       : ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'];
 
-    const prayerNames: Record<string, string> = {
+    const prayerNamesBn: Record<string, string> = {
       fajr: 'ফজর',
       dhuhr: 'যোহর',
       jumuah: 'জুমআ',
@@ -488,16 +500,26 @@ export class SalahJourneyService {
       maghrib: 'মাগরিব',
       isha: 'এশা'
     };
+    const prayerNamesEn: Record<string, string> = {
+      fajr: 'Fajr',
+      dhuhr: 'Dhuhr',
+      jumuah: "Jum'ah",
+      asr: 'Asr',
+      maghrib: 'Maghrib',
+      isha: 'Isha'
+    };
 
     const prayers: DayPrayerItem[] = prayerTypes.map(pType => {
       const found = dayAtts.find(a => a.prayer_type === pType || (isFri && pType === 'jumuah' && a.prayer_type === 'dhuhr') || (!isFri && pType === 'dhuhr' && a.prayer_type === 'jumuah'));
       return {
         type: pType,
-        nameBn: prayerNames[pType] || pType,
+        nameBn: prayerNamesBn[pType] || pType,
+        nameEn: prayerNamesEn[pType] || pType,
         completed: !!found,
         mosqueName: found?.mosque_name || undefined,
         verifiedAt: found?.verified_at ? new Date(found.verified_at).toISOString() : undefined,
-        timeBn: found?.verified_at ? formatTimeBengali(found.verified_at) : undefined
+        timeBn: found?.verified_at ? formatTimeBengali(found.verified_at) : undefined,
+        timeEn: found?.verified_at ? new Date(found.verified_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }) : undefined
       };
     });
 
@@ -945,7 +967,9 @@ export class SalahJourneyService {
       {
         id: 'FIRST_PERFECT_DAY',
         titleBn: 'প্রথম পূর্ণ দিন',
+        titleEn: 'First Perfect Day',
         descBn: '১ দিনে ৫/৫ ওয়াক্ত সালাত সম্পন্ন',
+        descEn: 'Completed 5/5 prayers in 1 day',
         icon: '🌙',
         target: 1,
         current: Math.min(1, perfectDaysCount),
@@ -955,7 +979,9 @@ export class SalahJourneyService {
       {
         id: 'STREAK_3_DAYS',
         titleBn: '৩ দিনের ধারাবাহিকতা',
+        titleEn: '3-Day Streak',
         descBn: 'টানা ৩ দিন ৫/৫ ওয়াক্ত সালাত',
+        descEn: '5/5 prayers for 3 consecutive days',
         icon: '🔥',
         target: 3,
         current: Math.min(3, bestStreak),
@@ -965,7 +991,9 @@ export class SalahJourneyService {
       {
         id: 'STREAK_7_DAYS',
         titleBn: '৭ দিনের ধারাবাহিকতা',
+        titleEn: '7-Day Streak',
         descBn: 'টানা ১ সপ্তাহ পূর্ণ জামাত',
+        descEn: 'Full Jama\'ah for 1 consecutive week',
         icon: '🔥',
         target: 7,
         current: Math.min(7, bestStreak),
@@ -975,7 +1003,9 @@ export class SalahJourneyService {
       {
         id: 'PERFECT_DAYS_10',
         titleBn: '১০টি Perfect Day',
+        titleEn: '10 Perfect Days',
         descBn: 'মোট ১০ দিন ৫/৫ ওয়াক্ত সালাত',
+        descEn: 'Total 10 days with 5/5 prayers',
         icon: '⭐',
         target: 10,
         current: Math.min(10, perfectDaysCount),
@@ -985,7 +1015,9 @@ export class SalahJourneyService {
       {
         id: 'STREAK_30_DAYS',
         titleBn: '৩০ দিনের ধারাবাহিকতা',
+        titleEn: '30-Day Streak',
         descBn: 'টানা ১ মাস নিরবচ্ছিন্ন সালাত',
+        descEn: 'Unbroken prayer streak for 1 month',
         icon: '🏆',
         target: 30,
         current: Math.min(30, bestStreak),
@@ -995,7 +1027,9 @@ export class SalahJourneyService {
       {
         id: 'TOTAL_50_PRAYERS',
         titleBn: 'জামাত অনুরাগী',
+        titleEn: 'Jama\'ah Devotee',
         descBn: '৫০ ওয়াক্ত সালাত সম্পন্ন',
+        descEn: '50 prayers completed in Jama\'ah',
         icon: '🕌',
         target: 50,
         current: Math.min(50, totalCompletedPrayers),
@@ -1005,7 +1039,9 @@ export class SalahJourneyService {
       {
         id: 'TOTAL_100_PRAYERS',
         titleBn: 'সেঞ্চুরিয়ন',
+        titleEn: 'Centurion',
         descBn: '১০০ ওয়াক্ত সালাত সম্পন্ন',
+        descEn: '100 prayers completed in Jama\'ah',
         icon: '🌟',
         target: 100,
         current: Math.min(100, totalCompletedPrayers),
@@ -1015,7 +1051,9 @@ export class SalahJourneyService {
       {
         id: 'TOTAL_300_PRAYERS',
         titleBn: 'সালাতের রক্ষক',
+        titleEn: 'Guardian of Prayer',
         descBn: '৩০০ ওয়াক্ত সালাত সম্পন্ন',
+        descEn: '300 prayers completed in Jama\'ah',
         icon: '👑',
         target: 300,
         current: Math.min(300, totalCompletedPrayers),

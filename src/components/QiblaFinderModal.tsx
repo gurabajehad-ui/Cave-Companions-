@@ -25,6 +25,7 @@ import {
   getQiblaDirectionDescription,
   DISTRICT_COORDINATES
 } from '../utils/qibla';
+import { useLanguage } from '../context/LanguageContext';
 
 interface QiblaFinderModalProps {
   isOpen: boolean;
@@ -39,6 +40,9 @@ export const QiblaFinderModal: React.FC<QiblaFinderModalProps> = ({
   userDistrict,
   onShowToast
 }) => {
+  const { language } = useLanguage();
+  const formatNum = (val: number | string) => language === 'bn' ? toBnNumber(val) : String(val);
+
   // Tab Mode: 'compass' (Live Compass) or 'guide' (Visual Direction Guide)
   const [activeTab, setActiveTab] = useState<'compass' | 'guide'>('compass');
 
@@ -48,9 +52,10 @@ export const QiblaFinderModal: React.FC<QiblaFinderModalProps> = ({
     const matched = DISTRICT_COORDINATES[userDistrict || ''] || DISTRICT_COORDINATES['Dhaka'];
     return matched || { lat: 23.8103, lng: 90.4125 };
   });
-  const [locationName, setLocationName] = useState<string>(
-    BANGLADESH_DISTRICTS.find(d => d.district === userDistrict || d.districtBn === userDistrict)?.districtBn || 'ঢাকা'
-  );
+  const [locationName, setLocationName] = useState<string>(() => {
+    const d = BANGLADESH_DISTRICTS.find(item => item.district === userDistrict || item.districtBn === userDistrict);
+    return d ? (language === 'bn' ? d.districtBn : d.district) : (language === 'bn' ? 'ঢাকা' : 'Dhaka');
+  });
   const [isUsingGps, setIsUsingGps] = useState<boolean>(false);
   const [locatingGps, setLocatingGps] = useState<boolean>(false);
   const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null);
@@ -78,18 +83,22 @@ export const QiblaFinderModal: React.FC<QiblaFinderModalProps> = ({
   // Calculated Qibla Bearing and Distance based on native Geolocation coordinates
   const qiblaBearing = calculateQiblaBearing(currentCoords.lat, currentCoords.lng);
   const kaabaDistanceKm = calculateKaabaDistanceKm(currentCoords.lat, currentCoords.lng);
-  const qiblaDesc = getQiblaDirectionDescription(qiblaBearing);
+  const qiblaDesc = getQiblaDirectionDescription(qiblaBearing, language);
 
   // Dynamic calculations for the visual direction guide
   const westDiff = qiblaBearing - 270;
   const westDiffAbs = Math.abs(westDiff);
-  const westDiffText = westDiff >= 0 
-    ? `ডানে +${toBnNumber(westDiffAbs.toFixed(1))}°` 
-    : `বামে -${toBnNumber(westDiffAbs.toFixed(1))}°`;
+  const westDiffText = language === 'bn'
+    ? (westDiff >= 0 ? `ডানে +${toBnNumber(westDiffAbs.toFixed(1))}°` : `বামে -${toBnNumber(westDiffAbs.toFixed(1))}°`)
+    : (westDiff >= 0 ? `Right +${westDiffAbs.toFixed(1)}°` : `Left -${westDiffAbs.toFixed(1)}°`);
   
-  const practicalAngleText = westDiff >= 0 
-    ? `ডান দিকে (উত্তর দিকে আনুমানিক ${toBnNumber(Math.floor(westDiffAbs))}° থেকে ${toBnNumber(Math.ceil(westDiffAbs))}°)`
-    : `বাম দিকে (দক্ষিণ দিকে আনুমানিক ${toBnNumber(Math.floor(westDiffAbs))}° থেকে ${toBnNumber(Math.ceil(westDiffAbs))}°)`;
+  const practicalAngleText = language === 'bn'
+    ? (westDiff >= 0 
+        ? `ডান দিকে (উত্তর দিকে আনুমানিক ${toBnNumber(Math.floor(westDiffAbs))}° থেকে ${toBnNumber(Math.ceil(westDiffAbs))}°)`
+        : `বাম দিকে (দক্ষিণ দিকে আনুমানিক ${toBnNumber(Math.floor(westDiffAbs))}° থেকে ${toBnNumber(Math.ceil(westDiffAbs))}°)`)
+    : (westDiff >= 0
+        ? `Right side (approx ${Math.floor(westDiffAbs)}° to ${Math.ceil(westDiffAbs)}° North)`
+        : `Left side (approx ${Math.floor(westDiffAbs)}° to ${Math.ceil(westDiffAbs)}° South)`);
 
   // Calculate dynamic Sun direction based on current local time for verification
   const sunData = useMemo(() => {
@@ -132,7 +141,7 @@ export const QiblaFinderModal: React.FC<QiblaFinderModalProps> = ({
   // Native Geolocation API Hook (Auto-fetches on modal open)
   const requestNativeGeolocation = useCallback((silent = false) => {
     if (!navigator.geolocation) {
-      if (!silent) onShowToast?.('error', 'অসমর্থিত', 'আপনার ডিভাইসে বা ব্রাউজারে জিপিএস সুবিধা সমর্থিত নয়।');
+      if (!silent) onShowToast?.('error', language === 'bn' ? 'অসমর্থিত' : 'Unsupported', language === 'bn' ? 'আপনার ডিভাইসে বা ব্রাউজারে জিপিএস সুবিধা সমর্থিত নয়।' : 'GPS is not supported on your device or browser.');
       return;
     }
 
@@ -144,20 +153,24 @@ export const QiblaFinderModal: React.FC<QiblaFinderModalProps> = ({
         setCurrentCoords({ lat: latitude, lng: longitude });
         setGpsAccuracy(Math.round(accuracy));
         setIsUsingGps(true);
-        setLocationName('সরাসরি ডিভাইস জিপিএস');
+        setLocationName(language === 'bn' ? 'সরাসরি ডিভাইস জিপিএস' : 'Direct Device GPS');
         if (!silent) {
-          onShowToast?.('success', 'জিপিএস অবস্থান সফল', `সঠিক জিপিএস স্থান পাওয়া গেছে (নির্ভুলতা: ±${Math.round(accuracy)}মি)।`);
+          onShowToast?.(
+            'success',
+            language === 'bn' ? 'জিপিএস অবস্থান সফল' : 'GPS Location Found',
+            language === 'bn' ? `সঠিক জিপিএস স্থান পাওয়া গেছে (নির্ভুলতা: ±${toBnNumber(Math.round(accuracy))}মি)।` : `Accurate GPS location found (accuracy: ±${Math.round(accuracy)}m).`
+          );
         }
       },
       (err) => {
         setLocatingGps(false);
         if (!silent) {
-          onShowToast?.('info', 'জিপিএস অ্যাক্সেস মেলেনি', 'জেলা তালিকা থেকে আপনার অবস্থান নির্বাচন করুন।');
+          onShowToast?.('info', language === 'bn' ? 'জিপিএস অ্যাক্সেস মেলেনি' : 'GPS Access Denied', language === 'bn' ? 'জেলা তালিকা থেকে আপনার অবস্থান নির্বাচন করুন।' : 'Please select your location from the district list.');
         }
       },
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
-  }, [onShowToast]);
+  }, [onShowToast, language]);
 
   useEffect(() => {
     if (isOpen) {
@@ -194,24 +207,13 @@ export const QiblaFinderModal: React.FC<QiblaFinderModalProps> = ({
     }
 
     // 2. Android / Standard W3C Absolute Orientation
-    const isAbsolute = e.type === 'deviceorientationabsolute' || (e as any).absolute === true;
-    
-    // Only use alpha if it's an absolute reading, OR if we are on a browser that doesn't fire absolute events but provides valid alpha
-    // Some older browsers might provide absolute alpha in standard deviceorientation. We prefer deviceorientationabsolute.
     if (e.alpha !== null && e.alpha !== undefined && !isNaN(e.alpha)) {
-      // If it's a standard deviceorientation event and NOT absolute, it's relative to where the phone started.
-      // This causes wildly inaccurate compass readings on Android.
       if (e.type === 'deviceorientation' && (e as any).absolute !== true) {
-         // Ignore relative orientation events if we want true north
          return null; 
       }
 
-      // Android's OS-level sensor fusion already provides tilt-compensated alpha.
-      // alpha is W3C intrinsic Z-axis rotation. West = 90, East = 270.
-      // We convert it to standard compass bearing (East = 90, West = 270).
       let rawHeading = (360 - e.alpha) % 360;
 
-      // Screen orientation offset (Portrait / Landscape)
       let screenAngle = 0;
       if (typeof window !== 'undefined') {
         if (window.screen && window.screen.orientation && typeof window.screen.orientation.angle === 'number') {
@@ -263,7 +265,6 @@ export const QiblaFinderModal: React.FC<QiblaFinderModalProps> = ({
         
         lastHeadingRef.current = (smoothed + 360) % 360;
         
-        // Accumulate continuous heading to prevent CSS transition spin backwards
         displayHeadingRef.current += 0.15 * delta;
 
         setDeviceHeading(Math.round(lastHeadingRef.current));
@@ -292,7 +293,7 @@ export const QiblaFinderModal: React.FC<QiblaFinderModalProps> = ({
     }
   }, [isOpen, setupCompassListener]);
 
-  // Trigger Calibration Overlay Check
+  // Trigger Calibration Check
   const startCalibrationCheck = () => {
     sweepAccumulatorRef.current = 0;
     setCalibrationSweep(0);
@@ -305,7 +306,7 @@ export const QiblaFinderModal: React.FC<QiblaFinderModalProps> = ({
     try {
       if ('vibrate' in navigator) navigator.vibrate([100, 50, 100]);
     } catch (_) {}
-    onShowToast?.('success', 'ক্যালিব্রেশন সফল', 'ম্যাগনেটোমিটার সেন্সর সঠিক কিবলা বের করার জন্য প্রস্তুত।');
+    onShowToast?.('success', language === 'bn' ? 'ক্যালিব্রেশন সফল' : 'Calibration Successful', language === 'bn' ? 'ম্যাগনেটোমিটার সেন্সর সঠিক কিবলা বের করার জন্য প্রস্তুত।' : 'Magnetometer sensor is ready for accurate Qibla detection.');
   };
 
   // District Selector Change
@@ -316,7 +317,7 @@ export const QiblaFinderModal: React.FC<QiblaFinderModalProps> = ({
     setIsUsingGps(false);
     setGpsAccuracy(null);
     const districtObj = BANGLADESH_DISTRICTS.find(d => d.district === districtName);
-    setLocationName(districtObj ? districtObj.districtBn : districtName);
+    setLocationName(districtObj ? (language === 'bn' ? districtObj.districtBn : districtObj.district) : districtName);
   };
 
   if (!isOpen) return null;
@@ -343,10 +344,12 @@ export const QiblaFinderModal: React.FC<QiblaFinderModalProps> = ({
               </div>
               <div>
                 <h3 className="text-base font-extrabold text-white flex items-center gap-1.5">
-                  <span>কিবলা কম্পাস ও দিক নির্ণয়</span>
+                  <span>{language === 'bn' ? 'কিবলা কম্পাস ও দিক নির্ণয়' : 'Qibla Compass & Direction'}</span>
                   <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-mono">QIBLA</span>
                 </h3>
-                <p className="text-[11px] text-emerald-300/80 font-medium">পবিত্র কাবা শরিফের দিক: {qiblaDesc}</p>
+                <p className="text-[11px] text-emerald-300/80 font-medium">
+                  {language === 'bn' ? `পবিত্র কাবা শরিফের দিক: ${qiblaDesc}` : `Holy Kaaba Direction: ${qiblaDesc}`}
+                </p>
               </div>
             </div>
 
@@ -369,7 +372,7 @@ export const QiblaFinderModal: React.FC<QiblaFinderModalProps> = ({
               }`}
             >
               <Compass className="w-4 h-4 text-amber-300" />
-              <span>লাইভ কম্পাস</span>
+              <span>{language === 'bn' ? 'লাইভ কম্পাস' : 'Live Compass'}</span>
             </button>
 
             <button
@@ -381,7 +384,7 @@ export const QiblaFinderModal: React.FC<QiblaFinderModalProps> = ({
               }`}
             >
               <Navigation2 className="w-4 h-4 text-amber-300" />
-              <span>সহজ দিক-নির্দেশিকা</span>
+              <span>{language === 'bn' ? 'সহজ দিক-নির্দেশিকা' : 'Visual Guide'}</span>
             </button>
           </div>
 
@@ -395,7 +398,7 @@ export const QiblaFinderModal: React.FC<QiblaFinderModalProps> = ({
                 </span>
                 {isUsingGps && (
                   <span className="text-[9px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded border border-emerald-500/30 flex items-center gap-1 font-mono">
-                    GPS {gpsAccuracy !== null ? `(±${toBnNumber(gpsAccuracy)}মি)` : ''}
+                    GPS {gpsAccuracy !== null ? `(±${formatNum(gpsAccuracy)}${language === 'bn' ? 'মি' : 'm'})` : ''}
                   </span>
                 )}
               </div>
@@ -406,13 +409,13 @@ export const QiblaFinderModal: React.FC<QiblaFinderModalProps> = ({
                 className="flex items-center gap-1 text-[11px] font-semibold bg-emerald-900/70 hover:bg-emerald-800 border border-emerald-700/60 text-amber-300 px-2.5 py-1 rounded-xl cursor-pointer transition-all active:scale-95 shrink-0"
               >
                 <LocateFixed className={`w-3.5 h-3.5 ${locatingGps ? 'animate-spin' : ''}`} />
-                <span>{locatingGps ? 'খোঁজা হচ্ছে...' : 'জিপিএস লোকেশন'}</span>
+                <span>{locatingGps ? (language === 'bn' ? 'খোঁজা হচ্ছে...' : 'Locating...') : (language === 'bn' ? 'জিপিএস লোকেশন' : 'GPS Location')}</span>
               </button>
             </div>
 
             {/* District Dropdown Selector */}
             <div className="flex items-center gap-2 pt-1 border-t border-emerald-900/60 text-xs">
-              <span className="text-[11px] text-emerald-300/70 shrink-0">জেলা:</span>
+              <span className="text-[11px] text-emerald-300/70 shrink-0">{language === 'bn' ? 'জেলা:' : 'District:'}</span>
               <select
                 value={selectedDistrict}
                 onChange={(e) => handleDistrictChange(e.target.value)}
@@ -420,7 +423,7 @@ export const QiblaFinderModal: React.FC<QiblaFinderModalProps> = ({
               >
                 {BANGLADESH_DISTRICTS.map((d) => (
                   <option key={d.district} value={d.district}>
-                    {d.districtBn} ({d.district})
+                    {language === 'bn' ? `${d.districtBn} (${d.district})` : `${d.district} (${d.districtBn})`}
                   </option>
                 ))}
               </select>
@@ -435,19 +438,27 @@ export const QiblaFinderModal: React.FC<QiblaFinderModalProps> = ({
                 {isAligned ? (
                   <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/25 border border-emerald-400 text-emerald-300 text-xs font-bold animate-pulse shadow-lg shadow-emerald-500/20">
                     <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                    <span>আলহামদুলিল্লাহ! আপনি কিবলামুখী হয়েছেন</span>
+                    <span>{language === 'bn' ? 'আলহামদুলিল্লাহ! আপনি কিবলামুখী হয়েছেন' : 'Alhamdulillah! You are facing Qibla'}</span>
                   </div>
                 ) : (
                   <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-950/90 border border-emerald-800 text-emerald-200 text-xs font-semibold">
                     {diff > 0 ? (
                       <>
                         <ArrowRight className="w-4 h-4 text-amber-400 animate-bounce" />
-                        <span>ফোনটি <strong className="text-amber-300">{toBnNumber(Math.round(Math.abs(diff)))}° ডানে</strong> ঘুরান</span>
+                        <span>
+                          {language === 'bn' 
+                            ? <>ফোনটি <strong className="text-amber-300">{formatNum(Math.round(Math.abs(diff)))}° ডানে</strong> ঘুরান</>
+                            : <>Turn phone <strong className="text-amber-300">{formatNum(Math.round(Math.abs(diff)))}° Right</strong></>}
+                        </span>
                       </>
                     ) : (
                       <>
                         <ArrowLeft className="w-4 h-4 text-amber-400 animate-bounce" />
-                        <span>ফোনটি <strong className="text-amber-300">{toBnNumber(Math.round(Math.abs(diff)))}° বামে</strong> ঘুরান</span>
+                        <span>
+                          {language === 'bn'
+                            ? <>ফোনটি <strong className="text-amber-300">{formatNum(Math.round(Math.abs(diff)))}° বামে</strong> ঘুরান</>
+                            : <>Turn phone <strong className="text-amber-300">{formatNum(Math.round(Math.abs(diff)))}° Left</strong></>}
+                        </span>
                       </>
                     )}
                   </div>
@@ -496,25 +507,25 @@ export const QiblaFinderModal: React.FC<QiblaFinderModalProps> = ({
                     </div>
                   ))}
 
-                  {/* Cardinal Points with Clear Bengali Names */}
+                  {/* Cardinal Points with Clear Bengali / English Names */}
                   <div className="absolute top-2 left-1/2 -translate-x-1/2 text-center pointer-events-none">
                     <span className="block text-[11px] font-black text-rose-400 font-mono">N</span>
-                    <span className="block text-[9px] font-bold text-rose-300 -mt-1">উত্তর</span>
+                    <span className="block text-[9px] font-bold text-rose-300 -mt-1">{language === 'bn' ? 'উত্তর' : 'North'}</span>
                   </div>
 
                   <div className="absolute right-2 top-1/2 -translate-y-1/2 text-center pointer-events-none">
                     <span className="block text-[11px] font-black text-emerald-300 font-mono">E</span>
-                    <span className="block text-[9px] font-bold text-emerald-300/80 -mt-1">পূর্ব</span>
+                    <span className="block text-[9px] font-bold text-emerald-300/80 -mt-1">{language === 'bn' ? 'পূর্ব' : 'East'}</span>
                   </div>
 
                   <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-center pointer-events-none">
-                    <span className="block text-[9px] font-bold text-emerald-300/80 mb-0.5">দক্ষিণ</span>
+                    <span className="block text-[9px] font-bold text-emerald-300/80 mb-0.5">{language === 'bn' ? 'দক্ষিণ' : 'South'}</span>
                     <span className="block text-[11px] font-black text-emerald-400 font-mono -mt-1">S</span>
                   </div>
 
                   <div className="absolute left-2 top-1/2 -translate-y-1/2 text-center pointer-events-none">
                     <span className="block text-[11px] font-black text-emerald-300 font-mono">W</span>
-                    <span className="block text-[9px] font-bold text-emerald-300/80 -mt-1">পশ্চিম</span>
+                    <span className="block text-[9px] font-bold text-emerald-300/80 -mt-1">{language === 'bn' ? 'পশ্চিম' : 'West'}</span>
                   </div>
 
                   {/* Sun Marker on Dial */}
@@ -528,7 +539,7 @@ export const QiblaFinderModal: React.FC<QiblaFinderModalProps> = ({
                           ☀️
                         </div>
                         <span className="text-[7px] font-bold text-amber-300 bg-black/70 border border-amber-500/20 px-1 py-0.2 rounded mt-0.5">
-                          সূর্য ({toBnNumber(Math.round(sunData.azimuth))}°)
+                          {language === 'bn' ? 'সূর্য' : 'Sun'} ({formatNum(Math.round(sunData.azimuth))}°)
                         </span>
                       </div>
                     </div>
@@ -545,7 +556,7 @@ export const QiblaFinderModal: React.FC<QiblaFinderModalProps> = ({
                       </div>
                       <div className="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] border-t-amber-300 -mt-0.5" />
                       <span className="text-[9px] font-black text-amber-300 tracking-wider bg-black/80 px-1.5 py-0.5 rounded border border-amber-400/40 mt-0.5">
-                        কিবলা ({toBnNumber(qiblaBearing)}°)
+                        {language === 'bn' ? 'কিবলা' : 'Qibla'} ({formatNum(qiblaBearing)}°)
                       </span>
                     </div>
                   </div>
@@ -560,10 +571,10 @@ export const QiblaFinderModal: React.FC<QiblaFinderModalProps> = ({
 
                   <div className="w-16 h-16 rounded-full bg-[#021812] border-2 border-amber-400 shadow-2xl flex flex-col items-center justify-center text-center p-1 z-20">
                     <span className="text-[9px] text-emerald-300/80 uppercase font-bold leading-none">
-                      কিবলা
+                      {language === 'bn' ? 'কিবলা' : 'Qibla'}
                     </span>
                     <span className="text-sm font-black text-amber-300 leading-tight">
-                      {toBnNumber(qiblaBearing)}°
+                      {formatNum(qiblaBearing)}°
                     </span>
                     <span className="text-[8.5px] text-emerald-400 font-medium">
                       W-NW
@@ -578,10 +589,14 @@ export const QiblaFinderModal: React.FC<QiblaFinderModalProps> = ({
                   <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${isCalibrated ? 'bg-emerald-400 shadow-[0_0_8px_#34d399]' : 'bg-amber-400 animate-ping'}`} />
                   <div className="min-w-0">
                     <span className="text-[11px] font-bold text-white block truncate">
-                      {isCalibrated ? '✓ ম্যাগনেটোমিটার ক্যালিব্রেটেড' : '⚠️ সেন্সর ক্যালিব্রেশন প্রয়োজন'}
+                      {isCalibrated 
+                        ? (language === 'bn' ? '✓ ম্যাগনেটোমিটার ক্যালিব্রেটেড' : '✓ Magnetometer Calibrated') 
+                        : (language === 'bn' ? '⚠️ সেন্সর ক্যালিব্রেশন প্রয়োজন' : '⚠️ Sensor Calibration Required')}
                     </span>
                     <span className="text-[10px] text-emerald-300/70 block truncate">
-                      {isCalibrated ? 'চুম্বকীয় সেন্সর সম্পূর্ণ সঠিক' : 'বাতাসে ৮ (8) গতিতে ফোন ঘুরিয়ে নিখুঁত করুন'}
+                      {isCalibrated 
+                        ? (language === 'bn' ? 'চুম্বকীয় সেন্সর সম্পূর্ণ সঠিক' : 'Magnetic sensor is accurate')
+                        : (language === 'bn' ? 'বাতাসে ৮ (8) গতিতে ফোন ঘুরিয়ে নিখুঁত করুন' : 'Calibrate phone in figure-8 motion')}
                     </span>
                   </div>
                 </div>
@@ -591,7 +606,11 @@ export const QiblaFinderModal: React.FC<QiblaFinderModalProps> = ({
                   className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-[#021812] font-extrabold text-[11px] cursor-pointer shadow-md transition-all active:scale-95 shrink-0 flex items-center gap-1"
                 >
                   <RotateCw className="w-3.5 h-3.5" />
-                  <span>{isCalibrated ? 'পুনরায় ক্যালিব্রেট' : '৮-গতিতে ক্যালিব্রেট'}</span>
+                  <span>
+                    {isCalibrated 
+                      ? (language === 'bn' ? 'পুনরায় ক্যালিব্রেট' : 'Recalibrate') 
+                      : (language === 'bn' ? '৮-গতিতে ক্যালিব্রেট' : 'Figure-8 Calibrate')}
+                  </span>
                 </button>
               </div>
 
@@ -601,28 +620,30 @@ export const QiblaFinderModal: React.FC<QiblaFinderModalProps> = ({
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-[11px] text-amber-300 font-bold flex items-center gap-1.5">
                       <Smartphone className="w-4 h-4 text-amber-400 shrink-0" />
-                      লাইভ কম্পাস চালু হচ্ছে না?
+                      {language === 'bn' ? 'লাইভ কম্পাস চালু হচ্ছে না?' : 'Live compass not active?'}
                     </span>
                     <button
                       onClick={() => setupCompassListener()}
                       className="px-3 py-1 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-[11px] cursor-pointer shadow-md transition-all active:scale-95 shrink-0"
                     >
-                      কম্পাস সক্রিয় করুন
+                      {language === 'bn' ? 'কম্পাস সক্রিয় করুন' : 'Enable Compass'}
                     </button>
                   </div>
                   <p className="text-[10px] text-emerald-300/80 leading-relaxed">
-                    আপনার মোবাইল বা আইফোনে প্রথমবার কম্পাস সেন্সরের অনুমতি দিতে উপরের বোতামে চাপুন। যদি ব্রাউজারে অনুমতি ব্লক করা থাকে, তবে দয়া করে ব্রাউজার সেটিংসে সেন্সর অ্যাক্সেস চালু করুন।
+                    {language === 'bn' 
+                      ? 'আপনার মোবাইল বা আইফোনে প্রথমবার কম্পাস সেন্সরের অনুমতি দিতে উপরের বোতামে চাপুন। যদি ব্রাউজারে অনুমতি ব্লক করা থাকে, তবে দয়া করে ব্রাউজার সেটিংসে সেন্সর অ্যাক্সেস চালু করুন।'
+                      : 'Tap the button above to grant compass sensor permissions on your mobile or iPhone. If blocked by the browser, please allow motion sensors in browser settings.'}
                   </p>
                 </div>
               ) : (
                 <div className="w-full mt-1.5 space-y-2">
                   <div className="flex items-center justify-between text-[11px] text-emerald-300/80 px-1">
-                    <span>লাইভ হেডিং: {toBnNumber(effectiveHeading)}°</span>
+                    <span>{language === 'bn' ? `লাইভ হেডিং: ${formatNum(effectiveHeading)}°` : `Live Heading: ${formatNum(effectiveHeading)}°`}</span>
                     <button
                       onClick={() => setShowCalibrationHelp(!showCalibrationHelp)}
                       className="text-amber-300 underline cursor-pointer hover:text-white"
                     >
-                      দিক মিলছে না?
+                      {language === 'bn' ? 'দিক মিলছে না?' : 'Direction mismatch?'}
                     </button>
                   </div>
                 </div>
@@ -633,12 +654,18 @@ export const QiblaFinderModal: React.FC<QiblaFinderModalProps> = ({
                 <div className="w-full mt-2 p-3 rounded-2xl bg-amber-950/40 border border-amber-800/60 text-xs text-amber-200 space-y-1.5">
                   <div className="flex items-center gap-1.5 font-bold text-amber-300">
                     <RotateCw className="w-3.5 h-3.5 animate-spin" />
-                    <span>দিক সঠিক করার উপায়:</span>
+                    <span>{language === 'bn' ? 'দিক সঠিক করার উপায়:' : 'How to calibrate direction:'}</span>
                   </div>
                   <ul className="text-[11px] leading-relaxed text-amber-200/90 list-disc pl-4 space-y-1">
-                    <li><strong>ডিভাইস সমতল রাখুন:</strong> মোবাইলটি মেঝের সাথে সম্পূর্ণ ফ্ল্যাট রাখুন।</li>
-                    <li><strong>৮-আকৃতির গতি:</strong> উপরে '৮-গতিতে ক্যালিব্রেট' চাপুন এবং ফোন বাতাসে ৮ (8) এর মতো ঘুরান।</li>
-                    <li><strong>সূর্য দিয়ে দিক মেলান:</strong> দিনের বেলা ডায়ালের ☀️ সূর্য আইকনকে আকাশের বাস্তব সূর্যের দিকে সোজা করুন।</li>
+                    <li>
+                      <strong>{language === 'bn' ? 'ডিভাইস সমতল রাখুন:' : 'Keep device flat:'}</strong> {language === 'bn' ? 'মোবাইলটি মেঝের সাথে সম্পূর্ণ ফ্ল্যাট রাখুন।' : 'Hold your mobile completely flat parallel to the ground.'}
+                    </li>
+                    <li>
+                      <strong>{language === 'bn' ? '৮-আকৃতির গতি:' : 'Figure-8 motion:'}</strong> {language === 'bn' ? "উপরে '৮-গতিতে ক্যালিব্রেট' চাপুন এবং ফোন বাতাসে ৮ (8) এর মতো ঘুরান।" : "Tap 'Figure-8 Calibrate' above and wave the phone in a figure-8 in the air."}
+                    </li>
+                    <li>
+                      <strong>{language === 'bn' ? 'সূর্য দিয়ে দিক মেলান:' : 'Align with the Sun:'}</strong> {language === 'bn' ? 'দিনের বেলা ডায়ালের ☀️ সূর্য আইকনকে আকাশের বাস্তব সূর্যের দিকে সোজা করুন।' : 'During daytime, point the ☀️ Sun icon toward the real sun in the sky.'}
+                    </li>
                   </ul>
                 </div>
               )}
@@ -652,45 +679,51 @@ export const QiblaFinderModal: React.FC<QiblaFinderModalProps> = ({
               <div className="p-4 rounded-2xl bg-gradient-to-br from-[#063326] to-[#021f17] border border-amber-500/40 shadow-lg space-y-3">
                 <div className="flex items-center gap-2 text-amber-300 font-bold text-sm">
                   <Sunset className="w-5 h-5 text-amber-400" />
-                  <span>কিবলা নির্ধারণের সাধারণ সহজ নিয়ম:</span>
+                  <span>{language === 'bn' ? 'কিবলা নির্ধারণের সাধারণ সহজ নিয়ম:' : 'Simple Guide to Determining Qibla:'}</span>
                 </div>
 
                 <p className="text-xs text-emerald-100 leading-relaxed">
-                  বাংলাদেশ থেকে পবিত্র কাবা শরিফ হলো <strong className="text-amber-300">পশ্চিম (West)</strong> দিক থেকে সামান্য উত্তর দিকে—অর্থাৎ <strong className="text-white font-bold">{qiblaDesc}</strong>।
+                  {language === 'bn' 
+                    ? <>বাংলাদেশ থেকে পবিত্র কাবা শরিফ হলো <strong className="text-amber-300">পশ্চিম (West)</strong> দিক থেকে সামান্য উত্তর দিকে—অর্থাৎ <strong className="text-white font-bold">{qiblaDesc}</strong>।</>
+                    : <>From Bangladesh, the Holy Kaaba is slightly north of <strong className="text-amber-300">West</strong>—that is <strong className="text-white font-bold">{qiblaDesc}</strong>.</>}
                 </p>
 
                 {/* Visual Sun/Sunset Angle Illustration */}
                 <div className="p-3 rounded-xl bg-[#021812]/90 border border-emerald-800/60 space-y-2 text-xs">
                   <div className="flex items-center justify-between border-b border-emerald-900 pb-1.5">
-                    <span className="text-emerald-300/80">১. পশ্চিম দিক (সূর্য অস্ত যাওয়ার দিক):</span>
-                    <span className="font-mono text-amber-300 font-bold">২৭০°</span>
+                    <span className="text-emerald-300/80">{language === 'bn' ? '১. পশ্চিম দিক (সূর্য অস্ত যাওয়ার দিক):' : '1. Due West (Sunset Direction):'}</span>
+                    <span className="font-mono text-amber-300 font-bold">{formatNum(270)}°</span>
                   </div>
 
                   <div className="flex items-center justify-between border-b border-emerald-900 pb-1.5">
-                    <span className="text-emerald-300/80">২. {locationName} থেকে কিবলা কোণ:</span>
-                    <span className="font-mono text-emerald-300 font-bold">{toBnNumber(qiblaBearing)}° ({westDiffText})</span>
+                    <span className="text-emerald-300/80">{language === 'bn' ? `২. ${locationName} থেকে কিবলা কোণ:` : `2. Qibla angle from ${locationName}:`}</span>
+                    <span className="font-mono text-emerald-300 font-bold">{formatNum(qiblaBearing)}° ({westDiffText})</span>
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <span className="text-emerald-300/80">৩. মক্কা থেকে দূরত্ব:</span>
-                    <span className="font-mono text-amber-300 font-bold">~{toBnNumber(kaabaDistanceKm.toLocaleString())} কিমি</span>
+                    <span className="text-emerald-300/80">{language === 'bn' ? '৩. মক্কা থেকে দূরত্ব:' : '3. Distance from Makkah:'}</span>
+                    <span className="font-mono text-amber-300 font-bold">~{formatNum(kaabaDistanceKm.toLocaleString())} {language === 'bn' ? 'কিমি' : 'km'}</span>
                   </div>
                 </div>
 
                 {/* Practical Direction Summary Box */}
                 <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs leading-relaxed space-y-1">
-                  <span className="font-bold text-amber-300 block">💡 প্র্যাক্টিক্যাল টিপস:</span>
+                  <span className="font-bold text-amber-300 block">{language === 'bn' ? '💡 প্র্যাক্টিক্যাল টিপস:' : '💡 Practical Tips:'}</span>
                   <p className="text-[11px] text-amber-100/90">
-                    আপনি যদি সূর্য যেদিকে অস্ত যায় (পশ্চিম দিক) সেদিকে মুখ করে দাঁড়ান, তবে আপনার শরীরকে <strong>সামান্য {practicalAngleText}</strong> ঘুরিয়ে দাঁড়ালে সঠিক কিবলামুখী হওয়া যাবে।
+                    {language === 'bn' 
+                      ? <>আপনি যদি সূর্য যেদিকে অস্ত যায় (পশ্চিম দিক) সেদিকে মুখ করে দাঁড়ান, তবে আপনার শরীরকে <strong>সামান্য {practicalAngleText}</strong> ঘুরিয়ে দাঁড়ালে সঠিক কিবলামুখী হওয়া যাবে।</>
+                      : <>If you stand facing sunset (West), turn your body <strong>slightly {practicalAngleText}</strong> to face the exact Qibla.</>}
                   </p>
                 </div>
               </div>
 
               {/* Mosques Standard Info */}
               <div className="p-3 rounded-2xl bg-[#021812]/90 border border-emerald-800/50 text-xs text-emerald-300/80 space-y-1">
-                <span className="font-bold text-emerald-200 block">🕌 মসজিদ ভিত্তিক কিবলা:</span>
+                <span className="font-bold text-emerald-200 block">{language === 'bn' ? '🕌 মসজিদ ভিত্তিক কিবলা:' : '🕌 Mosque Qibla:'}</span>
                 <p className="text-[11px] leading-relaxed">
-                  বাংলাদেশের সকল অনুমোদিত মসজিদের মেহরাব এই সুনির্দিষ্ট পশ্চিম-উত্তর-পশ্চিম (২৭৭°-২৭৮°) কোণেই নির্মিত।
+                  {language === 'bn'
+                    ? 'বাংলাদেশের সকল অনুমোদিত মসজিদের মেহরাব এই সুনির্দিষ্ট পশ্চিম-উত্তর-পশ্চিম (২৭৭°-২৭৮°) কোণেই নির্মিত।'
+                    : 'Mihrabs of all recognized mosques across Bangladesh are built aligned precisely to this West-Northwest (277°-278°) bearing.'}
                 </p>
               </div>
             </div>
@@ -700,19 +733,19 @@ export const QiblaFinderModal: React.FC<QiblaFinderModalProps> = ({
           <div className="relative z-10 mt-3 grid grid-cols-2 gap-2 pt-2.5 border-t border-emerald-800/50 text-center">
             <div className="bg-[#021812]/80 border border-emerald-800/50 rounded-2xl p-2">
               <span className="text-[9.5px] text-emerald-300/70 block uppercase font-bold">
-                কাবার দূরত্ব
+                {language === 'bn' ? 'কাবার দূরত্ব' : 'Kaaba Distance'}
               </span>
               <span className="text-xs sm:text-sm font-extrabold text-amber-300">
-                ~{toBnNumber(kaabaDistanceKm.toLocaleString())} কিমি
+                ~{formatNum(kaabaDistanceKm.toLocaleString())} {language === 'bn' ? 'কিমি' : 'km'}
               </span>
             </div>
 
             <div className="bg-[#021812]/80 border border-emerald-800/50 rounded-2xl p-2">
               <span className="text-[9.5px] text-emerald-300/70 block uppercase font-bold">
-                দিক ও কোণ
+                {language === 'bn' ? 'দিক ও কোণ' : 'Direction & Angle'}
               </span>
               <span className="text-xs sm:text-sm font-extrabold text-emerald-200">
-                {toBnNumber(qiblaBearing)}° (W-NW)
+                {formatNum(qiblaBearing)}° (W-NW)
               </span>
             </div>
           </div>
@@ -730,7 +763,9 @@ export const QiblaFinderModal: React.FC<QiblaFinderModalProps> = ({
                 <div className="flex items-center justify-between border-b border-emerald-800/60 pb-3">
                   <div className="flex items-center gap-2">
                     <RotateCw className="w-5 h-5 text-amber-400 animate-spin" />
-                    <span className="text-sm font-extrabold text-white">৮-আকৃতির সেন্সর ক্যালিব্রেশন</span>
+                    <span className="text-sm font-extrabold text-white">
+                      {language === 'bn' ? '৮-আকৃতির সেন্সর ক্যালিব্রেশন' : 'Figure-8 Sensor Calibration'}
+                    </span>
                   </div>
                   <button
                     onClick={() => setShowCalibrationOverlay(false)}
@@ -781,14 +816,16 @@ export const QiblaFinderModal: React.FC<QiblaFinderModalProps> = ({
                   </div>
 
                   <p className="text-xs text-emerald-100/90 leading-relaxed max-w-xs">
-                    আপনার ফোনটিকে বাতাসে <strong className="text-amber-300 font-bold">ইংরেজি ৮ (8) সংকেতের মতো</strong> ২-৩ বার ঘুরিয়ে নিন। এটি ম্যাগনেটোমিটার সেন্সরের চৌম্বক বিচ্যুতি দূর করে সঠিক কিবলা কোণ নির্ধারণ করবে।
+                    {language === 'bn' 
+                      ? <>আপনার ফোনটিকে বাতাসে <strong className="text-amber-300 font-bold">ইংরেজি ৮ (8) সংকেতের মতো</strong> ২-৩ বার ঘুরিয়ে নিন। এটি ম্যাগনেটোমিটার সেন্সরের চৌম্বক বিচ্যুতি দূর করে সঠিক কিবলা কোণ নির্ধারণ করবে।</>
+                      : <>Wave your phone in the air in a <strong className="text-amber-300 font-bold">figure-8 motion</strong> 2-3 times. This clears magnetic interference and calibrates the sensor for exact Qibla direction.</>}
                   </p>
 
                   {/* Sweep Progress Bar */}
                   <div className="w-full space-y-1.5">
                     <div className="flex items-center justify-between text-xs text-emerald-300 font-bold">
-                      <span>সেন্সর রোটেশন ট্র্যাকার:</span>
-                      <span className="text-amber-300 font-mono">{toBnNumber(calibrationSweep)}%</span>
+                      <span>{language === 'bn' ? 'সেন্সর রোটেশন ট্র্যাকার:' : 'Sensor Rotation Tracker:'}</span>
+                      <span className="text-amber-300 font-mono">{formatNum(calibrationSweep)}%</span>
                     </div>
                     <div className="w-full h-3 bg-emerald-950 rounded-full border border-emerald-800 overflow-hidden p-0.5">
                       <div
@@ -805,7 +842,7 @@ export const QiblaFinderModal: React.FC<QiblaFinderModalProps> = ({
                   className="w-full py-3 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-sm shadow-lg shadow-emerald-900/50 cursor-pointer transition-all active:scale-98 flex items-center justify-center gap-2"
                 >
                   <CheckCircle2 className="w-5 h-5 text-amber-300" />
-                  <span>ক্যালিব্রেশন সম্পূর্ণ করুন</span>
+                  <span>{language === 'bn' ? 'ক্যালিব্রেশন সম্পূর্ণ করুন' : 'Complete Calibration'}</span>
                 </button>
               </motion.div>
             )}

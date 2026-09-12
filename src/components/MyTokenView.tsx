@@ -25,6 +25,7 @@ import { api } from '../services/api';
 import { MyTokensResponse, TokenType, UserToken, UserRedemptionRecord } from '../types';
 import { toBnNumber } from '../data/prayerConfig';
 import { ShopRedemptionModal } from './ShopRedemptionModal';
+import { useLanguage } from '../context/LanguageContext';
 
 interface MyTokenViewProps {
   onShowToast?: (type: 'success' | 'error' | 'info', title: string, message: string) => void;
@@ -37,6 +38,7 @@ export const MyTokenView: React.FC<MyTokenViewProps> = ({
   onNavigateToHome,
   onNavigateToShops
 }) => {
+  const { t, language } = useLanguage();
   const [tokenData, setTokenData] = useState<MyTokensResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'available' | 'used' | 'donated'>('available');
@@ -72,12 +74,12 @@ export const MyTokenView: React.FC<MyTokenViewProps> = ({
     } catch (err: any) {
       console.error('Failed to fetch tokens:', err);
       if (onShowToast) {
-        onShowToast('error', 'ত্রুটি', err.message || 'টোকেন তথ্য লোড করতে সমস্যা হয়েছে।');
+        onShowToast('error', language === 'bn' ? 'ত্রুটি' : 'Error', err.message || (language === 'bn' ? 'টোকেন তথ্য লোড করতে সমস্যা হয়েছে।' : 'Failed to load token information.'));
       }
     } finally {
       setIsLoading(false);
     }
-  }, [onShowToast]);
+  }, [onShowToast, language]);
 
   useEffect(() => {
     fetchTokens();
@@ -102,7 +104,7 @@ export const MyTokenView: React.FC<MyTokenViewProps> = ({
       setIsDonating(true);
       const res = await api.donateToken(selectedTokenForDonation.id);
       if (onShowToast) {
-        onShowToast('success', 'আলহামদুলিল্লাহ!', res.message || 'টোকেনটি সফলভাবে দান করা হয়েছে।');
+        onShowToast('success', language === 'bn' ? 'আলহামদুলিল্লাহ!' : 'Alhamdulillah!', res.message || (language === 'bn' ? 'টোকেনটি সফলভাবে দান করা হয়েছে।' : 'Token donated successfully.'));
       }
       setShowDonationConfirmModal(false);
       setSelectedTokenForDonation(null);
@@ -110,7 +112,7 @@ export const MyTokenView: React.FC<MyTokenViewProps> = ({
     } catch (err: any) {
       console.error('Donate token error:', err);
       if (onShowToast) {
-        onShowToast('error', 'ত্রুটি', err.message || 'টোকেন দান করতে সমস্যা হয়েছে।');
+        onShowToast('error', language === 'bn' ? 'ত্রুটি' : 'Error', err.message || (language === 'bn' ? 'টোকেন দান করতে সমস্যা হয়েছে।' : 'Failed to donate token.'));
       }
     } finally {
       setIsDonating(false);
@@ -148,7 +150,7 @@ export const MyTokenView: React.FC<MyTokenViewProps> = ({
           badgeBg: 'bg-amber-500/20 text-amber-300 border-amber-500/50',
           textColor: 'text-amber-300',
           requiredPrayers: 5,
-          desc: 'দৈনিক ৫ ওয়াক্ত জামাতে নামাজ সম্পন্ন'
+          desc: language === 'bn' ? 'দৈনিক ৫ ওয়াক্ত জামাতে নামাজ সম্পন্ন' : '5 Waqt daily in Jama\'ah completed'
         };
       case 'SILVER':
         return {
@@ -160,7 +162,7 @@ export const MyTokenView: React.FC<MyTokenViewProps> = ({
           badgeBg: 'bg-slate-500/20 text-slate-200 border-slate-400/50',
           textColor: 'text-slate-200',
           requiredPrayers: 4,
-          desc: 'দৈনিক ৪ ওয়াক্ত জামাতে নামাজ সম্পন্ন'
+          desc: language === 'bn' ? 'দৈনিক ৪ ওয়াক্ত জামাতে নামাজ সম্পন্ন' : '4 Waqt daily in Jama\'ah completed'
         };
       case 'BRONZE':
       default:
@@ -173,20 +175,29 @@ export const MyTokenView: React.FC<MyTokenViewProps> = ({
           badgeBg: 'bg-amber-800/20 text-amber-400 border-amber-700/50',
           textColor: 'text-amber-400',
           requiredPrayers: 3,
-          desc: 'দৈনিক ৩ ওয়াক্ত জামাতে নামাজ সম্পন্ন'
+          desc: language === 'bn' ? 'দৈনিক ৩ ওয়াক্ত জামাতে নামাজ সম্পন্ন' : '3 Waqt daily in Jama\'ah completed'
         };
     }
   };
 
-  const formatBanglaDate = (dateStr: string) => {
+  const formatFormattedDate = (dateStr: string) => {
     try {
       const [year, month, day] = dateStr.split('-');
-      const monthsBn = [
-        'জানুয়ারি', 'ফেব্রুয়ারি', 'মার্চ', 'এপ্রিল', 'মে', 'জুন',
-        'জুলাই', 'আগস্ট', 'সেপ্টেম্বর', 'অক্টোবর', 'নভেম্বর', 'ডিসেম্বর'
-      ];
-      const monthIndex = parseInt(month, 10) - 1;
-      return `${toBnNumber(parseInt(day, 10))} ${monthsBn[monthIndex] || month}, ${toBnNumber(parseInt(year, 10))}`;
+      if (language === 'bn') {
+        const monthsBn = [
+          'জানুয়ারি', 'ফেব্রুয়ারি', 'মার্চ', 'এপ্রিল', 'মে', 'জুন',
+          'জুলাই', 'আগস্ট', 'সেপ্টেম্বর', 'অক্টোবর', 'নভেম্বর', 'ডিসেম্বর'
+        ];
+        const monthIndex = parseInt(month, 10) - 1;
+        return `${toBnNumber(parseInt(day, 10))} ${monthsBn[monthIndex] || month}, ${toBnNumber(parseInt(year, 10))}`;
+      } else {
+        const monthsEn = [
+          'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+        ];
+        const monthIndex = parseInt(month, 10) - 1;
+        return `${parseInt(day, 10)} ${monthsEn[monthIndex] || month}, ${year}`;
+      }
     } catch (e) {
       return dateStr;
     }
@@ -204,10 +215,12 @@ export const MyTokenView: React.FC<MyTokenViewProps> = ({
       type: 'used',
       tokenId,
       isAll: !tokenId,
-      title: tokenId ? 'ব্যবহারের ইতিহাস মুছুন' : 'সকল ব্যবহারের ইতিহাস মুছুন',
+      title: tokenId 
+        ? (language === 'bn' ? 'ব্যবহারের ইতিহাস মুছুন' : 'Delete Used History')
+        : (language === 'bn' ? 'সকল ব্যবহারের ইতিহাস মুছুন' : 'Clear All Used History'),
       description: tokenId
-        ? 'আপনি কি নিশ্চিত যে এই টোকেন ব্যবহারের ইতিহাসটি মুছে ফেলতে চান?'
-        : 'আপনি কি নিশ্চিত যে সকল ব্যবহারের ইতিহাস মুছে ফেলতে চান?'
+        ? (language === 'bn' ? 'আপনি কি নিশ্চিত যে এই টোকেন ব্যবহারের ইতিহাসটি মুছে ফেলতে চান?' : 'Are you sure you want to delete this token usage history?')
+        : (language === 'bn' ? 'আপনি কি নিশ্চিত যে সকল ব্যবহারের ইতিহাস মুছে ফেলতে চান?' : 'Are you sure you want to clear all used token history?')
     });
   };
 
@@ -217,10 +230,12 @@ export const MyTokenView: React.FC<MyTokenViewProps> = ({
       type: 'donated',
       tokenId,
       isAll: !tokenId,
-      title: tokenId ? 'দান করার ইতিহাস মুছুন' : 'সকল দান করার ইতিহাস মুছুন',
+      title: tokenId 
+        ? (language === 'bn' ? 'দান করার ইতিহাস মুছুন' : 'Delete Donation History')
+        : (language === 'bn' ? 'সকল দান করার ইতিহাস মুছুন' : 'Clear All Donated History'),
       description: tokenId
-        ? 'আপনি কি নিশ্চিত যে এই দান করার ইতিহাসটি মুছে ফেলতে চান?'
-        : 'আপনি কি নিশ্চিত যে সকল দান করার ইতিহাস মুছে ফেলতে চান?'
+        ? (language === 'bn' ? 'আপনি কি নিশ্চিত যে এই দান করার ইতিহাসটি মুছে ফেলতে চান?' : 'Are you sure you want to delete this donation history?')
+        : (language === 'bn' ? 'আপনি কি নিশ্চিত যে সকল দান করার ইতিহাস মুছে ফেলতে চান?' : 'Are you sure you want to clear all donation history?')
     });
   };
 
@@ -235,12 +250,12 @@ export const MyTokenView: React.FC<MyTokenViewProps> = ({
         res = await api.deleteDonatedTokenHistory(deleteModal.tokenId);
       }
       if (res.success) {
-        if (onShowToast) onShowToast('success', 'মুছে ফেলা হয়েছে', res.message);
+        if (onShowToast) onShowToast('success', language === 'bn' ? 'মুছে ফেলা হয়েছে' : 'Deleted', res.message);
         setDeleteModal(null);
         await fetchTokens();
       }
     } catch (err: any) {
-      if (onShowToast) onShowToast('error', 'ত্রুটি', err.message || 'মুছে ফেলা সম্ভব হয়নি।');
+      if (onShowToast) onShowToast('error', language === 'bn' ? 'ত্রুটি' : 'Error', err.message || (language === 'bn' ? 'মুছে ফেলা সম্ভব হয়নি।' : 'Failed to delete.'));
     } finally {
       setIsDeleting(false);
     }
@@ -256,10 +271,10 @@ export const MyTokenView: React.FC<MyTokenViewProps> = ({
         <div className="flex items-center justify-between gap-3 relative z-10">
           <div className="space-y-1">
             <h1 className="text-lg sm:text-xl font-extrabold text-white tracking-tight">
-              আমার টোকেন (My Token)
+              {t('token.title')}
             </h1>
             <p className="text-xs text-slate-300 leading-relaxed max-w-md">
-              আর সম্মান তো কেবল আল্লাহর, তাঁর রাসূলের এবং মুমিনদের; কিন্তু মুনাফিকরা তা জানে না
+              {language === 'bn' ? 'আর সম্মান তো কেবল আল্লাহর, তাঁর রাসূলের এবং মুমিনদের; কিন্তু মুনাফিকরা তা জানে না' : 'And honor belongs to Allah, and to His Messenger, and to the believers...'}
             </p>
           </div>
 
@@ -268,7 +283,7 @@ export const MyTokenView: React.FC<MyTokenViewProps> = ({
             onClick={fetchTokens}
             disabled={isLoading}
             className="p-2.5 rounded-xl sm:rounded-2xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 text-emerald-400 hover:text-emerald-300 transition-all shrink-0 active:scale-95 cursor-pointer"
-            title="রিফ্রেশ করুন"
+            title={language === 'bn' ? 'রিফ্রেশ করুন' : 'Refresh'}
           >
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
           </button>
@@ -287,7 +302,7 @@ export const MyTokenView: React.FC<MyTokenViewProps> = ({
           }`}
         >
           <Award className="w-3.5 h-3.5 shrink-0" />
-          <span>ব্যবহারযোগ্য ({toBnNumber(availableTokens.length)})</span>
+          <span>{language === 'bn' ? 'ব্যবহারযোগ্য' : 'Available'} ({language === 'bn' ? toBnNumber(availableTokens.length) : availableTokens.length})</span>
         </button>
 
         <button
@@ -300,7 +315,7 @@ export const MyTokenView: React.FC<MyTokenViewProps> = ({
           }`}
         >
           <History className="w-3.5 h-3.5 shrink-0" />
-          <span>ইতিহাস ({toBnNumber(usedTokens.length)})</span>
+          <span>{language === 'bn' ? 'ইতিহাস' : 'History'} ({language === 'bn' ? toBnNumber(usedTokens.length) : usedTokens.length})</span>
         </button>
 
         <button
@@ -313,7 +328,7 @@ export const MyTokenView: React.FC<MyTokenViewProps> = ({
           }`}
         >
           <Heart className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-          <span>দানকৃত ({toBnNumber(donatedTokens.length)})</span>
+          <span>{language === 'bn' ? 'দানকৃত' : 'Donated'} ({language === 'bn' ? toBnNumber(donatedTokens.length) : donatedTokens.length})</span>
         </button>
       </div>
 
@@ -321,7 +336,7 @@ export const MyTokenView: React.FC<MyTokenViewProps> = ({
       {isLoading && (
         <div className="py-12 flex flex-col items-center justify-center text-center space-y-3">
           <div className="w-8 h-8 border-3 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-xs text-slate-400 font-medium">টোকেন তথ্য লোড হচ্ছে...</p>
+          <p className="text-xs text-slate-400 font-medium">{t('common.loading')}</p>
         </div>
       )}
 
@@ -336,26 +351,26 @@ export const MyTokenView: React.FC<MyTokenViewProps> = ({
               </div>
               <div className="space-y-1.5 max-w-sm mx-auto">
                 <h3 className="text-base font-bold text-white">
-                  আপনার এখনো কোনো ব্যবহারযোগ্য Token নেই
+                  {t('token.noAvailableTokens')}
                 </h3>
                 <p className="text-xs text-slate-300 leading-relaxed">
-                  প্রতিদিন ওয়াক্ত অনুযায়ী সালাত সম্পন্ন করে ১-ক্লিকে যাচাই করুন:
+                  {t('token.dailyPrayerTip')}
                 </p>
                 <div className="grid grid-cols-3 gap-2 pt-2 text-[11px]">
                   <div className="p-2 rounded-xl bg-amber-950/40 border border-amber-900/60">
                     <span className="text-base">🥉</span>
-                    <p className="font-bold text-amber-400 mt-1">৩ ওয়াক্ত</p>
-                    <span className="text-[10px] text-slate-400">ব্রোঞ্জ</span>
+                    <p className="font-bold text-amber-400 mt-1">{t('token.threePrayers')}</p>
+                    <span className="text-[10px] text-slate-400">{language === 'bn' ? 'ব্রোঞ্জ' : 'Bronze'}</span>
                   </div>
                   <div className="p-2 rounded-xl bg-slate-800/40 border border-slate-700/60">
                     <span className="text-base">🥈</span>
-                    <p className="font-bold text-slate-200 mt-1">৪ ওয়াক্ত</p>
-                    <span className="text-[10px] text-slate-400">সিলভার</span>
+                    <p className="font-bold text-slate-200 mt-1">{t('token.fourPrayers')}</p>
+                    <span className="text-[10px] text-slate-400">{language === 'bn' ? 'সিলভার' : 'Silver'}</span>
                   </div>
                   <div className="p-2 rounded-xl bg-amber-950/60 border border-amber-500/40">
                     <span className="text-base">🥇</span>
-                    <p className="font-bold text-amber-300 mt-1">৫ ওয়াক্ত</p>
-                    <span className="text-[10px] text-slate-400">গোল্ড</span>
+                    <p className="font-bold text-amber-300 mt-1">{t('token.fivePrayers')}</p>
+                    <span className="text-[10px] text-slate-400">{language === 'bn' ? 'গোল্ড' : 'Gold'}</span>
                   </div>
                 </div>
               </div>
@@ -366,7 +381,7 @@ export const MyTokenView: React.FC<MyTokenViewProps> = ({
                   onClick={onNavigateToHome}
                   className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-lg transition-all active:scale-95"
                 >
-                  <span>আজকের নামাজের তালিকা দেখুন</span>
+                  <span>{t('token.viewTodayPrayers')}</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </button>
               )}
@@ -394,22 +409,22 @@ export const MyTokenView: React.FC<MyTokenViewProps> = ({
                         <div className="min-w-0 space-y-0.5">
                           <div className="flex items-center gap-1 flex-wrap">
                             <span className={`px-1.5 py-0.2 rounded text-[9px] font-extrabold border ${tier.badgeBg}`}>
-                              {tier.titleEn}
+                              {language === 'bn' ? tier.titleBn : tier.titleEn}
                             </span>
                             {token.isDonated ? (
                               <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-600 text-white flex items-center gap-0.5 border border-emerald-400">
                                 <Heart className="w-2.5 h-2.5 fill-current shrink-0 text-white animate-pulse" />
-                                <span>দানকৃত</span>
+                                <span>{language === 'bn' ? 'দানকৃত' : 'Donated'}</span>
                               </span>
                             ) : (
                               <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                                AVAILABLE
+                                {language === 'bn' ? 'উপলব্ধ' : 'AVAILABLE'}
                               </span>
                             )}
                           </div>
 
                           <h3 className={`text-xs sm:text-sm font-extrabold ${tier.textColor} truncate`}>
-                            {tier.titleBn}
+                            {language === 'bn' ? tier.titleBn : tier.titleEn}
                           </h3>
                         </div>
                       </div>
@@ -420,10 +435,10 @@ export const MyTokenView: React.FC<MyTokenViewProps> = ({
                       <div className="flex items-center justify-between gap-1.5 text-[10px] text-slate-300">
                         <span className="flex items-center gap-1 shrink-0 font-medium">
                           <Sparkles className="w-3 h-3 text-amber-400 shrink-0" />
-                          <span>{toBnNumber(token.sourcePrayerCount)}/৫ ওয়াক্ত</span>
+                          <span>{language === 'bn' ? `${toBnNumber(token.sourcePrayerCount)}/৫ ওয়াক্ত` : `${token.sourcePrayerCount}/5 Prayers`}</span>
                         </span>
                         <span className="truncate text-slate-400 text-right">
-                          {formatBanglaDate(token.earnedDate)}
+                          {formatFormattedDate(token.earnedDate)}
                         </span>
                       </div>
 
@@ -431,7 +446,7 @@ export const MyTokenView: React.FC<MyTokenViewProps> = ({
                         <div className="space-y-1.5 w-full">
                           <p className="text-[9.5px] text-emerald-300 font-bold text-center flex items-center justify-center gap-1 bg-emerald-950/40 py-1 px-1.5 rounded-lg border border-emerald-500/30">
                             <Heart className="w-2.5 h-2.5 fill-current text-emerald-400" />
-                            <span>দানকৃত টোকেন (ডিসকাউন্ট মূল্য মসজিদে যাবে)</span>
+                            <span>{t('token.donatedDesc')}</span>
                           </p>
                           <button
                             id={`use-token-btn-${token.id}`}
@@ -439,7 +454,7 @@ export const MyTokenView: React.FC<MyTokenViewProps> = ({
                             className="w-full py-1.5 px-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 text-[11px] font-black shadow-xs hover:shadow-amber-500/20 transition-all flex items-center justify-center gap-1 active:scale-95 cursor-pointer"
                           >
                             <QrCode className="w-3 h-3" />
-                            <span>ব্যবহার করুন (USE)</span>
+                            <span>{language === 'bn' ? 'ব্যবহার করুন' : 'Use Token'}</span>
                           </button>
                         </div>
                       ) : (
@@ -450,7 +465,7 @@ export const MyTokenView: React.FC<MyTokenViewProps> = ({
                             className="flex-1 py-1.5 px-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white text-[11px] font-black shadow-xs hover:shadow-emerald-500/20 transition-all flex items-center justify-center gap-1 active:scale-95 cursor-pointer border border-emerald-500/20"
                           >
                             <Heart className="w-3 h-3 fill-current text-white" />
-                            <span>দান করুন</span>
+                            <span>{t('token.donate')}</span>
                           </button>
 
                           <button
@@ -459,7 +474,7 @@ export const MyTokenView: React.FC<MyTokenViewProps> = ({
                             className="flex-1 py-1.5 px-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 text-[11px] font-black shadow-xs hover:shadow-amber-500/20 transition-all flex items-center justify-center gap-1 active:scale-95 cursor-pointer"
                           >
                             <QrCode className="w-3 h-3" />
-                            <span>ব্যবহার করুন</span>
+                            <span>{t('token.use')}</span>
                           </button>
                         </div>
                       )}
@@ -484,7 +499,7 @@ export const MyTokenView: React.FC<MyTokenViewProps> = ({
                 className="px-3 py-1.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-bold hover:bg-rose-500/20 transition-colors flex items-center gap-1.5 shadow-sm cursor-pointer active:scale-95"
               >
                 <Trash2 className="w-3.5 h-3.5" />
-                <span>সকল ব্যবহারের ইতিহাস মুছুন</span>
+                <span>{t('token.clearAllHistory')}</span>
               </button>
             </div>
           )}
@@ -494,10 +509,10 @@ export const MyTokenView: React.FC<MyTokenViewProps> = ({
                 <History className="w-5 h-5" />
               </div>
               <h3 className="text-xs sm:text-sm font-bold text-white">
-                এখনো কোনো টোকেন ব্যবহার করা হয়নি
+                {t('token.noTokensUsed')}
               </h3>
               <p className="text-xs text-slate-400">
-                আপনার অর্জিত টোকেনগুলো পার্টনার আউটলেটে ব্যবহারের পর এখানে সংরক্ষিত থাকবে।
+                {language === 'bn' ? 'আপনার অর্জিত টোকেনগুলো পার্টনার আউটলেটে ব্যবহারের পর এখানে সংরক্ষিত থাকবে।' : 'Your earned tokens will be recorded here after redeeming at partner outlets.'}
               </p>
             </div>
           ) : (
@@ -519,14 +534,14 @@ export const MyTokenView: React.FC<MyTokenViewProps> = ({
                         <div className="min-w-0 space-y-0.5">
                           <div className="flex items-center gap-1.5">
                             <h4 className="text-xs font-bold text-slate-200 truncate">
-                              {tier.titleBn}
+                              {language === 'bn' ? tier.titleBn : tier.titleEn}
                             </h4>
                             <span className="px-1.5 py-0.2 rounded text-[8px] font-bold bg-slate-800 text-slate-400 border border-slate-700">
-                              USED
+                              {language === 'bn' ? 'ব্যবহৃত' : 'USED'}
                             </span>
                           </div>
                           <p className="text-[10px] text-slate-400">
-                            {toBnNumber(token.sourcePrayerCount)} ওয়াক্ত জামাত
+                            {language === 'bn' ? `${toBnNumber(token.sourcePrayerCount)} ওয়াক্ত জামাত` : `${token.sourcePrayerCount} Prayers`}
                           </p>
                         </div>
                       </div>
@@ -535,7 +550,7 @@ export const MyTokenView: React.FC<MyTokenViewProps> = ({
                         type="button"
                         id={`delete-used-token-btn-${token.id}`}
                         onClick={() => promptDeleteUsed(token.id)}
-                        title="এই ইতিহাস মুছুন"
+                        title={language === 'bn' ? 'এই ইতিহাস মুছুন' : 'Delete this record'}
                         className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 transition-colors shrink-0 cursor-pointer active:scale-95"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -543,15 +558,15 @@ export const MyTokenView: React.FC<MyTokenViewProps> = ({
                     </div>
 
                     <div className="text-[10px] text-slate-400 space-y-0.5 pt-1.5 border-t border-slate-800/80">
-                      <p className="truncate">অর্জিত: {formatBanglaDate(token.earnedDate)}</p>
+                      <p className="truncate">{language === 'bn' ? 'অর্জিত:' : 'Earned:'} {formatFormattedDate(token.earnedDate)}</p>
                       {token.usedAt && (
                         <p className="text-amber-400/80 truncate">
-                          ব্যবহৃত: {formatBanglaDate(token.usedAt.split('T')[0])}
+                          {language === 'bn' ? 'ব্যবহৃত:' : 'Used:'} {formatFormattedDate(token.usedAt.split('T')[0])}
                         </p>
                       )}
                       {token.redemptionRef && (
                         <p className="text-[9px] text-slate-500 font-mono truncate">
-                          রেফ: {token.redemptionRef}
+                          {language === 'bn' ? 'রেফ:' : 'Ref:'} {token.redemptionRef}
                         </p>
                       )}
                     </div>
@@ -575,7 +590,7 @@ export const MyTokenView: React.FC<MyTokenViewProps> = ({
                 className="px-3 py-1.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-bold hover:bg-rose-500/20 transition-colors flex items-center gap-1.5 shadow-sm cursor-pointer active:scale-95"
               >
                 <Trash2 className="w-3.5 h-3.5" />
-                <span>সকল দান করার ইতিহাস মুছুন</span>
+                <span>{t('token.clearAllDonated')}</span>
               </button>
             </div>
           )}
@@ -585,10 +600,10 @@ export const MyTokenView: React.FC<MyTokenViewProps> = ({
                 <Heart className="w-6 h-6 fill-current text-emerald-500 animate-pulse" />
               </div>
               <h3 className="text-xs sm:text-sm font-bold text-white">
-                আপনার কোনো দানকৃত টোকেন নেই
+                {t('token.noTokensDonated')}
               </h3>
               <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
-                আপনার অর্জিত গোল্ড, সিলভার বা ব্রোঞ্জ টোকেনগুলো দান করে দিন। এর ফলে ক্রয়ের ডিসকাউন্ট অর্থ সরাসরি আপনার পছন্দের মসজিদের কল্যাণ তহবিলে যুক্ত হবে।
+                {language === 'bn' ? 'আপনার অর্জিত গোল্ড, সিলভার বা ব্রোঞ্জ টোকেনগুলো দান করে দিন। এর ফলে ক্রয়ের ডিসকাউন্ট অর্থ সরাসরি আপনার পছন্দের মসজিদের কল্যাণ তহবিলে যুক্ত হবে।' : 'Donate your earned Gold, Silver, or Bronze tokens. The discount amount will be donated directly to your selected mosque charity fund.'}
               </p>
             </div>
           ) : (
@@ -611,11 +626,11 @@ export const MyTokenView: React.FC<MyTokenViewProps> = ({
                         <div className="min-w-0 space-y-0.5">
                           <div className="flex items-center gap-1.5">
                             <h4 className="text-xs font-bold text-slate-200 truncate">
-                              {tier.titleBn}
+                              {language === 'bn' ? tier.titleBn : tier.titleEn}
                             </h4>
                           </div>
                           <p className="text-[10px] text-slate-400">
-                            {toBnNumber(token.sourcePrayerCount)} ওয়াক্ত জামাত
+                            {language === 'bn' ? `${toBnNumber(token.sourcePrayerCount)} ওয়াক্ত জামাত` : `${token.sourcePrayerCount} Prayers`}
                           </p>
                         </div>
                       </div>
@@ -623,14 +638,14 @@ export const MyTokenView: React.FC<MyTokenViewProps> = ({
                       <div className="flex items-center gap-1.5">
                         <span className="px-1.5 py-0.2 rounded text-[8px] font-extrabold bg-emerald-600 text-white flex items-center gap-0.5 border border-emerald-500">
                           <Heart className="w-2.5 h-2.5 fill-current shrink-0" />
-                          <span>দানকৃত</span>
+                          <span>{language === 'bn' ? 'দানকৃত' : 'Donated'}</span>
                         </span>
 
                         <button
                           type="button"
                           id={`delete-donated-token-btn-${token.id}`}
                           onClick={() => promptDeleteDonated(token.id)}
-                          title="এই ইতিহাস মুছুন"
+                          title={language === 'bn' ? 'এই ইতিহাস মুছুন' : 'Delete this record'}
                           className="p-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 transition-colors shrink-0 cursor-pointer active:scale-95"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -639,23 +654,25 @@ export const MyTokenView: React.FC<MyTokenViewProps> = ({
                     </div>
 
                     <div className="text-[10px] text-slate-300 space-y-1 pt-2 border-t border-emerald-500/10">
-                      <p className="truncate">অর্জিত: {formatBanglaDate(token.earnedDate)}</p>
+                      <p className="truncate">{language === 'bn' ? 'অর্জিত:' : 'Earned:'} {formatFormattedDate(token.earnedDate)}</p>
                       {token.earnedMosqueName && (
                         <p className="text-emerald-400 font-bold truncate flex items-center gap-1">
                           <Store className="w-3 h-3 text-emerald-400 shrink-0" />
-                          <span>মসজিদ: {token.earnedMosqueName}</span>
+                          <span>{language === 'bn' ? 'মসজিদ:' : 'Mosque:'} {token.earnedMosqueName}</span>
                         </p>
                       )}
                       <div className="flex items-center justify-between gap-1.5 pt-1">
                         <span className="text-[9px] text-slate-500 font-mono truncate">
-                          আইডি: {token.id}
+                          {language === 'bn' ? 'আইডি:' : 'ID:'} {token.id}
                         </span>
                         <span className={`px-1.5 py-0.2 rounded text-[8px] font-bold ${
                           token.status === 'USED' 
                             ? 'bg-slate-800 text-slate-400 border border-slate-700' 
                             : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
                         }`}>
-                          {token.status === 'USED' ? 'ব্যবহৃত' : 'অব্যবহৃত (AVAILABLE)'}
+                          {token.status === 'USED' 
+                            ? (language === 'bn' ? 'ব্যবহৃত' : 'USED') 
+                            : (language === 'bn' ? 'ব্যবহারযোগ্য' : 'AVAILABLE')}
                         </span>
                       </div>
                     </div>
@@ -671,31 +688,31 @@ export const MyTokenView: React.FC<MyTokenViewProps> = ({
       <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-4 shadow-md space-y-3">
         <h3 className="text-xs font-bold text-white flex items-center gap-1.5">
           <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-          <span>টোকেন নিয়মনীতি (Rules & Guidelines)</span>
+          <span>{t('token.rulesTitle')}</span>
         </h3>
 
         <div className="space-y-2.5">
           <div className="flex items-center gap-3 p-2 rounded-xl bg-amber-950/30 border border-amber-500/10 text-xs">
             <span className="text-lg">🥇</span>
             <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-              <span className="font-extrabold text-amber-300">গোল্ড টোকেন (৫ ওয়াক্ত):</span>
-              <span className="text-slate-300">দৈনিক ৫ ওয়াক্ত জামাতে নামাজ সম্পন্ন করলে ১টি গোল্ড টোকেন।</span>
+              <span className="font-extrabold text-amber-300">{language === 'bn' ? 'গোল্ড টোকেন (৫ ওয়াক্ত):' : 'Gold Token (5 Waqt):'}</span>
+              <span className="text-slate-300">{t('token.ruleGold')}</span>
             </div>
           </div>
 
           <div className="flex items-center gap-3 p-2 rounded-xl bg-slate-800/30 border border-slate-500/10 text-xs">
             <span className="text-lg">🥈</span>
             <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-              <span className="font-extrabold text-slate-200">সিলভার টোকেন (৪ ওয়াক্ত):</span>
-              <span className="text-slate-300">দৈনিক ৪ ওয়াক্ত জামাতে নামাজ সম্পন্ন করলে ১টি সিলভার টোকেন।</span>
+              <span className="font-extrabold text-slate-200">{language === 'bn' ? 'সিলভার টোকেন (৪ ওয়াক্ত):' : 'Silver Token (4 Waqt):'}</span>
+              <span className="text-slate-300">{t('token.ruleSilver')}</span>
             </div>
           </div>
 
           <div className="flex items-center gap-3 p-2 rounded-xl bg-amber-950/20 border border-amber-800/10 text-xs">
             <span className="text-lg">🥉</span>
             <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-              <span className="font-extrabold text-amber-400">ব্রোঞ্জ টোকেন (৩ ওয়াক্ত):</span>
-              <span className="text-slate-300">দৈনিক ৩ ওয়াক্ত জামাতে নামাজ সম্পন্ন করলে ১টি ব্রোঞ্জ টোকেন।</span>
+              <span className="font-extrabold text-amber-400">{language === 'bn' ? 'ব্রোঞ্জ টোকেন (৩ ওয়াক্ত):' : 'Bronze Token (3 Waqt):'}</span>
+              <span className="text-slate-300">{t('token.ruleBronze')}</span>
             </div>
           </div>
         </div>
@@ -703,20 +720,20 @@ export const MyTokenView: React.FC<MyTokenViewProps> = ({
         <div className="p-3 bg-slate-950/60 border border-slate-800 rounded-2xl text-[11px] text-slate-300 space-y-1">
           <p className="font-bold text-amber-400 flex items-center gap-1">
             <Info className="w-3.5 h-3.5 text-amber-400" />
-            টোকেন ব্যবহারের নিয়ম:
+            <span>{language === 'bn' ? 'টোকেন ব্যবহারের নিয়ম:' : 'Usage Rules:'}</span>
           </p>
           <ul className="space-y-0.5 pl-1 text-slate-400">
             <li className="flex items-start gap-1">
               <span className="text-amber-500">•</span>
-              <span>একটি টোকেন একবারই ব্যবহার করা যাবে।</span>
+              <span>{t('token.ruleUsage1')}</span>
             </li>
             <li className="flex items-start gap-1">
               <span className="text-amber-500">•</span>
-              <span>আপনার কাছে থাকা যেকোনো একটি টোকেন ব্যবহার করে নির্ধারিত অফার পাবেন।</span>
+              <span>{t('token.ruleUsage2')}</span>
             </li>
             <li className="flex items-start gap-1">
               <span className="text-amber-500">•</span>
-              <span>টোকেন ব্যবহার না করলে কোনো টোকেন অফার প্রযোজ্য হবে না।</span>
+              <span>{t('token.ruleUsage3')}</span>
             </li>
           </ul>
         </div>
@@ -738,7 +755,7 @@ export const MyTokenView: React.FC<MyTokenViewProps> = ({
               <div className="flex items-center justify-between">
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-extrabold uppercase">
                   <Coins className="w-3 h-3" />
-                  <span>টোকেন ব্যবহারের নিশ্চিতকরণ</span>
+                  <span>{t('token.useConfirmTitle')}</span>
                 </div>
                 <button
                   onClick={() => setShowConfirmModal(false)}
@@ -751,10 +768,10 @@ export const MyTokenView: React.FC<MyTokenViewProps> = ({
               {/* Title */}
               <div>
                 <h3 className="text-lg font-bold text-white">
-                  আপনি কি এই Token ব্যবহার করতে চান?
+                  {language === 'bn' ? 'আপনি কি এই Token ব্যবহার করতে চান?' : 'Do you want to use this Token?'}
                 </h3>
                 <p className="text-xs text-slate-300 mt-1">
-                  নিচের টোকেনের বিবরণ যাচাই করে এগিয়ে যান:
+                  {language === 'bn' ? 'নিচের টোকেনের বিবরণ যাচাই করে এগিয়ে যান:' : 'Verify token details below to proceed:'}
                 </p>
               </div>
 
@@ -768,7 +785,7 @@ export const MyTokenView: React.FC<MyTokenViewProps> = ({
                         <span className="text-2xl">{tier.icon}</span>
                         <div>
                           <h4 className={`text-sm font-bold ${tier.textColor}`}>
-                            {tier.titleBn} ({selectedTokenForUse.tokenType})
+                            {language === 'bn' ? tier.titleBn : tier.titleEn} ({selectedTokenForUse.tokenType})
                           </h4>
                           <span className="text-[10px] text-emerald-300 font-bold">
                             STATUS: AVAILABLE
@@ -776,13 +793,13 @@ export const MyTokenView: React.FC<MyTokenViewProps> = ({
                         </div>
                       </div>
                       <span className="text-xs font-mono font-bold text-slate-300 bg-slate-950/60 px-2.5 py-1 rounded-lg border border-white/10">
-                        {toBnNumber(selectedTokenForUse.sourcePrayerCount)}/৫ ওয়াক্ত
+                        {language === 'bn' ? `${toBnNumber(selectedTokenForUse.sourcePrayerCount)}/৫ ওয়াক্ত` : `${selectedTokenForUse.sourcePrayerCount}/5 Prayers`}
                       </span>
                     </div>
 
                     <div className="pt-2 border-t border-white/10 text-xs text-slate-300 flex justify-between">
-                      <span>অর্জিত তারিখ:</span>
-                      <strong className="text-white">{formatBanglaDate(selectedTokenForUse.earnedDate)}</strong>
+                      <span>{language === 'bn' ? 'অর্জিত তারিখ:' : 'Earned Date:'}</span>
+                      <strong className="text-white">{formatFormattedDate(selectedTokenForUse.earnedDate)}</strong>
                     </div>
                   </div>
                 );
@@ -791,7 +808,7 @@ export const MyTokenView: React.FC<MyTokenViewProps> = ({
               <div className="p-3 rounded-xl bg-emerald-950/40 border border-emerald-700/50 flex items-start gap-2 text-xs text-emerald-200">
                 <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                 <p className="text-[11px] leading-relaxed">
-                  এগিয়ে গেলে আপনাকে পার্টনার দোকান QR স্ক্যানিং পেজে নিয়ে যাওয়া হবে। কিউআর কোড সফলভাবে স্ক্যান না হওয়া পর্যন্ত আপনার টোকেনটি অক্ষত থাকবে।
+                  {language === 'bn' ? 'এগিয়ে গেলে আপনাকে পার্টনার দোকান QR স্ক্যানিং পেজে নিয়ে যাওয়া হবে। কিউআর কোড সফলভাবে স্ক্যান না হওয়া পর্যন্ত আপনার টোকেনটি অক্ষত থাকবে।' : 'Proceeding will take you to the partner shop QR redemption screen. Your token remains untouched until the redemption is successfully completed.'}
                 </p>
               </div>
 
@@ -803,7 +820,7 @@ export const MyTokenView: React.FC<MyTokenViewProps> = ({
                   onClick={() => setShowConfirmModal(false)}
                   className="flex-1 py-2.5 px-4 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white text-xs font-bold transition-all"
                 >
-                  বাতিল (Cancel)
+                  {t('common.cancel')}
                 </button>
 
                 <button
@@ -812,7 +829,7 @@ export const MyTokenView: React.FC<MyTokenViewProps> = ({
                   onClick={handleProceedToRedeem}
                   className="flex-1 py-2.5 px-4 rounded-2xl text-xs font-extrabold transition-all flex items-center justify-center gap-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-lg hover:shadow-amber-500/20 active:scale-95"
                 >
-                  <span>এগিয়ে যান (Continue)</span>
+                  <span>{t('common.continue')}</span>
                   <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
@@ -839,7 +856,7 @@ export const MyTokenView: React.FC<MyTokenViewProps> = ({
               <div className="flex items-center justify-between">
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-extrabold uppercase">
                   <Heart className="w-3 h-3 fill-current text-emerald-400" />
-                  <span>টোকেন দান করুন</span>
+                  <span>{t('token.donateConfirmTitle')}</span>
                 </div>
                 <button
                   onClick={() => setShowDonationConfirmModal(false)}
@@ -853,10 +870,10 @@ export const MyTokenView: React.FC<MyTokenViewProps> = ({
               {/* Title */}
               <div>
                 <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-                  <span>আপনি কি এই টোকেনটি দান করতে চান?</span>
+                  <span>{language === 'bn' ? 'আপনি কি এই টোকেনটি দান করতে চান?' : 'Do you want to donate this token?'}</span>
                 </h3>
                 <p className="text-xs text-slate-300 mt-1.5 leading-relaxed">
-                  টোকেনটি কল্যাণ তহবিলে দান করলে নিচের মহৎ কাজগুলো সম্পন্ন হবে:
+                  {t('token.donateNotice')}
                 </p>
               </div>
 
@@ -870,22 +887,22 @@ export const MyTokenView: React.FC<MyTokenViewProps> = ({
                         <span className="text-2xl">{tier.icon}</span>
                         <div>
                           <h4 className={`text-sm font-bold ${tier.textColor}`}>
-                            {tier.titleBn} ({selectedTokenForDonation.tokenType})
+                            {language === 'bn' ? tier.titleBn : tier.titleEn} ({selectedTokenForDonation.tokenType})
                           </h4>
                           <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
                             <Heart className="w-2.5 h-2.5 fill-current text-emerald-400" />
-                            <span>মহৎ উদ্দেশ্যে প্রস্তুত</span>
+                            <span>{language === 'bn' ? 'মহৎ উদ্দেশ্যে প্রস্তুত' : 'Ready for Charity'}</span>
                           </span>
                         </div>
                       </div>
                       <span className="text-xs font-mono font-bold text-slate-300 bg-slate-950/60 px-2.5 py-1 rounded-lg border border-white/10">
-                        {toBnNumber(selectedTokenForDonation.sourcePrayerCount)}/৫ ওয়াক্ত
+                        {language === 'bn' ? `${toBnNumber(selectedTokenForDonation.sourcePrayerCount)}/৫ ওয়াক্ত` : `${selectedTokenForDonation.sourcePrayerCount}/5 Prayers`}
                       </span>
                     </div>
 
                     <div className="pt-2 border-t border-white/10 text-xs text-slate-300 flex justify-between">
-                      <span>অর্জিত তারিখ:</span>
-                      <strong className="text-white">{formatBanglaDate(selectedTokenForDonation.earnedDate)}</strong>
+                      <span>{language === 'bn' ? 'অর্জিত তারিখ:' : 'Earned Date:'}</span>
+                      <strong className="text-white">{formatFormattedDate(selectedTokenForDonation.earnedDate)}</strong>
                     </div>
                   </div>
                 );
@@ -894,15 +911,15 @@ export const MyTokenView: React.FC<MyTokenViewProps> = ({
               <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800 space-y-2 text-xs text-slate-300 leading-relaxed">
                 <div className="flex items-start gap-2 text-[11px]">
                   <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
-                  <span>টোকেনটির <strong>মেয়াদ বা বৈধতা শেষ হবে না</strong>, আপনি এটি দোকানে ব্যবহার করতে পারবেন।</span>
+                  <span>{language === 'bn' ? 'টোকেনটির মেয়াদ শেষ হবে না, আপনি এটি দোকানে ব্যবহার করতে পারবেন।' : 'The token will not expire, you can redeem it at shops.'}</span>
                 </div>
                 <div className="flex items-start gap-2 text-[11px]">
                   <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
-                  <span>দোকানে ব্যবহারের সময় আপনি কোনো <strong>ব্যক্তিগত ডিসকাউন্ট পাবেন না</strong> (ফুল বিল দিতে হবে)।</span>
+                  <span>{language === 'bn' ? 'দোকানে ব্যবহারের সময় আপনি কোনো ব্যক্তিগত ডিসকাউন্ট পাবেন না (ফুল বিল দিতে হবে)।' : 'No personal discount will be deducted from your bill.'}</span>
                 </div>
                 <div className="flex items-start gap-2 text-[11px]">
                   <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
-                  <span>আপনার ভাগের ডিসকাউন্টের সমপরিমাণ অর্থ <strong>মসজিদের তহবিলে সরাসরি দান</strong> হিসেবে জমা হবে।</span>
+                  <span>{language === 'bn' ? 'আপনার ভাগের ডিসকাউন্টের সমপরিমাণ অর্থ মসজিদের তহবিলে সরাসরি দান হিসেবে জমা হবে।' : 'The entire discount value goes directly to the mosque welfare fund.'}</span>
                 </div>
               </div>
 
@@ -915,7 +932,7 @@ export const MyTokenView: React.FC<MyTokenViewProps> = ({
                   disabled={isDonating}
                   className="flex-1 py-2.5 px-4 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white text-xs font-bold transition-all disabled:opacity-50"
                 >
-                  বাতিল (Cancel)
+                  {t('common.cancel')}
                 </button>
 
                 <button
@@ -925,7 +942,7 @@ export const MyTokenView: React.FC<MyTokenViewProps> = ({
                   disabled={isDonating}
                   className="flex-1 py-2.5 px-4 rounded-2xl text-xs font-extrabold transition-all flex items-center justify-center gap-1.5 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white shadow-lg hover:shadow-emerald-500/20 active:scale-95 disabled:opacity-50"
                 >
-                  <span>{isDonating ? 'প্রক্রিয়া চলছে...' : 'দান করুন (Donate)'}</span>
+                  <span>{isDonating ? (language === 'bn' ? 'প্রক্রিয়া চলছে...' : 'Processing...') : (language === 'bn' ? 'দান করুন (Donate)' : 'Donate Token')}</span>
                   <Heart className="w-4 h-4 fill-current text-white shrink-0" />
                 </button>
               </div>
@@ -982,7 +999,7 @@ export const MyTokenView: React.FC<MyTokenViewProps> = ({
                   disabled={isDeleting}
                   className="flex-1 py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-bold transition-all disabled:opacity-50 cursor-pointer"
                 >
-                  বাতিল
+                  {t('common.cancel')}
                 </button>
                 <button
                   type="button"
@@ -996,7 +1013,7 @@ export const MyTokenView: React.FC<MyTokenViewProps> = ({
                   ) : (
                     <>
                       <Trash2 className="w-3.5 h-3.5" />
-                      <span>মুছে ফেলুন</span>
+                      <span>{t('common.delete')}</span>
                     </>
                   )}
                 </button>

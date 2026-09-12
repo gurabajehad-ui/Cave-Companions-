@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { api } from '../services/api';
 import { NotificationItem, NotificationType } from '../types';
-import { formatBnDate, formatBnTime } from '../data/prayerConfig';
+import { useLanguage } from '../context/LanguageContext';
 
 interface NotificationsViewProps {
   onBack?: () => void;
@@ -30,6 +30,7 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
   onShowToast,
   onNotificationReadChange
 }) => {
+  const { t } = useLanguage();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -67,7 +68,7 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
         onNotificationReadChange(res.unreadCount);
       }
     } catch (err: any) {
-      onShowToast('error', 'ত্রুটি', 'বিজ্ঞপ্তি আপডেট করা যায়নি।');
+      onShowToast('error', t('common.error'), t('notifications.updateFailed'));
     }
   };
 
@@ -80,9 +81,9 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
       if (onNotificationReadChange) {
         onNotificationReadChange(0);
       }
-      onShowToast('success', 'সফল', 'সকল বিজ্ঞপ্তি পড়া হয়েছে হিসেবে চিহ্নিত করা হয়েছে।');
+      onShowToast('success', t('common.success'), t('notifications.allMarkedRead'));
     } catch (err: any) {
-      onShowToast('error', 'ত্রুটি', 'বিজ্ঞপ্তি আপডেট করা যায়নি।');
+      onShowToast('error', t('common.error'), t('notifications.updateFailed'));
     }
   };
 
@@ -95,9 +96,9 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
       if (onNotificationReadChange) {
         onNotificationReadChange(res.unreadCount);
       }
-      onShowToast('success', 'সফল', 'বিজ্ঞপ্তিটি ডিলিট করা হয়েছে।');
+      onShowToast('success', t('common.success'), t('notifications.deleted'));
     } catch (err: any) {
-      onShowToast('error', 'ত্রুটি', 'বিজ্ঞপ্তি ডিলিট করা যায়নি।');
+      onShowToast('error', t('common.error'), t('notifications.deleteFailed'));
     }
   };
 
@@ -110,9 +111,9 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
         onNotificationReadChange(0);
       }
       setShowDeleteConfirm(false);
-      onShowToast('success', 'সফল', 'সকল বিজ্ঞপ্তি ডিলিট করা হয়েছে।');
+      onShowToast('success', t('common.success'), t('notifications.allDeleted'));
     } catch (err: any) {
-      onShowToast('error', 'ত্রুটি', 'বিজ্ঞপ্তি ডিলিট করা যায়নি।');
+      onShowToast('error', t('common.error'), t('notifications.deleteFailed'));
     }
   };
 
@@ -137,18 +138,18 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
   const getTypeBadge = (type: string) => {
     switch (type) {
       case 'PRAYER_VERIFIED':
-        return <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-950/80 text-emerald-300 border border-emerald-700/50">সালাত ভেরিফাইড</span>;
+        return <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-950/80 text-emerald-300 border border-emerald-700/50">{t('notifications.badges.prayerVerified')}</span>;
       case 'TOKEN_EARNED':
-        return <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-950/80 text-amber-300 border border-amber-700/50">টোকেন অর্জিত</span>;
+        return <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-950/80 text-amber-300 border border-amber-700/50">{t('notifications.badges.tokenEarned')}</span>;
       case 'TOKEN_REDEEMED':
-        return <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-teal-950/80 text-teal-300 border border-teal-700/50">রিডিম সম্পন্ন</span>;
+        return <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-teal-950/80 text-teal-300 border border-teal-700/50">{t('notifications.badges.tokenRedeemed')}</span>;
       case 'REDEMPTION_FAILED':
-        return <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-rose-950/80 text-rose-300 border border-rose-700/50">রিডেম্পশন সতর্কতা</span>;
+        return <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-rose-950/80 text-rose-300 border border-rose-700/50">{t('notifications.badges.redemptionFailed')}</span>;
       case 'SECURITY':
-        return <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-950/80 text-blue-300 border border-blue-700/50">নিরাপত্তা</span>;
+        return <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-950/80 text-blue-300 border border-blue-700/50">{t('notifications.badges.security')}</span>;
       case 'ANNOUNCEMENT':
       default:
-        return <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-indigo-950/80 text-indigo-300 border border-indigo-700/50">ঘোষণা</span>;
+        return <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-indigo-950/80 text-indigo-300 border border-indigo-700/50">{t('notifications.badges.announcement')}</span>;
     }
   };
 
@@ -173,7 +174,7 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
           <div className="min-w-0">
             <h1 className="text-xl font-bold text-white flex items-center gap-2 truncate">
               <Bell className="w-5 h-5 text-amber-400 shrink-0" />
-              <span>বিজ্ঞপ্তি</span>
+              <span>{t('notifications.title')}</span>
             </h1>
           </div>
         </div>
@@ -183,38 +184,38 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
             <button
               onClick={handleMarkAllAsRead}
               className="flex items-center gap-1 px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 rounded-xl text-xs font-semibold text-amber-400 transition-colors cursor-pointer"
-              title="সব পড়া হয়েছে হিসেবে চিহ্নিত করুন"
+              title={t('notifications.markAllRead')}
             >
               <CheckCheck className="w-4 h-4" />
-              <span className="hidden sm:inline">সব পড়া হয়েছে</span>
+              <span className="hidden sm:inline">{t('notifications.markAllRead')}</span>
             </button>
           )}
 
           {notifications.length > 0 && (
             showDeleteConfirm ? (
               <div className="flex items-center gap-1.5 animate-fadeIn bg-rose-950/20 border border-rose-900/40 px-2 py-1 rounded-xl">
-                <span className="text-[10px] text-rose-300 font-bold hidden sm:inline">সব মুছবেন?</span>
+                <span className="text-[10px] text-rose-300 font-bold hidden sm:inline">{t('notifications.confirmDeleteAll')}</span>
                 <button
                   onClick={executeDeleteAll}
                   className="px-2 py-1 bg-rose-600 hover:bg-rose-500 rounded-lg text-[10px] font-bold text-white transition-colors cursor-pointer"
                 >
-                  হ্যাঁ
+                  {t('notifications.yes')}
                 </button>
                 <button
                   onClick={() => setShowDeleteConfirm(false)}
                   className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded-lg text-[10px] font-bold text-slate-300 transition-colors cursor-pointer"
                 >
-                  না
+                  {t('notifications.no')}
                 </button>
               </div>
             ) : (
               <button
                 onClick={() => setShowDeleteConfirm(true)}
                 className="flex items-center gap-1 px-2.5 py-1.5 bg-rose-950/40 hover:bg-rose-900/40 border border-rose-900/60 rounded-xl text-xs font-semibold text-rose-300 transition-colors cursor-pointer"
-                title="সকল বিজ্ঞপ্তি মুছে ফেলুন"
+                title={t('notifications.deleteAll')}
               >
                 <Trash2 className="w-4 h-4" />
-                <span>সব মুছুন</span>
+                <span>{t('notifications.deleteAll')}</span>
               </button>
             )
           )}
@@ -231,7 +232,7 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
               : 'text-slate-400 hover:text-white'
           }`}
         >
-          সকল বিজ্ঞপ্তি ({notifications.length})
+          {t('notifications.all')} ({notifications.length})
         </button>
         <button
           onClick={() => setFilter('unread')}
@@ -241,7 +242,7 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
               : 'text-slate-400 hover:text-white'
           }`}
         >
-          অপঠিত
+          {t('notifications.unread')}
           {unreadCount > 0 && (
             <span className="ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] bg-rose-500 text-white font-bold">
               {unreadCount}
@@ -262,11 +263,11 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
           <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500">
             <Inbox className="w-7 h-7" />
           </div>
-          <h3 className="text-sm font-bold text-slate-300">কোনো বিজ্ঞপ্তি নেই</h3>
+          <h3 className="text-sm font-bold text-slate-300">{t('notifications.empty')}</h3>
           <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">
             {filter === 'unread'
-              ? 'আপনার সব বিজ্ঞপ্তি পড়া হয়েছে।'
-              : 'সালাত ভেরিফিকেশন ও টোকেন অর্জনের পর এখানে বিজ্ঞপ্তি দেখতে পাবেন।'}
+              ? t('notifications.allReadMessage')
+              : t('notifications.emptySubMessage')}
           </p>
         </div>
       ) : (
@@ -296,7 +297,7 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
                           {notification.title}
                         </h4>
                         {!notification.read && (
-                          <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0" title="নতুন" />
+                          <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0" title="New" />
                         )}
                       </div>
                       <div className="flex items-center gap-2">
@@ -304,7 +305,7 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
                         <button
                           onClick={(e) => handleDeleteNotification(notification.id, e)}
                           className="p-1 rounded-lg bg-slate-950 hover:bg-rose-950/50 border border-slate-800 hover:border-rose-900/40 text-slate-400 hover:text-rose-400 transition-colors cursor-pointer"
-                          title="বিজ্ঞপ্তিটি মুছে ফেলুন"
+                          title={t('notifications.deleteAll')}
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -318,14 +319,7 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
                     <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1 border-t border-slate-800/40">
                       <span className="flex items-center gap-1">
                         <Clock className="w-3 h-3 text-slate-400" />
-                        {new Date(notification.createdAt).toLocaleDateString('bn-BD', {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric'
-                        })} • {new Date(notification.createdAt).toLocaleTimeString('bn-BD', {
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
+                        {new Date(notification.createdAt).toLocaleDateString()}
                       </span>
 
                       {!notification.read && (
@@ -333,7 +327,7 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
                           onClick={() => handleMarkAsRead(notification.id)}
                           className="text-[11px] text-emerald-400 hover:text-emerald-300 font-semibold px-2 py-0.5 rounded bg-emerald-950/40 border border-emerald-800/50 hover:bg-emerald-950/80 transition-colors"
                         >
-                          পড়া হয়েছে হিসেবে চিহ্নিত করুন
+                          {t('notifications.markAsRead')}
                         </button>
                       )}
                     </div>

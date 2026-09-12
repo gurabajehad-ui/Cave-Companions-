@@ -27,6 +27,7 @@ import {
 import { HisnulMuslimChapter, HisnulMuslimDua } from '../../types';
 import { hisnulMuslimService } from '../../services/hisnulMuslimService';
 import { HisnulMuslimDetailModal } from './HisnulMuslimDetailModal';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface HisnulMuslimViewProps {
   onBack: () => void;
@@ -52,6 +53,7 @@ const CATEGORY_ICONS: Record<string, React.ReactNode> = {
 };
 
 export const HisnulMuslimView: React.FC<HisnulMuslimViewProps> = ({ onBack, onShowToast }) => {
+  const { t, language } = useLanguage();
   const [selectedChapterId, setSelectedChapterId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const listScrollRef = useRef<number>(0);
@@ -126,13 +128,13 @@ export const HisnulMuslimView: React.FC<HisnulMuslimViewProps> = ({ onBack, onSh
 
             <div className="min-w-0">
               <h1 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-                <span>হিসনুল মুসলিম</span>
+                <span>{t('dua.title')}</span>
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-mono border border-amber-400/40">
                   حصن المسلم
                 </span>
               </h1>
               <p className="text-[11px] text-emerald-300/80 truncate">
-                {activeChapter ? activeChapter.title_bn : 'কুরআন ও সহীহ সুন্নাহ থেকে নির্বাচিত দো‘আ ও যিকর'}
+                {activeChapter ? (language === 'bn' ? activeChapter.title_bn : activeChapter.title_bn) : (language === 'bn' ? 'কুরআন ও সহীহ সুন্নাহ থেকে নির্বাচিত দো‘আ ও যিকর' : 'Selected Duas from Quran & Sunnah')}
               </p>
             </div>
           </div>
@@ -140,7 +142,7 @@ export const HisnulMuslimView: React.FC<HisnulMuslimViewProps> = ({ onBack, onSh
           <button
             onClick={() => setShowInfoModal(true)}
             className="w-9 h-9 rounded-xl bg-emerald-900/60 border border-emerald-700/60 text-amber-300 hover:text-white hover:bg-emerald-800 transition-colors flex items-center justify-center shrink-0"
-            title="তথ্য ও সূত্র"
+            title={language === 'bn' ? 'তথ্য ও সূত্র' : 'Info & Source'}
           >
             <Info className="w-4 h-4" />
           </button>
@@ -154,7 +156,7 @@ export const HisnulMuslimView: React.FC<HisnulMuslimViewProps> = ({ onBack, onSh
               type="text"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              placeholder="দো‘আ খুঁজুন... (বাংলা, আরবী বা নম্বর)"
+              placeholder={t('dua.searchPlaceholder')}
               className="w-full bg-[#021d15] text-white text-xs sm:text-sm pl-10 pr-9 py-2.5 rounded-2xl border border-emerald-700/60 focus:border-amber-400 focus:outline-none transition-colors placeholder:text-emerald-400/60"
             />
             {searchQuery && (
@@ -176,13 +178,13 @@ export const HisnulMuslimView: React.FC<HisnulMuslimViewProps> = ({ onBack, onSh
           <div className="space-y-3">
             <div className="flex items-center justify-between px-1">
               <h2 className="text-xs font-bold text-amber-300 uppercase tracking-wider">
-                অনুসন্ধানের ফলাফল ({searchResults.length})
+                {language === 'bn' ? `অনুসন্ধানের ফলাফল (${searchResults.length})` : `Search Results (${searchResults.length})`}
               </h2>
               <button
                 onClick={() => setSearchQuery('')}
-                className="text-xs text-emerald-400 hover:underline"
+                className="text-xs text-emerald-400 hover:underline cursor-pointer"
               >
-                ফলাফল মুছুন
+                {language === 'bn' ? 'ফলাফল মুছুন' : 'Clear Results'}
               </button>
             </div>
 
@@ -190,10 +192,10 @@ export const HisnulMuslimView: React.FC<HisnulMuslimViewProps> = ({ onBack, onSh
               <div className="p-8 text-center bg-emerald-950/40 rounded-2xl border border-emerald-800/40 space-y-2">
                 <Search className="w-8 h-8 text-emerald-500/60 mx-auto" />
                 <p className="text-xs text-emerald-300 font-medium">
-                  "{searchQuery}" দিয়ে কোনো দো‘আ পাওয়া যায়নি।
+                  {language === 'bn' ? `"${searchQuery}" দিয়ে কোনো দো‘আ পাওয়া যায়নি।` : `No du'a found matching "${searchQuery}".`}
                 </p>
                 <p className="text-[11px] text-emerald-400/70">
-                  অন্য কোনো শব্দ বা নম্বর দিয়ে চেষ্টা করুন।
+                  {language === 'bn' ? 'অন্য কোনো শব্দ বা নম্বর দিয়ে চেষ্টা করুন।' : 'Try searching with a different word or number.'}
                 </p>
               </div>
             ) : (
@@ -244,7 +246,7 @@ export const HisnulMuslimView: React.FC<HisnulMuslimViewProps> = ({ onBack, onSh
                 </div>
               </div>
               <span className="text-xs px-2.5 py-1 rounded-xl bg-emerald-950 text-emerald-300 border border-emerald-800/60 font-semibold">
-                {activeChapterDuas.length} টি দো‘আ
+                {language === 'bn' ? `${activeChapterDuas.length} টি দো‘আ` : `${activeChapterDuas.length} Du'as`}
               </span>
             </div>
 
@@ -284,24 +286,24 @@ export const HisnulMuslimView: React.FC<HisnulMuslimViewProps> = ({ onBack, onSh
           <div className="flex items-center p-1 bg-[#021c14] border border-emerald-800/60 rounded-2xl">
             <button
               onClick={() => setActiveTab('categories')}
-              className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${
+              className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
                 activeTab === 'categories'
                   ? 'bg-gradient-to-r from-emerald-800 to-teal-800 text-amber-300 shadow-sm border border-emerald-600/50'
                   : 'text-emerald-300/80 hover:text-white'
               }`}
             >
-              অধ্যায় / ক্যাটাগরি ({chapters.length})
+              {language === 'bn' ? `অধ্যায় / ক্যাটাগরি (${chapters.length})` : `Categories (${chapters.length})`}
             </button>
             <button
               onClick={() => setActiveTab('bookmarks')}
-              className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+              className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                 activeTab === 'bookmarks'
                   ? 'bg-gradient-to-r from-emerald-800 to-teal-800 text-amber-300 shadow-sm border border-emerald-600/50'
                   : 'text-emerald-300/80 hover:text-white'
               }`}
             >
               <Bookmark className="w-3.5 h-3.5" />
-              <span>বুকমার্ক ({bookmarkedDuas.length})</span>
+              <span>{language === 'bn' ? `বুকমার্ক (${bookmarkedDuas.length})` : `Bookmarks (${bookmarkedDuas.length})`}</span>
             </button>
           </div>
 
@@ -323,7 +325,7 @@ export const HisnulMuslimView: React.FC<HisnulMuslimViewProps> = ({ onBack, onSh
                         {ch.title_bn}
                       </h3>
                       <p className="text-[10px] text-emerald-300/80 truncate font-serif">
-                        {ch.title_ar} • {ch.dua_count} টি দো‘আ
+                        {ch.title_ar} • {language === 'bn' ? `${ch.dua_count} টি দো‘আ` : `${ch.dua_count} Du'as`}
                       </p>
                     </div>
                   </div>
@@ -340,10 +342,10 @@ export const HisnulMuslimView: React.FC<HisnulMuslimViewProps> = ({ onBack, onSh
                 <div className="p-8 text-center bg-emerald-950/40 rounded-2xl border border-emerald-800/40 space-y-2">
                   <Bookmark className="w-8 h-8 text-amber-400/60 mx-auto" />
                   <p className="text-xs text-emerald-300 font-medium">
-                    এখনো কোনো দো‘আ বুকমার্ক করা হয়নি।
+                    {language === 'bn' ? 'এখনো কোনো দো‘আ বুকমার্ক করা হয়নি।' : 'No du\'a bookmarked yet.'}
                   </p>
                   <p className="text-[11px] text-emerald-400/70">
-                    পছন্দের দো‘আগুলোর বিস্তারিত পাতায় বুকমার্ক আইকনে ট্যাপ করে এখানে জমা রাখুন।
+                    {language === 'bn' ? 'পছন্দের দো‘আগুলোর বিস্তারিত পাতায় বুকমার্ক আইকনে ট্যাপ করে এখানে জমা রাখুন।' : 'Tap the bookmark icon on any du\'a details view to save it here.'}
                   </p>
                 </div>
               ) : (
@@ -392,11 +394,11 @@ export const HisnulMuslimView: React.FC<HisnulMuslimViewProps> = ({ onBack, onSh
             <div className="flex items-center justify-between border-b border-emerald-800/60 pb-3">
               <h3 className="text-sm font-bold text-amber-300 flex items-center gap-2">
                 <BookOpen className="w-4 h-4 text-amber-400" />
-                <span>হিসনুল মুসলিম তথ্য ও সূত্র</span>
+                <span>{language === 'bn' ? 'হিসনুল মুসলিম তথ্য ও সূত্র' : 'Hisnul Muslim Info & Sources'}</span>
               </h3>
               <button
                 onClick={() => setShowInfoModal(false)}
-                className="text-emerald-400 hover:text-white"
+                className="text-emerald-400 hover:text-white cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -404,37 +406,37 @@ export const HisnulMuslimView: React.FC<HisnulMuslimViewProps> = ({ onBack, onSh
 
             <div className="space-y-3 text-xs leading-relaxed text-emerald-200/90">
               <div>
-                <strong className="text-amber-300 block">মূল গ্রন্থ:</strong>
+                <strong className="text-amber-300 block">{language === 'bn' ? 'মূল গ্রন্থ:' : 'Original Book:'}</strong>
                 <span className="font-serif text-sm">{sourceInfo.bookNameAr}</span>
                 <span className="block text-emerald-300">{sourceInfo.bookNameBn}</span>
               </div>
 
               <div>
-                <strong className="text-amber-300 block">লেখক:</strong>
+                <strong className="text-amber-300 block">{language === 'bn' ? 'লেখক:' : 'Author:'}</strong>
                 <span>{sourceInfo.authorBn}</span>
               </div>
 
               <div>
-                <strong className="text-amber-300 block">বাংলা অনুবাদক:</strong>
+                <strong className="text-amber-300 block">{language === 'bn' ? 'বাংলা অনুবাদক:' : 'Bangla Translator:'}</strong>
                 <span>{sourceInfo.translatorBn}</span>
               </div>
 
               <div>
-                <strong className="text-amber-300 block">প্রকাশক ও সূত্র:</strong>
+                <strong className="text-amber-300 block">{language === 'bn' ? 'প্রকাশক ও সূত্র:' : 'Publisher & Source:'}</strong>
                 <span>{sourceInfo.publisherBn}</span>
               </div>
 
               <div className="p-3 rounded-xl bg-emerald-950/60 border border-emerald-800/60 text-[11px] text-emerald-300/80">
-                <strong>লাইসেন্স ও স্বত্বাধিকার নোটিশ:</strong>
+                <strong>{language === 'bn' ? 'লাইসেন্স ও স্বত্বাধিকার নোটিশ:' : 'License & Copyright Notice:'}</strong>
                 <p className="mt-1">{sourceInfo.licenseNote}</p>
               </div>
             </div>
 
             <button
               onClick={() => setShowInfoModal(false)}
-              className="w-full py-2.5 rounded-xl bg-gradient-to-r from-emerald-800 to-teal-800 text-white font-bold text-xs hover:from-emerald-700 hover:to-teal-700 transition-colors"
+              className="w-full py-2.5 rounded-xl bg-gradient-to-r from-emerald-800 to-teal-800 text-white font-bold text-xs hover:from-emerald-700 hover:to-teal-700 transition-colors cursor-pointer"
             >
-              ঠিক আছে
+              {language === 'bn' ? 'ঠিক আছে' : 'OK'}
             </button>
           </div>
         </div>

@@ -8,6 +8,7 @@ import {
 import { api, getStoredUser } from '../services/api';
 import { Mosque } from '../types';
 import { MosqueLocationPickerModal } from './MosqueLocationPickerModal';
+import { useLanguage } from '../context/LanguageContext';
 
 interface MosqueSubmissionModalProps {
   onClose: () => void;
@@ -20,6 +21,7 @@ export const MosqueSubmissionModal: React.FC<MosqueSubmissionModalProps> = ({
   onSuccess,
   isAdminMode = false
 }) => {
+  const { language } = useLanguage();
   const currentUser = getStoredUser();
 
   const [nameBn, setNameBn] = useState('');
@@ -90,7 +92,7 @@ export const MosqueSubmissionModal: React.FC<MosqueSubmissionModalProps> = ({
     setErrorMessage(null);
     if (!navigator.geolocation) {
       setIsLocating(false);
-      setErrorMessage('আপনার ব্রাউজার জিপিএস লোকেশন সাপোর্ট করে না।');
+      setErrorMessage(language === 'bn' ? 'আপনার ব্রাউজার জিপিএস লোকেশন সাপোর্ট করে না।' : 'Your browser does not support GPS location.');
       return;
     }
 
@@ -103,7 +105,7 @@ export const MosqueSubmissionModal: React.FC<MosqueSubmissionModalProps> = ({
       (err) => {
         console.warn('GPS location error:', err);
         setIsLocating(false);
-        setErrorMessage('জিপিএস লোকেশন পাওয়া যায়নি। অনুগ্রহ করে গুগল ম্যাপ বা ম্যানুয়ালি লিখুন।');
+        setErrorMessage(language === 'bn' ? 'জিপিএস লোকেশন পাওয়া যায়নি। অনুগ্রহ করে গুগল ম্যাপ বা ম্যানুয়ালি লিখুন।' : 'GPS location could not be fetched. Please pick from Google Maps or enter manually.');
       },
       { timeout: 10000, enableHighAccuracy: true }
     );
@@ -115,7 +117,7 @@ export const MosqueSubmissionModal: React.FC<MosqueSubmissionModalProps> = ({
     if (!file) return;
 
     if (file.size > 5 * 1024 * 1024) {
-      setErrorMessage('ছবির সাইজ সর্বোচ্চ ৫ মেগাবাইট হতে পারবে।');
+      setErrorMessage(language === 'bn' ? 'ছবির সাইজ সর্বোচ্চ ৫ মেগাবাইট হতে পারবে।' : 'Image size cannot exceed 5MB.');
       return;
     }
 
@@ -209,11 +211,11 @@ export const MosqueSubmissionModal: React.FC<MosqueSubmissionModalProps> = ({
         });
 
         if (res.success) {
-          setSuccessMessage('মসজিদটি সফলভাবে যুক্ত এবং লাইভ করা হয়েছে!');
+          setSuccessMessage(language === 'bn' ? 'মসজিদটি সফলভাবে যুক্ত এবং লাইভ করা হয়েছে!' : 'Mosque added and made live successfully!');
           onSuccess(res.mosque);
           onClose();
         } else {
-          setErrorMessage(res.message || 'মসজিদ যুক্ত করতে সমস্যা হয়েছে।');
+          setErrorMessage(res.message || (language === 'bn' ? 'মসজিদ যুক্ত করতে সমস্যা হয়েছে।' : 'Failed to add mosque.'));
         }
       } else {
         // User Application (Pending Review)
@@ -235,16 +237,16 @@ export const MosqueSubmissionModal: React.FC<MosqueSubmissionModalProps> = ({
         });
 
         if (res.success) {
-          setSuccessMessage('আলহামদুলিল্লাহ্! আপনার আবেদন সফলভাবে জমা হয়েছে।');
+          setSuccessMessage(language === 'bn' ? 'আলহামদুলিল্লাহ্! আপনার আবেদন সফলভাবে জমা হয়েছে।' : 'Alhamdulillah! Your application has been submitted successfully.');
           onSuccess(res.mosque);
           onClose();
         } else {
-          setErrorMessage(res.message || 'আবেদন জমা দিতে সমস্যা হয়েছে।');
+          setErrorMessage(res.message || (language === 'bn' ? 'আবেদন জমা দিতে সমস্যা হয়েছে।' : 'Failed to submit application.'));
         }
       }
     } catch (err: any) {
       console.error('Submit mosque error:', err);
-      setErrorMessage(err.message || 'আবেদন জমা দিতে সমস্যা হয়েছে। আবার চেষ্টা করুন।');
+      setErrorMessage(err.message || (language === 'bn' ? 'আবেদন জমা দিতে সমস্যা হয়েছে। আবার চেষ্টা করুন।' : 'Failed to submit application. Please try again.'));
     } finally {
       setIsSubmitting(false);
     }
@@ -267,12 +269,14 @@ export const MosqueSubmissionModal: React.FC<MosqueSubmissionModalProps> = ({
             </div>
             <div>
               <h2 className="text-base font-bold text-white leading-tight">
-                {isAdminMode ? 'নতুন মসজিদ নিবন্ধন ফরম (বাধ্যতামূলক তথ্য)' : 'নতুন মসজিদ যুক্ত করার আবেদন (সকল তথ্য বাধ্যতামূলক)'}
+                {isAdminMode
+                  ? (language === 'bn' ? 'নতুন মসজিদ নিবন্ধন ফরম (বাধ্যতামূলক তথ্য)' : 'New Mosque Registration Form')
+                  : (language === 'bn' ? 'নতুন মসজিদ যুক্ত করার আবেদন (সকল তথ্য বাধ্যতামূলক)' : 'Apply to Add New Mosque')}
               </h2>
               <p className="text-xs text-emerald-300/80 mt-0.5">
                 {isAdminMode
-                  ? 'মসজিদের সকল বিবরণ ও ছবি প্রদান করে সরাসরি লাইভ করুন'
-                  : 'সকল ঘর পূরণ করা বাধ্যতামূলক। যাচাই শেষে মসজিদটি লাইভ হবে'}
+                  ? (language === 'bn' ? 'মসজিদের সকল বিবরণ ও ছবি প্রদান করে সরাসরি লাইভ করুন' : 'Enter all details & photos to make the mosque live')
+                  : (language === 'bn' ? 'সকল ঘর পূরণ করা বাধ্যতামূলক। যাচাই শেষে মসজিদটি লাইভ হবে' : 'Fill in all fields. Mosque will be live after verification')}
               </p>
             </div>
           </div>
@@ -292,9 +296,9 @@ export const MosqueSubmissionModal: React.FC<MosqueSubmissionModalProps> = ({
             <div className="p-4 bg-amber-950/60 border border-amber-600/50 rounded-2xl flex flex-col items-center gap-3 text-center">
               <AlertTriangle className="w-8 h-8 text-amber-400" />
               <div className="space-y-1">
-                <p className="font-bold text-sm text-white">লগইন প্রয়োজন</p>
+                <p className="font-bold text-sm text-white">{language === 'bn' ? 'লগইন প্রয়োজন' : 'Login Required'}</p>
                 <p className="text-xs text-amber-200/90 leading-relaxed">
-                  মসজিদ আবেদন জমা দিতে দয়া করে আপনার অ্যাকাউন্টে লগইন করুন। আপনার অ্যাকাউন্টের তথ্য স্বয়ংক্রিয়ভাবে আবেদনের সাথে যুক্ত করা হবে।
+                  {language === 'bn' ? 'মসজিদ আবেদন জমা দিতে দয়া করে আপনার অ্যাকাউন্টে লগইন করুন। আপনার অ্যাকাউন্টের তথ্য স্বয়ংক্রিয়ভাবে আবেদনের সাথে যুক্ত করা হবে।' : 'Please sign in to submit a mosque application. Your account details will be attached automatically.'}
                 </p>
               </div>
             </div>
@@ -311,7 +315,7 @@ export const MosqueSubmissionModal: React.FC<MosqueSubmissionModalProps> = ({
             <div className="p-4 bg-emerald-950/80 border border-emerald-700 rounded-2xl flex items-start gap-3 text-xs text-emerald-200">
               <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
               <div className="space-y-1">
-                <p className="font-bold text-sm text-white">আবেদন সফল হয়েছে</p>
+                <p className="font-bold text-sm text-white">{language === 'bn' ? 'আবেদন সফল হয়েছে' : 'Application Successful'}</p>
                 <p>{successMessage}</p>
               </div>
             </div>
@@ -322,10 +326,10 @@ export const MosqueSubmissionModal: React.FC<MosqueSubmissionModalProps> = ({
             <div className="p-3.5 bg-amber-950/60 border border-amber-600/50 rounded-2xl space-y-2">
               <div className="flex items-center gap-2 text-xs font-bold text-amber-300">
                 <AlertTriangle className="w-4 h-4 text-amber-400" />
-                <span>সম্ভাব্য ডুপ্লিকেট মসজিদ সতর্কবার্তা ({duplicateWarnings.length})</span>
+                <span>{language === 'bn' ? `সম্ভাব্য ডুপ্লিকেট মসজিদ সতর্কবার্তা (${duplicateWarnings.length})` : `Potential Duplicate Mosques (${duplicateWarnings.length})`}</span>
               </div>
               <p className="text-[11px] text-amber-200/90 leading-relaxed">
-                আপনার দেওয়া তথ্যের অনুরূপ মসজিদ ইতোমধ্যে সিস্টেমে রয়েছে:
+                {language === 'bn' ? 'আপনার দেওয়া তথ্যের অনুরূপ মসজিদ ইতোমধ্যে সিস্টেমে রয়েছে:' : 'A mosque with matching details already exists in the system:'}
               </p>
               <div className="space-y-1.5 pt-1">
                 {duplicateWarnings.map((dw, idx) => (
@@ -347,16 +351,16 @@ export const MosqueSubmissionModal: React.FC<MosqueSubmissionModalProps> = ({
                 </div>
                 <div>
                   <div className="font-bold text-white flex items-center gap-1.5">
-                    <span>{currentUser.fullName || applicantName || 'ব্যবহারকারী'}</span>
+                    <span>{currentUser.fullName || applicantName || (language === 'bn' ? 'ব্যবহারকারী' : 'User')}</span>
                     <span className="text-[10px] text-emerald-400 bg-emerald-950 px-1.5 py-0.2 rounded border border-emerald-800">
-                      আবেদনকারী
+                      {language === 'bn' ? 'আবেদনকারী' : 'Applicant'}
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-400 font-mono">{currentUser.phone || applicantPhone}</p>
                 </div>
               </div>
               <span className="text-[10px] text-emerald-400 italic">
-                ইউজার আইডি ও ফোন স্বয়ংক্রিয়ভাবে সংযুক্ত
+                {language === 'bn' ? 'ইউজার আইডি ও ফোন স্বয়ংক্রিয়ভাবে সংযুক্ত' : 'User ID & Phone attached automatically'}
               </span>
             </div>
           )}
@@ -365,26 +369,26 @@ export const MosqueSubmissionModal: React.FC<MosqueSubmissionModalProps> = ({
           <div className="space-y-3">
             <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
               <Landmark className="w-3.5 h-3.5" />
-              <span>১. মসজিদের সাধারণ তথ্য</span>
+              <span>{language === 'bn' ? '১. মসজিদের সাধারণ তথ্য' : '1. Mosque Basic Information'}</span>
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-300 flex items-center justify-between">
-                  <span>মসজিদের নাম (বাংলা) <span className="text-rose-400">*</span></span>
+                  <span>{language === 'bn' ? 'মসজিদের নাম (বাংলা)' : 'Mosque Name (Bangla)'} <span className="text-rose-400">*</span></span>
                 </label>
                 <input
                   type="text"
                   value={nameBn}
                   onChange={e => setNameBn(e.target.value)}
-                  placeholder="যেমন: বাইতুল আমান জামে মসজিদ"
+                  placeholder={language === 'bn' ? 'যেমন: বাইতুল আমান জামে মসজিদ' : 'e.g. Baitul Aman Jame Mosque'}
                   className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
                 />
               </div>
 
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-300">
-                  <span>মসজিদের নাম (English)</span>
+                  <span>{language === 'bn' ? 'মসজিদের নাম (English)' : 'Mosque Name (English)'}</span>
                 </label>
                 <input
                   type="text"
@@ -398,13 +402,13 @@ export const MosqueSubmissionModal: React.FC<MosqueSubmissionModalProps> = ({
 
             <div className="space-y-1">
               <label className="text-xs font-semibold text-slate-300">
-                <span>মসজিদের পূর্ণাঙ্গ ঠিকানা</span>
+                <span>{language === 'bn' ? 'মসজিদের পূর্ণাঙ্গ ঠিকানা' : 'Full Address'}</span>
               </label>
               <input
                 type="text"
                 value={address}
                 onChange={e => setAddress(e.target.value)}
-                placeholder="যেমন: রোড নং ৪, ব্লক সি, মূল সড়ক সংলগ্ন"
+                placeholder={language === 'bn' ? 'যেমন: রোড নং ৪, ব্লক সি, মূল সড়ক সংলগ্ন' : 'e.g. Road 4, Block C'}
                 className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
               />
             </div>
@@ -412,26 +416,26 @@ export const MosqueSubmissionModal: React.FC<MosqueSubmissionModalProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-300">
-                  <span>এলাকা / থানা / উপজেলা</span>
+                  <span>{language === 'bn' ? 'এলাকা / থানা / উপজেলা' : 'Area / Thana / Upazila'}</span>
                 </label>
                 <input
                   type="text"
                   value={area}
                   onChange={e => setArea(e.target.value)}
-                  placeholder="যেমন: ধানমন্ডি / মিরপুর"
+                  placeholder={language === 'bn' ? 'যেমন: ধানমন্ডি / মিরপুর' : 'e.g. Dhanmondi / Mirpur'}
                   className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
                 />
               </div>
 
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-300">
-                  <span>জেলা</span>
+                  <span>{language === 'bn' ? 'জেলা' : 'District'}</span>
                 </label>
                 <input
                   type="text"
                   value={district}
                   onChange={e => setDistrict(e.target.value)}
-                  placeholder="যেমন: ঢাকা"
+                  placeholder={language === 'bn' ? 'যেমন: ঢাকা' : 'e.g. Dhaka'}
                   className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
                 />
               </div>
@@ -443,7 +447,7 @@ export const MosqueSubmissionModal: React.FC<MosqueSubmissionModalProps> = ({
             <div className="flex items-center justify-between flex-wrap gap-2">
               <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
                 <Navigation className="w-3.5 h-3.5" />
-                <span>২. GPS লোকেশন (গুগল ম্যাপ ও জিপিএস - বাধ্যতামূলক) <span className="text-rose-400">*</span></span>
+                <span>{language === 'bn' ? '২. GPS লোকেশন (গুগল ম্যাপ ও জিপিএস - বাধ্যতামূলক)' : '2. GPS Coordinates (Google Maps / GPS)'} <span className="text-rose-400">*</span></span>
               </h3>
 
               <div className="flex items-center gap-2">
@@ -453,7 +457,7 @@ export const MosqueSubmissionModal: React.FC<MosqueSubmissionModalProps> = ({
                   className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow cursor-pointer"
                 >
                   <Map className="w-3.5 h-3.5 text-amber-300" />
-                  <span>গুগল ম্যাপ থেকে সেট করুন</span>
+                  <span>{language === 'bn' ? 'গুগল ম্যাপ থেকে সেট করুন' : 'Pick on Google Maps'}</span>
                 </button>
 
                 <button
@@ -467,7 +471,7 @@ export const MosqueSubmissionModal: React.FC<MosqueSubmissionModalProps> = ({
                   ) : (
                     <Compass className="w-3.5 h-3.5" />
                   )}
-                  <span>বর্তমান জিপিএস নিন</span>
+                  <span>{language === 'bn' ? 'বর্তমান জিপিএস নিন' : 'Detect Current GPS'}</span>
                 </button>
               </div>
             </div>
@@ -475,7 +479,7 @@ export const MosqueSubmissionModal: React.FC<MosqueSubmissionModalProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-400">
-                  <span>Latitude (অক্ষাংশ) <span className="text-rose-400">*</span></span>
+                  <span>{language === 'bn' ? 'Latitude (অক্ষাংশ)' : 'Latitude'} <span className="text-rose-400">*</span></span>
                 </label>
                 <input
                   type="number"
@@ -490,7 +494,7 @@ export const MosqueSubmissionModal: React.FC<MosqueSubmissionModalProps> = ({
 
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-400">
-                  <span>Longitude (দ্রাঘিমাংশ) <span className="text-rose-400">*</span></span>
+                  <span>{language === 'bn' ? 'Longitude (দ্রাঘিমাংশ)' : 'Longitude'} <span className="text-rose-400">*</span></span>
                 </label>
                 <input
                   type="number"
@@ -504,7 +508,7 @@ export const MosqueSubmissionModal: React.FC<MosqueSubmissionModalProps> = ({
               </div>
             </div>
             <p className="text-[11px] text-slate-400">
-              সঠিক লোকেশন নির্ধারণ করতে উপর থেকে <span className="text-emerald-400 font-semibold">"গুগল ম্যাপ থেকে সেট করুন"</span> বাটনে ক্লিক করুন।
+              {language === 'bn' ? 'সঠিক লোকেশন নির্ধারণ করতে উপর থেকে "গুগল ম্যাপ থেকে সেট করুন" বাটনে ক্লিক করুন।' : 'Click "Pick on Google Maps" above to pinpoint precise coordinates.'}
             </p>
           </div>
 
@@ -512,19 +516,19 @@ export const MosqueSubmissionModal: React.FC<MosqueSubmissionModalProps> = ({
           <div className="space-y-3 pt-1">
             <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
               <User className="w-3.5 h-3.5" />
-              <span>৩. ইমাম ও যোগাযোগের তথ্য (বাধ্যতামূলক)</span>
+              <span>{language === 'bn' ? '৩. ইমাম ও যোগাযোগের তথ্য (বাধ্যতামূলক)' : '3. Imam & Contact Information'}</span>
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-300">
-                  <span>ইমাম / খতিবের নাম <span className="text-rose-400">*</span></span>
+                  <span>{language === 'bn' ? 'ইমাম / খতিবের নাম' : 'Imam / Khatib Name'} <span className="text-rose-400">*</span></span>
                 </label>
                 <input
                   type="text"
                   value={imamName}
                   onChange={e => setImamName(e.target.value)}
-                  placeholder="মাওলানা আব্দুর রহমান"
+                  placeholder={language === 'bn' ? 'মাওলানা আব্দুর রহমান' : 'Maulana Abdur Rahman'}
                   required
                   className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
                 />
@@ -532,7 +536,7 @@ export const MosqueSubmissionModal: React.FC<MosqueSubmissionModalProps> = ({
 
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-300">
-                  <span>ইমাম / দায়িত্বশীলের ফোন নম্বর <span className="text-rose-400">*</span></span>
+                  <span>{language === 'bn' ? 'ইমাম / দায়িত্বশীলের ফোন নম্বর' : 'Imam / Official Phone'} <span className="text-rose-400">*</span></span>
                 </label>
                 <input
                   type="tel"
@@ -550,14 +554,14 @@ export const MosqueSubmissionModal: React.FC<MosqueSubmissionModalProps> = ({
           <div className="space-y-3 pt-1">
             <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
               <ImageIcon className="w-3.5 h-3.5" />
-              <span>৪. মসজিদের ছবি ও ইমামের ছবি (দুটিই বাধ্যতামূলক) <span className="text-rose-400">*</span></span>
+              <span>{language === 'bn' ? '৪. মসজিদের ছবি ও ইমামের ছবি (দুটিই বাধ্যতামূলক)' : '4. Mosque Photo & Imam Photo'} <span className="text-rose-400">*</span></span>
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               {/* Mosque Photo */}
               <div className="p-3.5 bg-slate-900 border border-slate-800 rounded-2xl space-y-2.5">
                 <label className="text-xs font-semibold text-slate-300 flex items-center justify-between">
-                  <span>মসজিদের ছবি <span className="text-rose-400">*</span></span>
+                  <span>{language === 'bn' ? 'মসজিদের ছবি' : 'Mosque Photo'} <span className="text-rose-400">*</span></span>
                 </label>
 
                 {mosqueImageBase64 ? (
@@ -581,8 +585,8 @@ export const MosqueSubmissionModal: React.FC<MosqueSubmissionModalProps> = ({
                 ) : (
                   <label className="border-2 border-dashed border-slate-700 hover:border-emerald-500/60 rounded-xl p-3 flex flex-col items-center justify-center text-center cursor-pointer transition-colors h-28 bg-slate-950/40">
                     <Upload className="w-5 h-5 text-emerald-400 mb-1" />
-                    <span className="text-xs text-slate-200 font-semibold">মসজিদের ছবি দিন</span>
-                    <span className="text-[10px] text-slate-400">JPG, PNG (সর্বোচ্চ ৫MB)</span>
+                    <span className="text-xs text-slate-200 font-semibold">{language === 'bn' ? 'মসজিদের ছবি দিন' : 'Upload Mosque Photo'}</span>
+                    <span className="text-[10px] text-slate-400">JPG, PNG (max 5MB)</span>
                     <input
                       type="file"
                       accept="image/*"
@@ -595,7 +599,7 @@ export const MosqueSubmissionModal: React.FC<MosqueSubmissionModalProps> = ({
                 {isUploadingMosquePhoto && (
                   <p className="text-[10px] text-amber-400 flex items-center gap-1">
                     <Loader2 className="w-3 h-3 animate-spin" />
-                    <span>ছবি আপলোড হচ্ছে...</span>
+                    <span>{language === 'bn' ? 'ছবি আপলোড হচ্ছে...' : 'Uploading photo...'}</span>
                   </p>
                 )}
               </div>
@@ -603,7 +607,7 @@ export const MosqueSubmissionModal: React.FC<MosqueSubmissionModalProps> = ({
               {/* Imam Photo */}
               <div className="p-3.5 bg-slate-900 border border-slate-800 rounded-2xl space-y-2.5">
                 <label className="text-xs font-semibold text-slate-300 flex items-center justify-between">
-                  <span>ইমামের ছবি <span className="text-rose-400">*</span></span>
+                  <span>{language === 'bn' ? 'ইমামের ছবি' : 'Imam Photo'} <span className="text-rose-400">*</span></span>
                 </label>
 
                 {imamImageBase64 ? (
@@ -627,8 +631,8 @@ export const MosqueSubmissionModal: React.FC<MosqueSubmissionModalProps> = ({
                 ) : (
                   <label className="border-2 border-dashed border-slate-700 hover:border-emerald-500/60 rounded-xl p-3 flex flex-col items-center justify-center text-center cursor-pointer transition-colors h-28 bg-slate-950/40">
                     <Upload className="w-5 h-5 text-emerald-400 mb-1" />
-                    <span className="text-xs text-slate-200 font-semibold">ইমামের ছবি দিন</span>
-                    <span className="text-[10px] text-slate-400">JPG, PNG (সর্বোচ্চ ৫MB)</span>
+                    <span className="text-xs text-slate-200 font-semibold">{language === 'bn' ? 'ইমামের ছবি দিন' : 'Upload Imam Photo'}</span>
+                    <span className="text-[10px] text-slate-400">JPG, PNG (max 5MB)</span>
                     <input
                       type="file"
                       accept="image/*"
@@ -641,7 +645,7 @@ export const MosqueSubmissionModal: React.FC<MosqueSubmissionModalProps> = ({
                 {isUploadingImamPhoto && (
                   <p className="text-[10px] text-amber-400 flex items-center gap-1">
                     <Loader2 className="w-3 h-3 animate-spin" />
-                    <span>ইমামের ছবি আপলোড হচ্ছে...</span>
+                    <span>{language === 'bn' ? 'ইমামের ছবি আপলোড হচ্ছে...' : 'Uploading imam photo...'}</span>
                   </p>
                 )}
               </div>
@@ -652,13 +656,13 @@ export const MosqueSubmissionModal: React.FC<MosqueSubmissionModalProps> = ({
           <div className="space-y-1.5 pt-1">
             <label className="text-xs font-semibold text-slate-300 flex items-center gap-1">
               <FileText className="w-3.5 h-3.5 text-slate-400" />
-              <span>অতিরিক্ত বিবরণ বা বিশেষ বৈশিষ্ট্য (ঐচ্ছিক)</span>
+              <span>{language === 'bn' ? 'অতিরিক্ত বিবরণ বা বিশেষ বৈশিষ্ট্য (ঐচ্ছিক)' : 'Additional Details / Facilities (Optional)'}</span>
             </label>
             <textarea
               rows={2}
               value={description}
               onChange={e => setDescription(e.target.value)}
-              placeholder="যেমন: মহিলাদের জন্য পৃথক নামাজের ব্যবস্থা রয়েছে, অজু খানা ও পার্কিং সুবিধা।"
+              placeholder={language === 'bn' ? 'যেমন: মহিলাদের জন্য পৃথক নামাজের ব্যবস্থা রয়েছে, অজু খানা ও পার্কিং সুবিধা।' : 'e.g. Dedicated women prayer space, wudu facilities and parking.'}
               className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
             />
           </div>
@@ -670,7 +674,7 @@ export const MosqueSubmissionModal: React.FC<MosqueSubmissionModalProps> = ({
               onClick={onClose}
               className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-colors cursor-pointer"
             >
-              বাতিল
+              {language === 'bn' ? 'বাতিল' : 'Cancel'}
             </button>
 
             <button
@@ -681,12 +685,12 @@ export const MosqueSubmissionModal: React.FC<MosqueSubmissionModalProps> = ({
               {isSubmitting ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>জমা হচ্ছে...</span>
+                  <span>{language === 'bn' ? 'জমা হচ্ছে...' : 'Submitting...'}</span>
                 </>
               ) : (
                 <>
                   <Sparkles className="w-4 h-4 text-amber-300" />
-                  <span>{isAdminMode ? 'মসজিদ সরাসরি লাইভ করুন' : 'আবেদন জমা দিন'}</span>
+                  <span>{isAdminMode ? (language === 'bn' ? 'মসজিদ সরাসরি লাইভ করুন' : 'Make Mosque Live') : (language === 'bn' ? 'আবেদন জমা দিন' : 'Submit Application')}</span>
                 </>
               )}
             </button>

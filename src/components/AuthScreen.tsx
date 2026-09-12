@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { RegistrationView, RegistrationData } from './RegistrationView';
 import { AppLogo } from './AppLogo';
 import {
@@ -28,6 +29,7 @@ type AuthMode = 'login' | 'register' | 'register-otp' | 'forgot' | 'forgot-verif
 
 export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, onCancel }) => {
   const { login, registerRequest, registerVerify, forgotPasswordRequest, forgotPasswordVerify, logout } = useAuth();
+  const { language, setLanguage, t } = useLanguage();
 
   const [mode, setMode] = useState<AuthMode>('login');
   const [isLoading, setIsLoading] = useState(false);
@@ -81,7 +83,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, onCancel }) =
     resetAlerts();
 
     if (!identifier.trim() || !password.trim()) {
-      setErrorMessage('ইমেইল/মোবাইল নম্বর এবং পাসওয়ার্ড উভয়ই প্রদান করুন।');
+      setErrorMessage(t('auth.enterBothCredentialsErr'));
       setIsLoading(false);
       return;
     }
@@ -95,19 +97,19 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, onCancel }) =
         setIsLoading(false);
       }
     } catch (err: any) {
-      let friendlyMessage = 'মোবাইল নম্বর/ইমেইল অথবা পাসওয়ার্ড সঠিক নয়।';
-      const errorMessage = err.message || '';
+      let friendlyMessage = t('auth.invalidCredentialsErr');
+      const errorMessageStr = err.message || '';
       
-      if (errorMessage.includes('PHONE_NOT_FOUND')) {
-        friendlyMessage = 'এই ফোন নম্বরের কোনো মার্চেন্ট অ্যাকাউন্ট পাওয়া যায়নি।';
-      } else if (errorMessage.includes('INVALID_PIN')) {
-        friendlyMessage = 'পিন নম্বরটি সঠিক নয়। দয়া করে আবার চেষ্টা করুন।';
-      } else if (errorMessage.includes('ACCOUNT_PENDING')) {
-        friendlyMessage = 'আপনার অ্যাকাউন্টটি অনুমোদনের অপেক্ষায় আছে।';
-      } else if (errorMessage.includes('SUSPENDED') || errorMessage.includes('ACCOUNT_SUSPENDED') || errorMessage.includes('403') || errorMessage.includes('স্থগিত') || errorMessage.includes('সাসপেন্ড')) {
-        friendlyMessage = 'আপনার অ্যাকাউন্ট সাসপেন্ড করা হয়েছে।';
+      if (errorMessageStr.includes('PHONE_NOT_FOUND')) {
+        friendlyMessage = t('auth.phoneNotFoundErr');
+      } else if (errorMessageStr.includes('INVALID_PIN')) {
+        friendlyMessage = t('auth.invalidPinErr');
+      } else if (errorMessageStr.includes('ACCOUNT_PENDING')) {
+        friendlyMessage = t('auth.accountPendingErr');
+      } else if (errorMessageStr.includes('SUSPENDED') || errorMessageStr.includes('ACCOUNT_SUSPENDED') || errorMessageStr.includes('403') || errorMessageStr.includes('স্থগিত') || errorMessageStr.includes('সাসপেন্ড')) {
+        friendlyMessage = t('auth.accountSuspendedErr');
       } else {
-        friendlyMessage = errorMessage || friendlyMessage;
+        friendlyMessage = errorMessageStr || friendlyMessage;
       }
 
       setErrorMessage(friendlyMessage);
@@ -149,7 +151,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, onCancel }) =
       setCountdown(60);
       setOtpCode('');
     } catch (err: any) {
-      setErrorMessage(err.message || 'রেজিস্ট্রেশন অনুরোধে সমস্যা হয়েছে।');
+      setErrorMessage(err.message || t('auth.regReqErr'));
     } finally {
       setIsLoading(false);
     }
@@ -174,11 +176,11 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, onCancel }) =
         password: registrationPayload.password,
         confirmPassword: registrationPayload.confirmPassword
       });
-      setSuccessMessage('নতুন ভেরিফিকেশন কোড পাঠানো হয়েছে!');
+      setSuccessMessage(t('auth.newCodeSentMessage'));
       setDevOtpHint(res.devOtp);
       setCountdown(60);
     } catch (err: any) {
-      setErrorMessage(err.message || 'কোড পুনরায় পাঠাতে সমস্যা হয়েছে।');
+      setErrorMessage(err.message || t('auth.codeResendErr'));
     } finally {
       setIsLoading(false);
     }
@@ -191,7 +193,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, onCancel }) =
     resetAlerts();
 
     if (!otpCode || otpCode.length < 4) {
-      setErrorMessage('৬ ডিজিটের ভেরিফিকেশন কোড লিখুন।');
+      setErrorMessage(t('auth.otpReqErr'));
       return;
     }
 
@@ -200,7 +202,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, onCancel }) =
       const ok = await registerVerify(phone.trim() || identifier.trim(), otpCode.trim());
       if (ok) {
         logout(); // Force logout to prevent immediate auto-dashboard access
-        setSuccessMessage('আপনার অ্যাকাউন্ট সফলভাবে ভেরিফাই ও সক্রিয় করা হয়েছে! অনুগ্রহ করে এখন পাসওয়ার্ড দিয়ে লগইন করুন।');
+        setSuccessMessage(t('auth.verifySuccessMessage'));
         setIdentifier(phone.trim());
         setPassword('');
         setConfirmPassword('');
@@ -208,7 +210,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, onCancel }) =
         setMode('login');
       }
     } catch (err: any) {
-      setErrorMessage(err.message || 'ভেরিফিকেশন কোডটি ভুল বা মেয়ার শেষ হয়েছে।');
+      setErrorMessage(err.message || t('auth.otpVerifyErr'));
     } finally {
       setIsLoading(false);
     }
@@ -220,7 +222,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, onCancel }) =
     resetAlerts();
 
     if (!identifier.trim()) {
-      setErrorMessage('আপনার মোবাইল নম্বর বা ইমেইল প্রদান করুন।');
+      setErrorMessage(t('auth.identifierReqErr'));
       return;
     }
 
@@ -233,7 +235,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, onCancel }) =
       setCountdown(60);
       setOtpCode('');
     } catch (err: any) {
-      setErrorMessage(err.message || 'পাসওয়ার্ড রিসেট অনুরোধে সমস্যা হয়েছে।');
+      setErrorMessage(err.message || t('auth.forgotReqErr'));
     } finally {
       setIsLoading(false);
     }
@@ -245,17 +247,17 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, onCancel }) =
     resetAlerts();
 
     if (!otpCode || otpCode.length < 4) {
-      setErrorMessage('৬ ডিজিটের ভেরিফিকেশন কোড লিখুন।');
+      setErrorMessage(t('auth.otpReqErr'));
       return;
     }
 
     if (password.length < 6) {
-      setErrorMessage('নতুন পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে।');
+      setErrorMessage(t('auth.minPasswordLengthErr'));
       return;
     }
 
     if (password !== confirmPassword) {
-      setErrorMessage('পাসওয়ার্ড এবং কনফার্ম পাসওয়ার্ড মিলছে না।');
+      setErrorMessage(t('auth.passwordMismatchErr'));
       return;
     }
 
@@ -263,14 +265,14 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, onCancel }) =
     try {
       const ok = await forgotPasswordVerify(identifier.trim(), otpCode.trim(), password, confirmPassword);
       if (ok) {
-        setSuccessMessage('পাসওয়ার্ড সফলভাবে পরিবর্তন করা হয়েছে! এখন লগইন করুন।');
+        setSuccessMessage(t('auth.resetSuccessMessage'));
         setMode('login');
         setPassword('');
         setConfirmPassword('');
         setOtpCode('');
       }
     } catch (err: any) {
-      setErrorMessage(err.message || 'পাসওয়ার্ড পরিবর্তনে সমস্যা হয়েছে।');
+      setErrorMessage(err.message || t('auth.forgotVerifyErr'));
     } finally {
       setIsLoading(false);
     }
@@ -279,13 +281,42 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, onCancel }) =
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-950 via-emerald-900 to-teal-950 text-white flex flex-col justify-center items-center p-4">
       <div className="w-full max-w-md bg-emerald-900/60 backdrop-blur-md border border-emerald-700/50 rounded-2xl p-6 shadow-2xl relative overflow-hidden">
+        
+        {/* Language Selection Selector Bar */}
+        <div id="auth-language-selector" className="flex justify-center items-center gap-1.5 mb-5 bg-emerald-950/80 p-1 rounded-xl border border-emerald-700/60 w-fit mx-auto shadow-inner">
+          <button
+            id="auth-lang-bn-btn"
+            type="button"
+            onClick={() => setLanguage('bn')}
+            className={`px-3.5 py-1 rounded-lg text-xs font-bold transition-all ${
+              language === 'bn'
+                ? 'bg-amber-400 text-emerald-950 shadow-md scale-105'
+                : 'text-emerald-300 hover:text-white hover:bg-emerald-800/40'
+            }`}
+          >
+            বাংলা
+          </button>
+          <button
+            id="auth-lang-en-btn"
+            type="button"
+            onClick={() => setLanguage('en')}
+            className={`px-3.5 py-1 rounded-lg text-xs font-bold transition-all ${
+              language === 'en'
+                ? 'bg-amber-400 text-emerald-950 shadow-md scale-105'
+                : 'text-emerald-300 hover:text-white hover:bg-emerald-800/40'
+            }`}
+          >
+            English
+          </button>
+        </div>
+
         {/* Top Header/Logo */}
         <div className="text-center mb-6">
           <div className="inline-flex items-center justify-center mb-3">
             <AppLogo className="w-16 h-16 rounded-2xl overflow-hidden shadow-lg border border-amber-500/40 bg-slate-950 flex items-center justify-center" />
           </div>
-          <h1 className="text-2xl font-black text-white tracking-tight">কেভ কম্প্যানিয়নস</h1>
-          <p className="text-xs text-emerald-200/80 mt-1">পাসওয়ার্ড ও অ্যাকাউন্টের মাধ্যমে নিরাপদ লগইন</p>
+          <h1 className="text-2xl font-black text-white tracking-tight">{t('auth.appTitle')}</h1>
+          <p className="text-xs text-emerald-200/80 mt-1">{t('auth.loginHeaderSubtitle')}</p>
         </div>
 
         {/* Global Alert Banners */}
@@ -308,7 +339,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, onCancel }) =
           <form onSubmit={handleLoginSubmit} className="space-y-4">
             <div>
               <label className="block text-xs font-semibold text-emerald-200 mb-1">
-                ইমেইল অথবা মোবাইল নম্বর <span className="text-amber-400">*</span>
+                {t('auth.emailOrPhone')} <span className="text-amber-400">*</span>
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-emerald-400/70">
@@ -319,7 +350,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, onCancel }) =
                   required
                   value={identifier}
                   onChange={e => setIdentifier(e.target.value)}
-                  placeholder="ইমেইল বা মোবাইল (যেমন: 017XXXXXXXX)"
+                  placeholder={t('auth.emailOrPhonePlaceholder')}
                   className="w-full pl-10 pr-4 py-3 bg-emerald-950/60 border border-emerald-700/60 rounded-xl text-white placeholder-emerald-400/40 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50"
                 />
               </div>
@@ -328,7 +359,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, onCancel }) =
             <div>
               <div className="flex justify-between items-center mb-1">
                 <label className="block text-xs font-semibold text-emerald-200">
-                  পাসওয়ার্ড <span className="text-amber-400">*</span>
+                  {t('auth.password')} <span className="text-amber-400">*</span>
                 </label>
                 <button
                   type="button"
@@ -338,7 +369,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, onCancel }) =
                   }}
                   className="text-[11px] text-amber-300/90 hover:text-amber-300 underline"
                 >
-                  পাসওয়ার্ড ভুলে গেছেন?
+                  {t('auth.forgotPassword')}
                 </button>
               </div>
               <div className="relative">
@@ -350,7 +381,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, onCancel }) =
                   required
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  placeholder="আপনার পাসওয়ার্ড লিখুন"
+                  placeholder={t('auth.enterPasswordPlaceholder')}
                   className="w-full pl-10 pr-10 py-3 bg-emerald-950/60 border border-emerald-700/60 rounded-xl text-white placeholder-emerald-400/40 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50"
                 />
                 <button
@@ -371,27 +402,27 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, onCancel }) =
               {isLoading ? (
                 <>
                   <span className="w-5 h-5 border-2 border-emerald-950 border-t-transparent rounded-full animate-spin"></span>
-                  <span>সংযুক্ত হচ্ছে...</span>
+                  <span>{t('auth.loggingIn')}</span>
                 </>
               ) : (
                 <>
-                  <span>লগইন করুন</span>
+                  <span>{t('auth.login')}</span>
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}
             </button>
 
             <div className="text-center pt-2">
-              <span className="text-xs text-emerald-300/80">অ্যাকাউন্ট নেই? </span>
+              <span className="text-xs text-emerald-300/80">{t('auth.noAccount')}{' '}</span>
               <button
                 type="button"
                 onClick={() => {
                   resetAlerts();
                   setMode('register');
                 }}
-                className="text-xs text-amber-300 font-bold hover:underline"
+                className="text-xs text-amber-300 font-bold hover:underline ml-1"
               >
-                নতুন অ্যাকাউন্ট তৈরি করুন
+                {t('auth.createNewAccount')}
               </button>
             </div>
           </form>
@@ -414,9 +445,9 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, onCancel }) =
         {mode === 'register-otp' && (
           <form onSubmit={handleRegisterOtpVerify} className="space-y-4">
             <div className="text-center mb-2">
-              <h2 className="text-sm font-bold text-amber-300">৬ ডিজিটের ভেরিফিকেশন কোড লিখুন</h2>
+              <h2 className="text-sm font-bold text-amber-300">{t('auth.enterOtpTitle')}</h2>
               <p className="text-xs text-emerald-200/80 mt-1">
-                <span className="font-mono text-amber-200">{phone || identifier}</span> নম্বরে কোড পাঠানো হয়েছে
+                <span className="font-mono text-amber-200">{phone || identifier}</span> {t('auth.codeSentTo')}
               </p>
             </div>
 
@@ -442,7 +473,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, onCancel }) =
             {import.meta.env.DEV && devOtpHint && (
               <div className="p-2.5 bg-amber-950/80 border border-amber-500/40 rounded-xl flex items-center justify-between gap-2 text-xs text-amber-200">
                 <div>
-                  <span>টেস্ট কোড: </span>
+                  <span>{t('auth.testCode')} </span>
                   <span className="font-mono font-bold text-amber-300 text-sm tracking-wider">{devOtpHint}</span>
                 </div>
                 <button
@@ -450,7 +481,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, onCancel }) =
                   onClick={() => setOtpCode(devOtpHint)}
                   className="px-2.5 py-1 bg-amber-500 text-emerald-950 text-[11px] font-bold rounded hover:bg-amber-400"
                 >
-                  কোড বসান
+                  {t('auth.useCode')}
                 </button>
               </div>
             )}
@@ -465,7 +496,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, onCancel }) =
                 className="flex items-center gap-1 hover:text-white"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
-                তথ্য সংশোধন
+                {t('auth.editInfo')}
               </button>
 
               <button
@@ -476,7 +507,9 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, onCancel }) =
                   countdown > 0 ? 'opacity-50 cursor-not-allowed' : 'hover:underline'
                 }`}
               >
-                {countdown > 0 ? `পুনরায় পাঠান (${countdown}s)` : 'পুনরায় কোড পাঠান'}
+                {countdown > 0 
+                  ? t('auth.resendCodeCountdown').replace('{count}', countdown.toString()) 
+                  : t('auth.resendCode')}
               </button>
             </div>
 
@@ -488,12 +521,12 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, onCancel }) =
               {isLoading ? (
                 <>
                   <span className="w-5 h-5 border-2 border-emerald-950 border-t-transparent rounded-full animate-spin"></span>
-                  <span>সংযুক্ত হচ্ছে...</span>
+                  <span>{t('auth.loggingIn')}</span>
                 </>
               ) : (
                 <>
                   <CheckCircle2 className="w-5 h-5" />
-                  <span>ভেরিফাই ও অ্যাকাউন্ট সক্রিয় করুন</span>
+                  <span>{t('auth.verifyAndActivate')}</span>
                 </>
               )}
             </button>
@@ -504,15 +537,15 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, onCancel }) =
         {mode === 'forgot' && (
           <form onSubmit={handleForgotRequest} className="space-y-4">
             <div className="text-center mb-2">
-              <h2 className="text-sm font-bold text-amber-300">পাসওয়ার্ড পুনরুদ্ধার (Forgot Password)</h2>
+              <h2 className="text-sm font-bold text-amber-300">{t('auth.forgotTitle')}</h2>
               <p className="text-xs text-emerald-200/80 mt-1">
-                আপনার নিবন্ধিত মোবাইল নম্বর বা ইমেইল লিখুন। একটি ৬ ডিজিটের ভেরিফিকেশন কোড পাঠানো হবে।
+                {t('auth.forgotSubtitle')}
               </p>
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-emerald-200 mb-1">
-                ইমেইল বা মোবাইল নম্বর <span className="text-amber-400">*</span>
+                {t('auth.emailOrPhone')} <span className="text-amber-400">*</span>
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-emerald-400/70">
@@ -523,7 +556,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, onCancel }) =
                   required
                   value={identifier}
                   onChange={e => setIdentifier(e.target.value)}
-                  placeholder="017XXXXXXXX বা name@email.com"
+                  placeholder={t('auth.emailOrPhonePlaceholder')}
                   className="w-full pl-10 pr-4 py-3 bg-emerald-950/60 border border-emerald-700/60 rounded-xl text-white placeholder-emerald-400/40 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50"
                 />
               </div>
@@ -537,11 +570,11 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, onCancel }) =
               {isLoading ? (
                 <>
                   <span className="w-5 h-5 border-2 border-emerald-950 border-t-transparent rounded-full animate-spin"></span>
-                  <span>সংযুক্ত হচ্ছে...</span>
+                  <span>{t('auth.loggingIn')}</span>
                 </>
               ) : (
                 <>
-                  <span>ভেরিফিকেশন কোড পাঠান</span>
+                  <span>{t('auth.sendResetCode')}</span>
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}
@@ -557,7 +590,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, onCancel }) =
                 className="text-xs text-emerald-300 hover:text-white flex items-center justify-center gap-1 mx-auto"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
-                লগইন পৃষ্ঠায় ফিরে যান
+                {t('auth.backToLogin')}
               </button>
             </div>
           </form>
@@ -567,12 +600,12 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, onCancel }) =
         {mode === 'forgot-verify' && (
           <form onSubmit={handleForgotVerify} className="space-y-3.5">
             <div className="text-center mb-1">
-              <h2 className="text-sm font-bold text-amber-300">নতুন পাসওয়ার্ড সেট করুন</h2>
-              <p className="text-xs text-emerald-200/80 mt-1">ভেরিফিকেশন কোড ও নতুন পাসওয়ার্ড প্রদান করুন</p>
+              <h2 className="text-sm font-bold text-amber-300">{t('auth.setNewPasswordTitle')}</h2>
+              <p className="text-xs text-emerald-200/80 mt-1">{t('auth.setNewPasswordSubtitle')}</p>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-emerald-200 mb-1">৬ ডিজিটের ভেরিফিকেশন কোড</label>
+              <label className="block text-xs font-semibold text-emerald-200 mb-1">{t('auth.verificationCodeLabel')}</label>
               <input
                 type="text"
                 maxLength={6}
@@ -586,37 +619,37 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, onCancel }) =
 
             {import.meta.env.DEV && devOtpHint && (
               <div className="p-2 bg-amber-950/80 border border-amber-500/40 rounded-xl flex items-center justify-between text-xs text-amber-200">
-                <span>টেস্ট কোড: <span className="font-mono font-bold text-amber-300">{devOtpHint}</span></span>
+                <span>{t('auth.testCode')} <span className="font-mono font-bold text-amber-300">{devOtpHint}</span></span>
                 <button
                   type="button"
                   onClick={() => setOtpCode(devOtpHint)}
                   className="px-2 py-0.5 bg-amber-500 text-emerald-950 text-[11px] font-bold rounded"
                 >
-                  কোড বসান
+                  {t('auth.useCode')}
                 </button>
               </div>
             )}
 
             <div>
-              <label className="block text-xs font-semibold text-emerald-200 mb-1">নতুন পাসওয়ার্ড</label>
+              <label className="block text-xs font-semibold text-emerald-200 mb-1">{t('auth.newPasswordLabel')}</label>
               <input
                 type="password"
                 required
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                placeholder="কমপক্ষে ৬ অক্ষর"
+                placeholder={t('auth.newPasswordPlaceholder')}
                 className="w-full px-3 py-2.5 bg-emerald-950/60 border border-emerald-700/60 rounded-xl text-white placeholder-emerald-400/40 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-emerald-200 mb-1">নতুন পাসওয়ার্ড নিশ্চিত করুন</label>
+              <label className="block text-xs font-semibold text-emerald-200 mb-1">{t('auth.confirmNewPasswordLabel')}</label>
               <input
                 type="password"
                 required
                 value={confirmPassword}
                 onChange={e => setConfirmPassword(e.target.value)}
-                placeholder="পুনরায় নতুন পাসওয়ার্ড লিখুন"
+                placeholder={t('auth.confirmNewPasswordPlaceholder')}
                 className="w-full px-3 py-2.5 bg-emerald-950/60 border border-emerald-700/60 rounded-xl text-white placeholder-emerald-400/40 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50"
               />
             </div>
@@ -629,12 +662,12 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, onCancel }) =
               {isLoading ? (
                 <>
                   <span className="w-5 h-5 border-2 border-emerald-950 border-t-transparent rounded-full animate-spin"></span>
-                  <span>সংযুক্ত হচ্ছে...</span>
+                  <span>{t('auth.loggingIn')}</span>
                 </>
               ) : (
                 <>
                   <CheckCircle2 className="w-4 h-4" />
-                  <span>পাসওয়ার্ড সেট করে লগইন করুন</span>
+                  <span>{t('auth.setPasswordAndLogin')}</span>
                 </>
               )}
             </button>
@@ -644,7 +677,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, onCancel }) =
         {onCancel && (
           <div className="mt-4 text-center border-t border-emerald-800/40 pt-3">
             <button onClick={onCancel} className="text-xs text-emerald-400/70 hover:text-emerald-300">
-              ফিরে যান
+              {t('auth.goBack')}
             </button>
           </div>
         )}

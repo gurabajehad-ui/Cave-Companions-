@@ -1,11 +1,14 @@
 import React from 'react';
 import { BookMarked, ChevronRight, Sparkles } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface HisnulMuslimCardProps {
   onOpen: () => void;
 }
 
 export const HisnulMuslimCard: React.FC<HisnulMuslimCardProps> = ({ onOpen }) => {
+  const { language } = useLanguage();
+
   return (
     <button
       onClick={onOpen}
@@ -18,7 +21,7 @@ export const HisnulMuslimCard: React.FC<HisnulMuslimCardProps> = ({ onOpen }) =>
         <div className="min-w-0">
           <div className="flex items-center gap-1.5">
             <span className="text-xs font-bold text-white group-hover:text-amber-300 transition-colors">
-              হিসনুল মুসলিম
+              {language === 'bn' ? 'হিসনুল মুসলিম' : 'Hisnul Muslim'}
             </span>
             <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-mono border border-amber-500/30 font-bold flex items-center gap-0.5">
               <Sparkles className="w-2.5 h-2.5" />
@@ -26,13 +29,13 @@ export const HisnulMuslimCard: React.FC<HisnulMuslimCardProps> = ({ onOpen }) =>
             </span>
           </div>
           <span className="text-[10.5px] text-emerald-300/85 truncate block mt-0.5">
-            দৈনন্দিন জীবনের সহীহ দো‘আ ও যিকর (কুরআন ও সুন্নাহ থেকে)
+            {language === 'bn' ? 'দৈনন্দিন জীবনের সহীহ দো‘আ ও যিকর (কুরআন ও সুন্নাহ থেকে)' : 'Authentic Daily Du’as & Adhkar (From Quran & Sunnah)'}
           </span>
         </div>
       </div>
       <div className="flex items-center gap-1 shrink-0">
         <span className="hidden xs:inline-block text-[10px] font-semibold text-amber-300/90 bg-emerald-950/80 px-2 py-0.5 rounded-lg border border-emerald-800/60">
-          খুলুন
+          {language === 'bn' ? 'খুলুন' : 'Open'}
         </span>
         <ChevronRight className="w-4 h-4 text-emerald-400 group-hover:text-amber-300 group-hover:translate-x-0.5 transition-all" />
       </div>

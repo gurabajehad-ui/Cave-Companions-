@@ -34,6 +34,7 @@ export interface QuranBookmark {
   surahNumber: number;
   ayahNumber: number;
   surahNameBn: string;
+  surahNameEn?: string;
   surahNameAr: string;
   arabicExcerpt: string;
   bengaliExcerpt: string;
@@ -44,6 +45,7 @@ export interface QuranLastRead {
   surahNumber: number;
   ayahNumber: number;
   surahNameBn: string;
+  surahNameEn?: string;
   surahNameAr: string;
   timestamp: number;
 }
@@ -58,9 +60,11 @@ export interface QuranReadingSettings {
 export interface QuranSearchResult {
   surahNumber: number;
   surahNameBn: string;
+  surahNameEn?: string;
   surahNameAr: string;
   ayahNumber: number;
   arabicText: string;
   bengaliText: string;
+  englishText?: string;
   matchType: 'surah' | 'translation';
 }

@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { Landmark, MapPin, Phone, User, X, Loader2, AlertCircle, CheckCircle2, ShieldCheck, Navigation } from 'lucide-react';
 import { api } from '../services/api';
 import { Mosque } from '../types';
+import { useLanguage } from '../context/LanguageContext';
 
 interface MosqueDetailModalProps {
   mosqueId?: string | null;
@@ -11,6 +12,7 @@ interface MosqueDetailModalProps {
 }
 
 export const MosqueDetailModal: React.FC<MosqueDetailModalProps> = ({ mosqueId, mosqueName, onClose }) => {
+  const { language } = useLanguage();
   const [mosque, setMosque] = useState<Mosque | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -28,17 +30,17 @@ export const MosqueDetailModal: React.FC<MosqueDetailModalProps> = ({ mosqueId, 
         if (res.success && res.mosque) {
           setMosque(res.mosque);
         } else {
-          setError('মসজিদের বিস্তারিত তথ্য পাওয়া যায়নি।');
+          setError(language === 'bn' ? 'মসজিদের বিস্তারিত তথ্য পাওয়া যায়নি।' : 'Mosque details not found.');
         }
       } catch (err: any) {
         console.error('Fetch mosque detail error:', err);
-        setError(err.message || 'মসজিদের তথ্য লোড করতে সমস্যা হয়েছে।');
+        setError(err.message || (language === 'bn' ? 'মসজিদের তথ্য লোড করতে সমস্যা হয়েছে।' : 'Failed to load mosque information.'));
       } finally {
         setLoading(false);
       }
     };
     fetchMosque();
-  }, [mosqueId, mosqueName]);
+  }, [mosqueId, mosqueName, language]);
 
   if (!mosqueId && !mosqueName) return null;
 
@@ -57,8 +59,12 @@ export const MosqueDetailModal: React.FC<MosqueDetailModalProps> = ({ mosqueId, 
               <Landmark className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="text-lg font-black text-white leading-tight">মসজিদের বিস্তারিত বিবরণ</h3>
-              <p className="text-xs text-emerald-400/80 font-medium">নিবন্ধিত মসজিদের অবস্থান ও তথ্য</p>
+              <h3 className="text-lg font-black text-white leading-tight">
+                {language === 'bn' ? 'মসজিদের বিস্তারিত বিবরণ' : 'Mosque Details'}
+              </h3>
+              <p className="text-xs text-emerald-400/80 font-medium">
+                {language === 'bn' ? 'নিবন্ধিত মসজিদের অবস্থান ও তথ্য' : 'Registered Mosque Location & Information'}
+              </p>
             </div>
           </div>
           <button
@@ -74,7 +80,9 @@ export const MosqueDetailModal: React.FC<MosqueDetailModalProps> = ({ mosqueId, 
           {loading ? (
             <div className="py-16 flex flex-col items-center justify-center space-y-3">
               <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
-              <p className="text-sm font-bold text-slate-400">মসজিদের তথ্য লোড হচ্ছে...</p>
+              <p className="text-sm font-bold text-slate-400">
+                {language === 'bn' ? 'মসজিদের তথ্য লোড হচ্ছে...' : 'Loading mosque information...'}
+              </p>
             </div>
           ) : error ? (
             <div className="py-12 text-center space-y-3">
@@ -82,7 +90,7 @@ export const MosqueDetailModal: React.FC<MosqueDetailModalProps> = ({ mosqueId, 
               <p className="text-sm font-bold text-slate-300">{error}</p>
               {mosqueName && (
                 <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl inline-block text-xs text-slate-400 font-bold">
-                  মসজিদের নাম: {mosqueName}
+                  {language === 'bn' ? 'মসজিদের নাম:' : 'Mosque Name:'} {mosqueName}
                 </div>
               )}
             </div>
@@ -103,7 +111,7 @@ export const MosqueDetailModal: React.FC<MosqueDetailModalProps> = ({ mosqueId, 
                       : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
                   }`}>
                     <CheckCircle2 className="w-3 h-3" />
-                    {mosque.status === 'active' ? 'অনুমোদিত (Active)' : mosque.status}
+                    {mosque.status === 'active' ? (language === 'bn' ? 'অনুমোদিত' : 'Active') : mosque.status}
                   </span>
                 </div>
               </div>
@@ -112,23 +120,23 @@ export const MosqueDetailModal: React.FC<MosqueDetailModalProps> = ({ mosqueId, 
               <div className="bg-slate-950 border border-slate-800 rounded-2xl p-4 space-y-3">
                 <h5 className="text-xs font-black uppercase tracking-wider text-slate-400 pb-2 border-b border-slate-800 flex items-center gap-1.5">
                   <MapPin className="w-3.5 h-3.5 text-emerald-400" />
-                  অবস্থান ও ঠিকানা (Location)
+                  {language === 'bn' ? 'অবস্থান ও ঠিকানা' : 'Location & Address'}
                 </h5>
 
                 <div className="grid grid-cols-2 gap-3 text-xs">
                   <div>
-                    <span className="text-slate-500 font-bold block">জেলা (District):</span>
-                    <span className="text-slate-200 font-medium">{mosque.district || 'নির্ধারিত নয়'}</span>
+                    <span className="text-slate-500 font-bold block">{language === 'bn' ? 'জেলা:' : 'District:'}</span>
+                    <span className="text-slate-200 font-medium">{mosque.district || (language === 'bn' ? 'নির্ধারিত নয়' : 'Not set')}</span>
                   </div>
                   <div>
-                    <span className="text-slate-500 font-bold block">এলাকা (Area):</span>
-                    <span className="text-slate-200 font-medium">{mosque.area || 'নির্ধারিত নয়'}</span>
+                    <span className="text-slate-500 font-bold block">{language === 'bn' ? 'এলাকা:' : 'Area:'}</span>
+                    <span className="text-slate-200 font-medium">{mosque.area || (language === 'bn' ? 'নির্ধারিত নয়' : 'Not set')}</span>
                   </div>
                 </div>
 
                 <div className="pt-2 border-t border-slate-800/80 text-xs">
-                  <span className="text-slate-500 font-bold block">ঠিকানা (Address):</span>
-                  <span className="text-slate-300 font-medium">{mosque.address || 'নির্ধারিত নয়'}</span>
+                  <span className="text-slate-500 font-bold block">{language === 'bn' ? 'ঠিকানা:' : 'Address:'}</span>
+                  <span className="text-slate-300 font-medium">{mosque.address || (language === 'bn' ? 'নির্ধারিত নয়' : 'Not set')}</span>
                 </div>
               </div>
 
@@ -136,17 +144,17 @@ export const MosqueDetailModal: React.FC<MosqueDetailModalProps> = ({ mosqueId, 
               <div className="bg-slate-950 border border-slate-800 rounded-2xl p-4 space-y-3">
                 <h5 className="text-xs font-black uppercase tracking-wider text-slate-400 pb-2 border-b border-slate-800 flex items-center gap-1.5">
                   <User className="w-3.5 h-3.5 text-amber-400" />
-                  দায়িত্বপ্রাপ্ত ব্যক্তিবর্গ (Management)
+                  {language === 'bn' ? 'দায়িত্বপ্রাপ্ত ব্যক্তিবর্গ' : 'Mosque Management'}
                 </h5>
 
                 <div className="grid grid-cols-2 gap-3 text-xs">
                   <div>
-                    <span className="text-slate-500 font-bold block">ইমামের নাম:</span>
-                    <span className="text-slate-200 font-medium">{mosque.imamName || 'তথ্য দেওয়া হয়নি'}</span>
+                    <span className="text-slate-500 font-bold block">{language === 'bn' ? 'ইমামের নাম:' : 'Imam Name:'}</span>
+                    <span className="text-slate-200 font-medium">{mosque.imamName || (language === 'bn' ? 'তথ্য দেওয়া হয়নি' : 'Not provided')}</span>
                   </div>
                   <div>
-                    <span className="text-slate-500 font-bold block">যোগাযোগের মোবাইল:</span>
-                    <span className="text-slate-200 font-medium font-mono">{mosque.contactNumber || 'তথ্য দেওয়া হয়নি'}</span>
+                    <span className="text-slate-500 font-bold block">{language === 'bn' ? 'যোগাযোগের মোবাইল:' : 'Contact Phone:'}</span>
+                    <span className="text-slate-200 font-medium font-mono">{mosque.contactNumber || (language === 'bn' ? 'তথ্য দেওয়া হয়নি' : 'Not provided')}</span>
                   </div>
                 </div>
               </div>
@@ -158,13 +166,13 @@ export const MosqueDetailModal: React.FC<MosqueDetailModalProps> = ({ mosqueId, 
                 </div>
                 <div className="flex-1 min-w-0">
                   <h6 className="text-xs font-black text-white flex items-center gap-1.5">
-                    সালাত লোকেশন ভেরিফিকেশন
+                    {language === 'bn' ? 'সালাত লোকেশন ভেরিফিকেশন' : 'Salat Location Verification'}
                   </h6>
                   <p className="text-[11px] text-slate-400 mt-0.5 leading-relaxed">
-                    জিপিএস কোঅর্ডিনেট: {mosque.latitude ? `${Number(mosque.latitude).toFixed(4)}, ${Number(mosque.longitude).toFixed(4)}` : 'নির্ধারণ করা হয়নি'}
+                    {language === 'bn' ? 'জিপিএস কোঅর্ডিনেট:' : 'GPS Coordinates:'} {mosque.latitude ? `${Number(mosque.latitude).toFixed(4)}, ${Number(mosque.longitude).toFixed(4)}` : (language === 'bn' ? 'নির্ধারণ করা হয়নি' : 'Not configured')}
                   </p>
                   <p className="text-[11px] text-emerald-400 mt-0.5 font-medium">
-                    অনুমোদিত ভেরিফিকেশন রেঞ্জ: {mosque.verificationRadius || 75} মিটার
+                    {language === 'bn' ? `অনুমোদিত ভেরিফিকেশন রেঞ্জ: ${mosque.verificationRadius || 75} মিটার` : `Allowed Verification Radius: ${mosque.verificationRadius || 75} meters`}
                   </p>
                 </div>
               </div>
@@ -178,7 +186,7 @@ export const MosqueDetailModal: React.FC<MosqueDetailModalProps> = ({ mosqueId, 
             onClick={onClose}
             className="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition-colors cursor-pointer"
           >
-            বন্ধ করুন (Close)
+            {language === 'bn' ? 'বন্ধ করুন' : 'Close'}
           </button>
         </div>
       </motion.div>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from './context/AuthContext';
+import { useLanguage } from './context/LanguageContext';
 import { ActiveTab, Mosque, PrayerInfo, TodayPrayerStatus } from './types';
 import { api } from './services/api';
 import { PRAYERS_CONFIG, getTodayPrayerOrder, HADITHS, toBnNumber } from './data/prayerConfig';
@@ -53,12 +54,17 @@ const HisnulMuslimView = React.lazy(() => import('./components/hisnulMuslim/Hisn
 const BlogView = React.lazy(() => import('./components/BlogView').then(m => ({ default: m.BlogView })));
 
 // Lightweight Fallback for Lazy Views
-const ViewLoadingFallback: React.FC = () => (
-  <div className="flex flex-col items-center justify-center min-h-[40vh] text-center space-y-3 py-16">
-    <div className="w-10 h-10 rounded-full border-3 border-emerald-500 border-t-transparent animate-spin" />
-    <p className="text-xs text-emerald-400 font-medium">লোড হচ্ছে...</p>
-  </div>
-);
+const ViewLoadingFallback: React.FC = () => {
+  const { language } = useLanguage();
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[40vh] text-center space-y-3 py-16">
+      <div className="w-10 h-10 rounded-full border-3 border-emerald-500 border-t-transparent animate-spin" />
+      <p className="text-xs text-emerald-400 font-medium">
+        {language === 'bn' ? 'লোড হচ্ছে...' : 'Loading...'}
+      </p>
+    </div>
+  );
+};
 
 const SPLASH_SEEN_KEY = 'cave_splash_shown_session';
 const SPLASH_TIME_KEY = 'cave_splash_last_shown_time';
@@ -84,6 +90,7 @@ const hasSeenSplashInSession = (): boolean => {
 
 export default function App() {
   const { user, isLoading, logout, refreshUser } = useAuth();
+  const { language } = useLanguage();
 
   const getInitialTab = (): ActiveTab => {
     if (typeof window === 'undefined') return 'home';
@@ -117,12 +124,16 @@ export default function App() {
       }
     }
 
-    // Check saved tab in localStorage so refreshing stays on the active page
+    // If browser reload (refresh), restore saved tab from localStorage
     try {
-      const savedTab = localStorage.getItem('cave_active_tab_current');
-      const validTabs: ActiveTab[] = ['home', 'quran', 'hisnul_muslim', 'tokens', 'shops', 'market', 'profile', 'prayer_journey', 'notifications', 'support', 'merchant', 'admin', 'cave_circle'];
-      if (savedTab && validTabs.includes(savedTab as ActiveTab)) {
-        return savedTab as ActiveTab;
+      const navEntry = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
+      const isReload = navEntry ? navEntry.type === 'reload' : (performance as any).navigation?.type === 1;
+      if (isReload) {
+        const savedTab = localStorage.getItem('cave_active_tab_current');
+        const validTabs: ActiveTab[] = ['home', 'quran', 'hisnul_muslim', 'tokens', 'shops', 'market', 'profile', 'prayer_journey', 'notifications', 'support', 'merchant', 'admin', 'cave_circle'];
+        if (savedTab && validTabs.includes(savedTab as ActiveTab)) {
+          return savedTab as ActiveTab;
+        }
       }
     } catch (e) {
       // ignore
@@ -202,7 +213,13 @@ export default function App() {
   const handleInstallClick = async () => {
     const activePrompt = deferredPrompt || (window as any).deferredPrompt;
     if (!activePrompt) {
-      showToast('info', 'ইন্সটল', 'আপনি ব্রাউজারের "Add to Home Screen" বা "Install App" অপশন ব্যবহার করে ইন্সটল করতে পারেন।');
+      showToast(
+        'info', 
+        language === 'bn' ? 'ইন্সটল' : 'Install', 
+        language === 'bn' 
+          ? 'আপনি ব্রাউজারের "Add to Home Screen" বা "Install App" অপশন ব্যবহার করে ইন্সটল করতে পারেন।' 
+          : 'You can install using browser "Add to Home Screen" or "Install App".'
+      );
       return;
     }
 
@@ -212,7 +229,11 @@ export default function App() {
       // Wait for the user choice
       const choiceResult = await activePrompt.userChoice;
       if (choiceResult.outcome === 'accepted') {
-        showToast('success', 'ইন্সটল সফল', 'অ্যাপটি সফলভাবে ডিভাইসে ইনস্টল করা হয়েছে।');
+        showToast(
+          'success', 
+          language === 'bn' ? 'ইন্সটল সফল' : 'Install Successful', 
+          language === 'bn' ? 'অ্যাপটি সফলভাবে ডিভাইসে ইনস্টল করা হয়েছে।' : 'App installed successfully on your device.'
+        );
       }
     } catch (err: any) {
       console.error('[PWA] Error triggering install prompt:', err);
@@ -553,12 +574,12 @@ export default function App() {
 
         showToast(
           'success',
-          'আলহামদুলিল্লাহ!',
-          'আলহামদুলিল্লাহ! সালাতের রেকর্ড সংরক্ষণ হয়েছে।'
+          language === 'bn' ? 'আলহামদুলিল্লাহ!' : 'Alhamdulillah!',
+          language === 'bn' ? 'আলহামদুলিল্লাহ! সালাতের রেকর্ড সংরক্ষণ হয়েছে।' : 'Alhamdulillah! Prayer record has been saved.'
         );
 
         if ((result as any)?.tokenResult?.message) {
-          showToast('info', '🪙 টোকেন রিওয়ার্ড', (result as any).tokenResult.message);
+          showToast('info', language === 'bn' ? '🪙 টোকেন রিওয়ার্ড' : '🪙 Token Reward', (result as any).tokenResult.message);
         }
 
         await Promise.allSettled([
@@ -568,7 +589,11 @@ export default function App() {
       } else {
         // MALE FLOW:
         if (!navigator.geolocation) {
-          showToast('error', 'লোকেশন প্রয়োজন', 'লোকেশন যাচাই করা যাচ্ছে না। Location চালু আছে কিনা দেখুন।');
+          showToast(
+            'error', 
+            language === 'bn' ? 'লোকেশন প্রয়োজন' : 'Location Required', 
+            language === 'bn' ? 'লোকেশন যাচাই করা যাচ্ছে না। Location চালু আছে কিনা দেখুন।' : 'Cannot verify location. Please check if Location is enabled.'
+          );
           return;
         }
 
@@ -601,7 +626,11 @@ export default function App() {
         }
 
         if (!coords) {
-          showToast('error', 'লোকেশন প্রয়োজন', 'লোকেশন যাচাই করা যাচ্ছে না। Location চালু আছে কিনা দেখুন।');
+          showToast(
+            'error', 
+            language === 'bn' ? 'লোকেশন প্রয়োজন' : 'Location Required', 
+            language === 'bn' ? 'লোকেশন যাচাই করা যাচ্ছে না। Location চালু আছে কিনা দেখুন।' : 'Cannot verify location. Please check if Location is enabled.'
+          );
           return;
         }
 
@@ -614,12 +643,12 @@ export default function App() {
 
         showToast(
           'success',
-          'আলহামদুলিল্লাহ!',
-          'আলহামদুলিল্লাহ! সালাতের রেকর্ড সংরক্ষণ হয়েছে।'
+          language === 'bn' ? 'আলহামদুলিল্লাহ!' : 'Alhamdulillah!',
+          language === 'bn' ? 'আলহামদুলিল্লাহ! সালাতের রেকর্ড সংরক্ষণ হয়েছে।' : 'Alhamdulillah! Prayer record has been saved.'
         );
 
         if ((result as any)?.tokenResult?.message) {
-          showToast('info', '🪙 টোকেন রিওয়ার্ড', (result as any).tokenResult.message);
+          showToast('info', language === 'bn' ? '🪙 টোকেন রিওয়ার্ড' : '🪙 Token Reward', (result as any).tokenResult.message);
         }
 
         await Promise.allSettled([
@@ -628,12 +657,12 @@ export default function App() {
         ]);
       }
     } catch (err: any) {
-      const msg = err.message || 'সালাতের রেকর্ড সংরক্ষণ করা সম্ভব হয়নি।';
-      showToast('error', 'যাচাই ব্যর্থ', msg);
+      const msg = err.message || (language === 'bn' ? 'সালাতের রেকর্ড সংরক্ষণ করা সম্ভব হয়নি।' : 'Could not save prayer record.');
+      showToast('error', language === 'bn' ? 'যাচাই ব্যর্থ' : 'Verification Failed', msg);
     } finally {
       setActionLoadingPrayerType(null);
     }
-  }, [actionLoadingPrayerType, user, showToast, fetchTodayStatus, refreshUser]);
+  }, [actionLoadingPrayerType, user, showToast, fetchTodayStatus, refreshUser, language]);
 
   // Show Splash Screen first on fresh session startup
   if (showSplash) {
@@ -651,7 +680,9 @@ export default function App() {
     return (
       <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-white p-4">
         <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-        <p className="text-sm font-medium text-emerald-300">কেভ কম্প্যানিয়ন্স লোড হচ্ছে...</p>
+        <p className="text-sm font-medium text-emerald-300">
+          {language === 'bn' ? 'কেভ কম্প্যানিয়ন্স লোড হচ্ছে...' : 'Loading Cave Companions...'}
+        </p>
       </div>
     );
   }
@@ -667,7 +698,11 @@ export default function App() {
             if (typeof window !== 'undefined') {
               window.history.replaceState(null, '', '/');
             }
-            showToast('success', 'স্বাগতম', 'সফলভাবে লগইন সম্পন্ন হয়েছে!');
+            showToast(
+              'success', 
+              language === 'bn' ? 'স্বাগতম' : 'Welcome', 
+              language === 'bn' ? 'সফলভাবে লগইন সম্পন্ন হয়েছে!' : 'Logged in successfully!'
+            );
           }}
         />
       </>
@@ -742,17 +777,21 @@ export default function App() {
                   <div className="min-w-0">
                     <h4 className="text-xs font-bold leading-tight truncate">
                       {isSyncingOffline
-                        ? 'সার্ভারের সাথে সিঙ্ক হচ্ছে...'
+                        ? (language === 'bn' ? 'সার্ভারের সাথে সিঙ্ক হচ্ছে...' : 'Syncing with server...')
                         : !isOnline
-                        ? `ডিভাইস অফলাইনে আছে (${pendingOfflineItems.length}টি পেন্ডিং)`
-                        : `অফলাইনে সংরক্ষিত চেক-ইন: ${pendingOfflineItems.length}টি`}
+                        ? (language === 'bn' 
+                            ? `ডিভাইস অফলাইনে আছে (${toBnNumber(pendingOfflineItems.length)}টি পেন্ডিং)` 
+                            : `Device is offline (${pendingOfflineItems.length} pending)`)
+                        : (language === 'bn' 
+                            ? `অফলাইনে সংরক্ষিত চেক-ইন: ${toBnNumber(pendingOfflineItems.length)}টি` 
+                            : `Offline saved check-ins: ${pendingOfflineItems.length}`)}
                     </h4>
                     <p className="text-[11px] opacity-80 mt-0.5 leading-snug">
                       {isSyncingOffline
-                        ? 'অনুগ্রহ করে অপেক্ষা করুন, সার্ভারে উপস্থিতি যাচাই করা হচ্ছে'
+                        ? (language === 'bn' ? 'অনুগ্রহ করে অপেক্ষা করুন, সার্ভারে উপস্থিতি যাচাই করা হচ্ছে' : 'Please wait, verifying attendance on server')
                         : !isOnline
-                        ? 'ইন্টারনেট সংযোগ ফিরলে স্বয়ংক্রিয়ভাবে সার্ভারের সাথে সিঙ্ক হবে'
-                        : 'ইন্টারনেট চালু হয়েছে। সবগুলো চেক-ইন সার্ভারে পাঠাতে সিঙ্ক করুন'}
+                        ? (language === 'bn' ? 'ইন্টারনেট সংযোগ ফিরলে স্বয়ংক্রিয়ভাবে সার্ভারের সাথে সিঙ্ক হবে' : 'Will automatically sync once internet is restored')
+                        : (language === 'bn' ? 'ইন্টারনেট চালু হয়েছে। সবগুলো চেক-ইন সার্ভারে পাঠাতে সিঙ্ক করুন' : 'Internet restored. Sync to submit all check-ins')}
                     </p>
                   </div>
                 </div>
@@ -763,7 +802,7 @@ export default function App() {
                     className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shrink-0 transition cursor-pointer shadow-xs active:scale-95 flex items-center gap-1"
                   >
                     <CloudUpload className="w-3.5 h-3.5" />
-                    <span>সিঙ্ক করুন</span>
+                    <span>{language === 'bn' ? 'সিঙ্ক করুন' : 'Sync Now'}</span>
                   </button>
                 )}
               </div>
@@ -806,15 +845,17 @@ export default function App() {
                 </div>
                 <div className="flex items-baseline gap-2 min-w-0">
                   <h4 className="text-xs font-bold text-slate-100 truncate">
-                    অনুমোদিত মসজিদ
+                    {language === 'bn' ? 'অনুমোদিত মসজিদ' : 'Approved Mosques'}
                   </h4>
                   <span className="text-[11px] text-emerald-300/80 font-medium truncate">
-                    • {toBnNumber(mosques.length || 4)}টি সক্রিয়
+                    {language === 'bn' 
+                      ? `• ${toBnNumber(mosques.length || 4)}টি সক্রিয়` 
+                      : `• ${mosques.length || 4} Active`}
                   </span>
                 </div>
               </div>
               <span className="text-xs text-amber-300 font-bold shrink-0">
-                তালিকা দেখুন →
+                {language === 'bn' ? 'তালিকা দেখুন →' : 'View List →'}
               </span>
             </div>
           </div>
@@ -869,7 +910,11 @@ export default function App() {
                   window.history.replaceState(null, '', '/');
                 }
                 logout();
-                showToast('info', 'লগআউট', 'আপনি সফলভাবে লগআউট করেছেন।');
+                showToast(
+                  'info', 
+                  language === 'bn' ? 'লগআউট' : 'Logout', 
+                  language === 'bn' ? 'আপনি সফলভাবে লগআউট করেছেন।' : 'You have logged out successfully.'
+                );
               }}
               onShowToast={showToast}
               onNavigateTab={tab => setActiveTab(tab as ActiveTab)}
@@ -886,7 +931,7 @@ export default function App() {
           <React.Suspense fallback={<ViewLoadingFallback />}>
             <QuranMajidView
               onBack={() => setActiveTab('profile')}
-              onShowToast={(msg, type) => showToast(type, 'কুরআন মাজীদ', msg)}
+              onShowToast={(msg, type) => showToast(type, language === 'bn' ? 'কুরআন মাজীদ' : 'Quran Majeed', msg)}
             />
           </React.Suspense>
         )}
@@ -896,7 +941,7 @@ export default function App() {
           <React.Suspense fallback={<ViewLoadingFallback />}>
             <HisnulMuslimView
               onBack={() => setActiveTab('profile')}
-              onShowToast={(msg, type) => showToast(type, 'হিসনুল মুসলিম', msg)}
+              onShowToast={(msg, type) => showToast(type, language === 'bn' ? 'হিসনুল মুসলিম' : 'Hisnul Muslim', msg)}
             />
           </React.Suspense>
         )}
@@ -991,7 +1036,7 @@ export default function App() {
           <DigitalTasbihModal
             isOpen={showTasbihModal}
             onClose={() => setShowTasbihModal(false)}
-            onShowToast={(msg, t) => showToast(t, 'তাসবীহ', msg)}
+            onShowToast={(msg, t) => showToast(t, language === 'bn' ? 'তাসবীহ' : 'Digital Tasbih', msg)}
           />
         )}
 

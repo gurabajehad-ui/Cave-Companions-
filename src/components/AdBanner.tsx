@@ -1,19 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../services/api';
 import type { Advertisement } from '../types';
+import { useLanguage } from '../context/LanguageContext';
 
 interface AdBannerProps {
   pageName: string;
   placementSlot: string;
 }
 
-const getDestinationLabel = (type: string) => {
+const getDestinationLabel = (type: string, language: string) => {
   switch (type) {
-    case 'EXTERNAL': return 'ভিজিট করুন ➔';
-    case 'PARTNER_SHOP': return 'শপ প্রোডাক্ট দেখুন ➔';
-    case 'PRODUCT': return 'ডিজিটাল প্রোডাক্ট ও সেবা ➔';
-    case 'APP_PAGE': return 'বিস্তারিত পেইজ দেখুন ➔';
-    default: return 'বিস্তারিত দেখতে ক্লিক করুন ➔';
+    case 'EXTERNAL': return language === 'bn' ? 'ভিজিট করুন ➔' : 'Visit Link ➔';
+    case 'PARTNER_SHOP': return language === 'bn' ? 'শপ প্রোডাক্ট দেখুন ➔' : 'View Shop Products ➔';
+    case 'PRODUCT': return language === 'bn' ? 'ডিজিটাল প্রোডাক্ট ও সেবা ➔' : 'Digital Products & Services ➔';
+    case 'APP_PAGE': return language === 'bn' ? 'বিস্তারিত পেইজ দেখুন ➔' : 'View Detailed Page ➔';
+    default: return language === 'bn' ? 'বিস্তারিত দেখতে ক্লিক করুন ➔' : 'Click for Details ➔';
   }
 };
 
@@ -22,6 +23,7 @@ const adCache: Record<string, { ads: Advertisement[]; timestamp: number }> = {};
 const AD_CACHE_TTL = 3 * 60 * 1000; // 3 minutes
 
 function AdBannerComponent({ pageName, placementSlot }: AdBannerProps) {
+  const { language } = useLanguage();
   const normalizedPageName = String(pageName || '').toUpperCase().trim();
   const normalizedPlacementSlot = String(placementSlot || '').toUpperCase().trim();
   const cacheKey = `${normalizedPageName}_${normalizedPlacementSlot}`;

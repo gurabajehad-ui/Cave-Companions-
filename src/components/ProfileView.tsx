@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import {
   Phone,
   Calendar,
@@ -54,6 +55,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   onOpenMosques
 }) => {
   const { user, userStats, updateProfile, deleteAccount } = useAuth();
+  const { language, setLanguage, t } = useLanguage();
 
   // Qibla modal state
 
@@ -80,14 +82,18 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     try {
       const res = await deleteAccount(deletePassword, deleteConfirmText);
       if (res.success) {
-        onShowToast('success', 'অ্যাকাউন্ট মুছে ফেলা হয়েছে', res.message || 'আপনার অ্যাকাউন্টটি সফলভাবে মুছে ফেলা হয়েছে।');
+        onShowToast(
+          'success', 
+          language === 'bn' ? 'অ্যাকাউন্ট মুছে ফেলা হয়েছে' : 'Account Deleted', 
+          res.message || (language === 'bn' ? 'আপনার অ্যাকাউন্টটি সফলভাবে মুছে ফেলা হয়েছে।' : 'Your account has been deleted successfully.')
+        );
         setIsDeleteAccountOpen(false);
         onLogout();
       } else {
-        setDeleteAccountError(res.message || 'অ্যাকাউন্ট মুছে ফেলতে সমস্যা হয়েছে।');
+        setDeleteAccountError(res.message || (language === 'bn' ? 'অ্যাকাউন্ট মুছে ফেলতে সমস্যা হয়েছে।' : 'Failed to delete account.'));
       }
     } catch (err: any) {
-      setDeleteAccountError(err.message || 'অ্যাকাউন্ট মুছে ফেলতে নেটওয়ার্ক বা সার্ভারে ত্রুটি দেখা দিয়েছে।');
+      setDeleteAccountError(err.message || (language === 'bn' ? 'অ্যাকাউন্ট মুছে ফেলতে নেটওয়ার্ক বা সার্ভারে ত্রুটি দেখা দিয়েছে।' : 'A network or server error occurred while deleting account.'));
     } finally {
       setIsDeletingAccount(false);
     }
@@ -106,11 +112,19 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         address: newAddress.trim() || undefined
       });
       if (ok) {
-        onShowToast('success', 'সফল', 'প্রোফাইল তথ্য সফলভাবে পরিবর্তন করা হয়েছে।');
+        onShowToast(
+          'success', 
+          language === 'bn' ? 'সফল' : 'Success', 
+          language === 'bn' ? 'প্রোফাইল তথ্য সফলভাবে পরিবর্তন করা হয়েছে।' : 'Profile updated successfully.'
+        );
         setIsEditing(false);
       }
     } catch (err: any) {
-      onShowToast('error', 'ত্রুটি', err.message || 'আপডেট করতে ব্যর্থ হয়েছে।');
+      onShowToast(
+        'error', 
+        language === 'bn' ? 'ত্রুটি' : 'Error', 
+        err.message || (language === 'bn' ? 'আপডেট করতে ব্যর্থ হয়েছে।' : 'Failed to update profile.')
+      );
     } finally {
       setSavingProfile(false);
     }
@@ -136,7 +150,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 {user.fullName ? user.fullName.charAt(0) : 'U'}
               </div>
             </div>
-            <div className="absolute -bottom-1 -right-1 p-1 rounded-full bg-emerald-500 text-[#021812] border-2 border-[#021812] shadow-xs" title="সক্রিয় ও যাচাইকৃত">
+            <div className="absolute -bottom-1 -right-1 p-1 rounded-full bg-emerald-500 text-[#021812] border-2 border-[#021812] shadow-xs" title={language === 'bn' ? 'সক্রিয় ও যাচাইকৃত' : 'Active & Verified'}>
               <ShieldCheck className="w-3.5 h-3.5 stroke-[3]" />
             </div>
           </div>
@@ -156,7 +170,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                   setIsEditing(true);
                 }}
                 className="p-1.5 text-amber-300 hover:text-white bg-emerald-900/60 hover:bg-emerald-800/80 border border-emerald-700/50 rounded-xl transition-all cursor-pointer shadow-xs active:scale-95"
-                title="প্রোফাইল সম্পাদন করুন"
+                title={language === 'bn' ? 'প্রোফাইল সম্পাদন করুন' : 'Edit Profile'}
               >
                 <Edit2 className="w-3.5 h-3.5" />
               </button>
@@ -169,8 +183,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 <span className="font-medium">{user.phone}</span>
               </span>
 
-              <span className="flex items-center gap-1 font-mono text-[11px] bg-emerald-950/80 px-2 py-1 rounded-xl border border-emerald-800/60 text-emerald-300/90">
-                ID: {user.id}
+              <span className="flex items-center gap-1 font-mono text-[11px] bg-emerald-950/80 px-2.5 py-1 rounded-xl border border-emerald-800/60 text-emerald-300/90">
+                {language === 'bn' ? `আইডি: ${toBnNumber(user.id)}` : `ID: ${user.id}`}
               </span>
             </div>
 
@@ -181,7 +195,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 <div className="truncate font-medium">
                   {user.district && (
                     <span className="text-white font-semibold">
-                      {BANGLADESH_DISTRICTS.find(d => d.district === user.district || d.districtBn === user.district)?.districtBn || user.district}
+                      {language === 'bn' 
+                        ? (BANGLADESH_DISTRICTS.find(d => d.district === user.district || d.districtBn === user.district)?.districtBn || user.district)
+                        : (BANGLADESH_DISTRICTS.find(d => d.district === user.district || d.districtBn === user.district)?.district || user.district)}
                       {user.upazila ? `, ${user.upazila}` : ''}
                     </span>
                   )}
@@ -202,10 +218,42 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         onOpenMosques={onOpenMosques}
       />
 
+      {/* Language Switcher Card (Bilingual i18n Foundation) */}
+      <div className="rounded-3xl bg-gradient-to-br from-[#042017]/90 via-[#021812]/90 to-[#01140e]/90 border border-emerald-800/60 p-4 sm:p-5 shadow-xl space-y-3">
+        <h3 className="text-xs font-bold text-emerald-300/90 uppercase tracking-wider px-1 flex items-center justify-between">
+          <span>{t('profile.language')}</span>
+          <span className="text-[9px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-sans">ভাষা</span>
+        </h3>
+        <div className="grid grid-cols-2 gap-2.5">
+          <button
+            onClick={() => setLanguage('bn')}
+            className={`py-2.5 px-4 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+              language === 'bn'
+                ? 'bg-emerald-600 text-white border-emerald-500 shadow-md shadow-emerald-900/40'
+                : 'bg-[#031d16] text-emerald-300/80 border-emerald-800/60 hover:bg-[#052d22]'
+            }`}
+          >
+            <span>বাংলা (Bangla)</span>
+            {language === 'bn' && <span className="w-2 h-2 rounded-full bg-amber-400" />}
+          </button>
+          <button
+            onClick={() => setLanguage('en')}
+            className={`py-2.5 px-4 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+              language === 'en'
+                ? 'bg-emerald-600 text-white border-emerald-500 shadow-md shadow-emerald-900/40'
+                : 'bg-[#031d16] text-emerald-300/80 border-emerald-800/60 hover:bg-[#052d22]'
+            }`}
+          >
+            <span>English</span>
+            {language === 'en' && <span className="w-2 h-2 rounded-full bg-amber-400" />}
+          </button>
+        </div>
+      </div>
+
       {/* Navigation & Shortcuts Bento */}
       <div className="rounded-3xl bg-gradient-to-br from-[#042017]/90 via-[#021812]/90 to-[#01140e]/90 border border-emerald-800/60 p-4 sm:p-5 shadow-xl space-y-3">
         <h3 className="text-xs font-bold text-emerald-300/90 uppercase tracking-wider px-1">
-          সেটিংস ও প্রয়োজনীয় মেন্যু
+          {language === 'bn' ? 'সেটিংস ও প্রয়োজনীয় মেন্যু' : 'Settings & Menus'}
         </h3>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -221,10 +269,10 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                   </div>
                   <div className="min-w-0">
                     <span className="text-xs font-bold text-white block group-hover:text-amber-300 transition-colors">
-                      হেল্প ও সাপোর্ট
+                      {language === 'bn' ? 'হেল্প ও সাপোর্ট' : 'Help & Support'}
                     </span>
                     <span className="text-[10.5px] text-emerald-300/70 truncate block">
-                      প্রশ্নোত্তর ও সরাসরি সহায়তা
+                      {language === 'bn' ? 'প্রশ্নোত্তর ও সরাসরি সহায়তা' : 'FAQ & Direct Support'}
                     </span>
                   </div>
                 </div>
@@ -241,11 +289,13 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                   </div>
                   <div className="min-w-0">
                     <span className="text-xs font-bold text-white flex items-center gap-1.5 group-hover:text-amber-300 transition-colors">
-                      মার্চেন্ট পোর্টাল
-                      <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-mono border border-amber-500/30">SHOP</span>
+                      {language === 'bn' ? 'মার্চেন্ট পোর্টাল' : 'Merchant Portal'}
+                      <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-sans border border-amber-500/30">
+                        {language === 'bn' ? 'মার্চেন্ট' : 'SHOP'}
+                      </span>
                     </span>
                     <span className="text-[10.5px] text-emerald-300/70 truncate block">
-                      টোকেন রিডেম্পশন ও কেনাবেচা
+                      {language === 'bn' ? 'টোকেন রিডেম্পশন ও কেনাবেচা' : 'Token Redemption & Sales'}
                     </span>
                   </div>
                 </div>
@@ -262,11 +312,13 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                   </div>
                   <div className="min-w-0">
                     <span className="text-xs font-bold text-white flex items-center gap-1.5 group-hover:text-rose-300 transition-colors">
-                      এডমিন ড্যাশবোর্ড
-                      <span className="text-[9px] px-1.5 py-0.2 rounded bg-rose-500/20 text-rose-300 font-mono border border-rose-500/30">ADMIN</span>
+                      {language === 'bn' ? 'এডমিন ড্যাশবোর্ড' : 'Admin Dashboard'}
+                      <span className="text-[9px] px-1.5 py-0.2 rounded bg-rose-500/20 text-rose-300 font-sans border border-rose-500/30">
+                        {language === 'bn' ? 'এডমিন' : 'ADMIN'}
+                      </span>
                     </span>
                     <span className="text-[10.5px] text-emerald-300/70 truncate block">
-                      শপ ও মসজিদ পরিচালনা
+                      {language === 'bn' ? 'শপ ও মসজিদ পরিচালনা' : 'Shop & Mosque Management'}
                     </span>
                   </div>
                 </div>
@@ -283,21 +335,21 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               onClick={() => onOpenLegal('privacy')}
               className="hover:text-amber-300 transition-colors cursor-pointer"
             >
-              গোপনীয়তা নীতি
+              {language === 'bn' ? 'গোপনীয়তা নীতি' : 'Privacy Policy'}
             </button>
             <span>•</span>
             <button
               onClick={() => onOpenLegal('terms')}
               className="hover:text-amber-300 transition-colors cursor-pointer"
             >
-              শর্তাবলী
+              {language === 'bn' ? 'শর্তাবলী' : 'Terms & Conditions'}
             </button>
             <span>•</span>
             <button
               onClick={() => onOpenLegal('about')}
               className="hover:text-amber-300 transition-colors cursor-pointer"
             >
-              অ্যাপ সম্পর্কে
+              {language === 'bn' ? 'অ্যাপ সম্পর্কে' : 'About App'}
             </button>
           </div>
         )}
@@ -311,7 +363,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-rose-950/60 via-red-950/70 to-rose-950/60 hover:from-rose-900/80 hover:to-red-900/80 border border-rose-800/60 text-rose-200 font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg shadow-rose-950/30 active:scale-[0.99]"
         >
           <LogOut className="w-4 h-4 text-rose-400" />
-          <span>লগআউট করুন</span>
+          <span>{language === 'bn' ? 'লগআউট করুন' : 'Log Out'}</span>
         </button>
 
         {/* Minimal Compact Delete Account Button */}
@@ -326,7 +378,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             className="text-[11px] text-rose-400/80 hover:text-rose-300 flex items-center gap-1.5 py-1 px-3 rounded-lg hover:bg-rose-950/40 transition-colors cursor-pointer"
           >
             <Trash2 className="w-3 h-3 text-rose-400/70" />
-            <span>অ্যাকাউন্ট স্থায়ীভাবে মুছুন</span>
+            <span>{language === 'bn' ? 'অ্যাকাউন্ট স্থায়ীভাবে মুছুন' : 'Delete Account Permanently'}</span>
           </button>
         </div>
       </div>
@@ -344,7 +396,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               <div className="flex items-center justify-between border-b border-emerald-800/50 pb-3">
                 <h3 className="text-base font-bold text-white flex items-center gap-2">
                   <Edit2 className="w-4 h-4 text-amber-400" />
-                  <span>প্রোফাইল সম্পাদন</span>
+                  <span>{language === 'bn' ? 'প্রোফাইল সম্পাদন' : 'Edit Profile'}</span>
                 </h3>
                 <button
                   onClick={() => setIsEditing(false)}
@@ -356,7 +408,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
               <form onSubmit={handleSaveProfile} className="space-y-3.5">
                 <div>
-                  <label className="block text-xs font-semibold text-emerald-200 mb-1.5">আপনার নাম</label>
+                  <label className="block text-xs font-semibold text-emerald-200 mb-1.5">
+                    {language === 'bn' ? 'আপনার নাম' : 'Your Name'}
+                  </label>
                   <input
                     type="text"
                     required
@@ -368,7 +422,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-semibold text-emerald-200 mb-1.5">জেলা</label>
+                    <label className="block text-xs font-semibold text-emerald-200 mb-1.5">
+                      {language === 'bn' ? 'জেলা' : 'District'}
+                    </label>
                     <select
                       value={newDistrict}
                       onChange={e => {
@@ -377,22 +433,30 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                       }}
                       className="w-full px-3 py-2.5 bg-emerald-950/80 border border-emerald-700/60 rounded-xl text-white text-xs focus:outline-none focus:ring-2 focus:ring-amber-400/50"
                     >
-                      <option value="">জেলা নির্বাচন করুন</option>
+                      <option value="">{language === 'bn' ? 'জেলা নির্বাচন করুন' : 'Select District'}</option>
                       {BANGLADESH_DISTRICTS.map(d => (
-                        <option key={d.district} value={d.district}>{d.districtBn}</option>
+                        <option key={d.district} value={d.district}>
+                          {language === 'bn' ? d.districtBn : d.district}
+                        </option>
                       ))}
                     </select>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-emerald-200 mb-1.5">উপজেলা</label>
+                    <label className="block text-xs font-semibold text-emerald-200 mb-1.5">
+                      {language === 'bn' ? 'উপজেলা' : 'Upazila'}
+                    </label>
                     <select
                       disabled={!newDistrict}
                       value={newUpazila}
                       onChange={e => setNewUpazila(e.target.value)}
                       className="w-full px-3 py-2.5 bg-emerald-950/80 border border-emerald-700/60 rounded-xl text-white text-xs focus:outline-none focus:ring-2 focus:ring-amber-400/50 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <option value="">{!newDistrict ? 'প্রথমে জেলা' : 'উপজেলা নির্বাচন'}</option>
+                      <option value="">
+                        {!newDistrict 
+                          ? (language === 'bn' ? 'প্রথমে জেলা' : 'Select District First') 
+                          : (language === 'bn' ? 'উপজেলা নির্বাচন' : 'Select Upazila')}
+                      </option>
                       {newDistrict && BANGLADESH_DISTRICTS.find(d => d.district === newDistrict)?.upazilas.map(u => (
                         <option key={u} value={u}>{u}</option>
                       ))}
@@ -401,12 +465,14 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-emerald-200 mb-1.5">পূর্ণ ঠিকানা</label>
+                  <label className="block text-xs font-semibold text-emerald-200 mb-1.5">
+                    {language === 'bn' ? 'পূর্ণ ঠিকানা' : 'Full Address'}
+                  </label>
                   <textarea
                     rows={2}
                     value={newAddress}
                     onChange={e => setNewAddress(e.target.value)}
-                    placeholder="গ্রাম/মহল্লা, রোড, বাড়ি বা বিস্তারিত ঠিকানা"
+                    placeholder={language === 'bn' ? 'গ্রাম/মহল্লা, রোড, বাড়ি বা বিস্তারিত ঠিকানা' : 'Village/Area, Road, House or Detailed Address'}
                     className="w-full px-3.5 py-2 bg-emerald-950/80 border border-emerald-700/60 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 resize-none"
                   />
                 </div>
@@ -417,14 +483,14 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                     onClick={() => setIsEditing(false)}
                     className="flex-1 py-2.5 rounded-xl bg-emerald-950 hover:bg-emerald-900 border border-emerald-800 text-emerald-200 text-xs font-semibold cursor-pointer"
                   >
-                    বাতিল
+                    {language === 'bn' ? 'বাতিল' : 'Cancel'}
                   </button>
                   <button
                     type="submit"
                     disabled={savingProfile}
                     className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold transition-all disabled:opacity-50 cursor-pointer shadow-md"
                   >
-                    {savingProfile ? 'সংরক্ষণ...' : 'সংরক্ষণ করুন'}
+                    {savingProfile ? (language === 'bn' ? 'সংরক্ষণ...' : 'Saving...') : (language === 'bn' ? 'সংরক্ষণ করুন' : 'Save Changes')}
                   </button>
                 </div>
               </form>
@@ -450,8 +516,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                     <AlertTriangle className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="text-base font-bold text-white">অ্যাকাউন্ট মুছে ফেলা</h3>
-                    <p className="text-[11px] text-rose-300/90">এই প্রক্রিয়াটি চূড়ান্ত ও অপরিবর্তনীয়</p>
+                    <h3 className="text-base font-bold text-white">
+                      {language === 'bn' ? 'অ্যাকাউন্ট মুছে ফেলা' : 'Delete Account'}
+                    </h3>
+                    <p className="text-[11px] text-rose-300/90">
+                      {language === 'bn' ? 'এই প্রক্রিয়াটি চূড়ান্ত ও অপরিবর্তনীয়' : 'This action is final and irreversible'}
+                    </p>
                   </div>
                 </div>
                 <button
@@ -465,11 +535,13 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               {/* Data Loss Info Box */}
               <div className="space-y-2.5 text-xs">
                 <div className="p-3 rounded-2xl bg-rose-950/40 border border-rose-900/60 space-y-1.5 text-rose-200">
-                  <span className="font-bold block text-rose-300">⚠️ যা স্থায়ীভাবে মুছে যাবে:</span>
+                  <span className="font-bold block text-rose-300">
+                    {language === 'bn' ? '⚠️ যা স্থায়ীভাবে মুছে যাবে:' : '⚠️ Data that will be permanently lost:'}
+                  </span>
                   <ul className="list-disc list-inside space-y-1 text-[11px] text-rose-200/90 leading-relaxed">
-                    <li>ব্যক্তিগত প্রোফাইল তথ্য (নাম, ফোন, ঠিকানা)</li>
-                    <li>দৈনিক সালাত হাজিরা ও আত্মিক জার্নি রেকর্ড</li>
-                    <li>অর্জিত রিডেম্পশন টোকেন ও শপিং কার্ট</li>
+                    <li>{language === 'bn' ? 'ব্যক্তিগত প্রোফাইল তথ্য (নাম, ফোন, ঠিকানা)' : 'Personal profile information (name, phone, address)'}</li>
+                    <li>{language === 'bn' ? 'দৈনিক সালাত হাজিরা ও আত্মিক জার্নি রেকর্ড' : 'Daily prayer records and spiritual journey logs'}</li>
+                    <li>{language === 'bn' ? 'অর্জিত রিডেম্পশন টোকেন ও শপিং কার্ট' : 'Earned redemption tokens and cart items'}</li>
                   </ul>
                 </div>
               </div>
@@ -487,21 +559,25 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1.5">
                     <Lock className="w-3.5 h-3.5 text-amber-400" />
-                    <span>পাসওয়ার্ড দিন:</span>
+                    <span>{language === 'bn' ? 'পাসওয়ার্ড দিন:' : 'Enter Password:'}</span>
                   </label>
                   <input
                     type="password"
                     required
                     value={deletePassword}
                     onChange={(e) => setDeletePassword(e.target.value)}
-                    placeholder="আপনার পাসওয়ার্ড লিখুন"
+                    placeholder={language === 'bn' ? 'আপনার পাসওয়ার্ড লিখুন' : 'Enter your password'}
                     className="w-full px-3.5 py-2.5 bg-slate-950 border border-rose-900/60 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-rose-500"
                   />
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    নিশ্চিত করতে <span className="text-rose-400 font-mono">DELETE</span> অথবা <span className="text-rose-400 font-mono">মুছে ফেলুন</span> টাইপ করুন:
+                    {language === 'bn' ? (
+                      <>নিশ্চিত করতে <span className="text-rose-400 font-mono">DELETE</span> অথবা <span className="text-rose-400 font-mono">মুছে ফেলুন</span> টাইপ করুন:</>
+                    ) : (
+                      <>Type <span className="text-rose-400 font-mono">DELETE</span> to confirm:</>
+                    )}
                   </label>
                   <input
                     type="text"
@@ -519,7 +595,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                     onClick={() => setIsDeleteAccountOpen(false)}
                     className="flex-1 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 text-xs font-semibold transition-colors cursor-pointer"
                   >
-                    বাতিল
+                    {language === 'bn' ? 'বাতিল' : 'Cancel'}
                   </button>
                   <button
                     type="submit"
@@ -529,12 +605,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                     {isDeletingAccount ? (
                       <>
                         <Loader2 className="w-4 h-4 animate-spin" />
-                        <span>ডিলিট হচ্ছে...</span>
+                        <span>{language === 'bn' ? 'ডিলিট হচ্ছে...' : 'Deleting...'}</span>
                       </>
                     ) : (
                       <>
                         <Trash2 className="w-4 h-4" />
-                        <span>হ্যাঁ, মুছুন</span>
+                        <span>{language === 'bn' ? 'হ্যাঁ, মুছুন' : 'Yes, Delete'}</span>
                       </>
                     )}
                   </button>

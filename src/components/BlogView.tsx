@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Clock, User, Image as ImageIcon, FileText } from 'lucide-react';
 import { api } from '../services/api';
+import { useLanguage } from '../context/LanguageContext';
 
 export interface BlogPost {
   id: string;
@@ -17,6 +18,7 @@ interface BlogViewProps {
 }
 
 export const BlogView: React.FC<BlogViewProps> = ({ onBack }) => {
+  const { language, t } = useLanguage();
   const [blogs, setBlogs] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedBlog, setSelectedBlog] = useState<BlogPost | null>(null);
@@ -52,7 +54,7 @@ export const BlogView: React.FC<BlogViewProps> = ({ onBack }) => {
             className="flex items-center gap-2 text-emerald-100 hover:text-white"
           >
             <ArrowLeft className="w-5 h-5" />
-            <span className="font-bold">ফিরে যান</span>
+            <span className="font-bold">{language === 'bn' ? 'ফিরে যান' : 'Go Back'}</span>
           </button>
         </div>
         <div className="p-4 space-y-4 max-w-2xl mx-auto w-full">
@@ -73,7 +75,7 @@ export const BlogView: React.FC<BlogViewProps> = ({ onBack }) => {
             </span>
             <span className="flex items-center gap-1">
               <Clock className="w-3.5 h-3.5" />
-              {new Date(selectedBlog.createdAt).toLocaleDateString('bn-BD', { year: 'numeric', month: 'long', day: 'numeric' })}
+              {new Date(selectedBlog.createdAt).toLocaleDateString(language === 'bn' ? 'bn-BD' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
             </span>
           </div>
           <div className="text-slate-200 text-sm leading-relaxed whitespace-pre-wrap pt-2">
@@ -93,7 +95,7 @@ export const BlogView: React.FC<BlogViewProps> = ({ onBack }) => {
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <h1 className="text-lg font-black text-white">ব্লগ ও আর্টিকেল</h1>
+        <h1 className="text-lg font-black text-white">{language === 'bn' ? 'ব্লগ ও আর্টিকেল' : 'Blog & Articles'}</h1>
       </div>
 
       <div className="p-4 max-w-2xl mx-auto w-full space-y-4">
@@ -104,7 +106,7 @@ export const BlogView: React.FC<BlogViewProps> = ({ onBack }) => {
         ) : blogs.length === 0 ? (
           <div className="text-center py-12 px-4">
             <FileText className="w-12 h-12 text-emerald-800 mx-auto mb-3 opacity-50" />
-            <p className="text-emerald-300/70 font-medium">এখনও কোনো ব্লগ পোস্ট করা হয়নি।</p>
+            <p className="text-emerald-300/70 font-medium">{language === 'bn' ? 'এখনও কোনো ব্লগ পোস্ট করা হয়নি।' : 'No blog posts available yet.'}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4">
@@ -122,7 +124,7 @@ export const BlogView: React.FC<BlogViewProps> = ({ onBack }) => {
                   <p className="text-xs text-emerald-100/70 line-clamp-2">{blog.content}</p>
                   <div className="flex items-center gap-3 text-[10px] text-emerald-400/60 pt-2">
                     <span className="flex items-center gap-1"><User className="w-3 h-3" /> {blog.author}</span>
-                    <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {new Date(blog.createdAt).toLocaleDateString('bn-BD')}</span>
+                    <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {new Date(blog.createdAt).toLocaleDateString(language === 'bn' ? 'bn-BD' : 'en-US')}</span>
                   </div>
                 </div>
               </div>

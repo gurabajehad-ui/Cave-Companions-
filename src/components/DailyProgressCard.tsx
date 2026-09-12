@@ -2,10 +2,11 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Calendar, ChevronRight, BarChart3, AlertCircle, Check, Award, Coins } from 'lucide-react';
 import { Coordinates, CalculationMethod, PrayerTimes as AdhanPrayerTimes, Madhab } from 'adhan';
 import { getSavedOrGpsLocation, getFastInitialLocation, getDhakaDateClient, isFridayClient } from '../services/prayerTimeService';
-import { toBnNumber, formatBnDate, getHijriDate } from '../data/prayerConfig';
+import { toBnNumber, formatBnDate, getHijriDate, parseAppDate } from '../data/prayerConfig';
 import { api } from '../services/api';
 import { JourneyTeaser, TodayPrayerStatus, PrayerType, UserToken } from '../types';
 import { offlineSyncService } from '../services/offlineSyncService';
+import { useLanguage } from '../context/LanguageContext';
 
 interface DailyProgressCardProps {
   todayStatus?: TodayPrayerStatus | null;
@@ -23,6 +24,7 @@ interface HeroCountdownProps {
 }
 
 const SemiCirclePrayerHero: React.FC<HeroCountdownProps> = React.memo(({ coords }) => {
+  const { t, language } = useLanguage();
   const timeRef = useRef<HTMLSpanElement>(null);
   const prayerNameRef = useRef<HTMLHeadingElement>(null);
   const statusLabelRef = useRef<HTMLSpanElement>(null);
@@ -64,37 +66,37 @@ const SemiCirclePrayerHero: React.FC<HeroCountdownProps> = React.memo(({ coords 
       let isEnding = true;
 
       if (nowUtc < pt.fajr) {
-        nextName = 'ফজর';
+        nextName = language === 'bn' ? 'ফজর' : 'Fajr';
         startTime = new Date(pt.fajr.getTime() - 8 * 60 * 60 * 1000);
         targetTime = pt.fajr;
         isEnding = false;
       } else if (nowUtc >= pt.fajr && nowUtc < pt.sunrise) {
-        nextName = 'ফজর';
+        nextName = language === 'bn' ? 'ফজর' : 'Fajr';
         startTime = pt.fajr;
         targetTime = pt.sunrise;
         isEnding = true;
       } else if (nowUtc >= pt.sunrise && nowUtc < pt.dhuhr) {
-        nextName = isFriday ? 'জুম\'আ' : 'যোহর';
+        nextName = language === 'bn' ? (isFriday ? 'জুম\'আ' : 'যোহর') : (isFriday ? 'Jumu\'ah' : 'Dhuhr');
         startTime = pt.sunrise;
         targetTime = pt.dhuhr;
         isEnding = false;
       } else if (nowUtc >= pt.dhuhr && nowUtc < pt.asr) {
-        nextName = isFriday ? 'জুম\'আ' : 'যোহর';
+        nextName = language === 'bn' ? (isFriday ? 'জুম\'আ' : 'যোহর') : (isFriday ? 'Jumu\'ah' : 'Dhuhr');
         startTime = pt.dhuhr;
         targetTime = pt.asr;
         isEnding = true;
       } else if (nowUtc >= pt.asr && nowUtc < pt.maghrib) {
-        nextName = 'আসর';
+        nextName = language === 'bn' ? 'আসর' : 'Asr';
         startTime = pt.asr;
         targetTime = pt.maghrib;
         isEnding = true;
       } else if (nowUtc >= pt.maghrib && nowUtc < pt.isha) {
-        nextName = 'মাগরিব';
+        nextName = language === 'bn' ? 'মাগরিব' : 'Maghrib';
         startTime = pt.maghrib;
         targetTime = pt.isha;
         isEnding = true;
       } else {
-        nextName = 'এশা';
+        nextName = language === 'bn' ? 'এশা' : 'Isha';
         startTime = pt.isha;
         targetTime = ptTomorrow.fajr;
         isEnding = true;
@@ -116,7 +118,13 @@ const SemiCirclePrayerHero: React.FC<HeroCountdownProps> = React.memo(({ coords 
       const minutes = Math.floor((diffSecondsTotal % 3600) / 60);
       const seconds = diffSecondsTotal % 60;
 
-      const formatted = `${toBnNumber(String(hours).padStart(2, '0'))}:${toBnNumber(String(minutes).padStart(2, '0'))}:${toBnNumber(String(seconds).padStart(2, '0'))}`;
+      const hStr = String(hours).padStart(2, '0');
+      const mStr = String(minutes).padStart(2, '0');
+      const sStr = String(seconds).padStart(2, '0');
+
+      const formatted = language === 'bn'
+        ? `${toBnNumber(hStr)}:${toBnNumber(mStr)}:${toBnNumber(sStr)}`
+        : `${hStr}:${mStr}:${sStr}`;
 
       if (timeRef.current) {
         timeRef.current.textContent = formatted;
@@ -127,7 +135,7 @@ const SemiCirclePrayerHero: React.FC<HeroCountdownProps> = React.memo(({ coords 
       }
 
       if (statusLabelRef.current) {
-        statusLabelRef.current.textContent = isEnding ? 'শেষ হতে বাকি' : 'শুরু হতে বাকি';
+        statusLabelRef.current.textContent = isEnding ? t('prayer.timeRemaining') : t('prayer.startsIn');
       }
 
       if (progressArcRef.current) {
@@ -143,7 +151,7 @@ const SemiCirclePrayerHero: React.FC<HeroCountdownProps> = React.memo(({ coords 
     updateDOM();
     const timer = setInterval(updateDOM, 1000);
     return () => clearInterval(timer);
-  }, [coords]);
+  }, [coords, language, t]);
 
   return (
     <div className="relative flex flex-col items-center justify-center shrink-0 w-44 sm:w-52">
@@ -189,21 +197,21 @@ const SemiCirclePrayerHero: React.FC<HeroCountdownProps> = React.memo(({ coords 
             ref={prayerNameRef}
             className="text-lg sm:text-xl font-bold text-white tracking-tight leading-tight"
           >
-            জুম'আ
+            {language === 'bn' ? "জুম'আ" : "Jumu'ah"}
           </h3>
 
           <span
             ref={statusLabelRef}
             className="text-[10px] text-emerald-200/80 font-medium leading-none"
           >
-            শেষ হতে বাকি
+            {t('prayer.timeRemaining')}
           </span>
 
           <span
             ref={timeRef}
             className="text-base sm:text-lg font-black font-mono tracking-wider text-amber-300 pt-0.5 leading-none"
           >
-            ০১:৫১:১৫
+            {language === 'bn' ? '০১:৫১:১৫' : '01:51:15'}
           </span>
 
           <div
@@ -212,7 +220,7 @@ const SemiCirclePrayerHero: React.FC<HeroCountdownProps> = React.memo(({ coords 
             className="items-center gap-1 text-[9px] font-bold text-rose-300 bg-rose-950/90 border border-rose-600/40 px-1.5 py-0.2 rounded-full mt-0.5"
           >
             <AlertCircle className="w-2.5 h-2.5" />
-            নিষিদ্ধ
+            {t('prayer.forbidden')}
           </div>
         </div>
       </div>
@@ -230,6 +238,7 @@ export const DailyProgressCard: React.FC<DailyProgressCardProps> = React.memo(({
   onOpenJourney,
   onOpenTokens
 }) => {
+  const { t, language } = useLanguage();
   const hijri = getHijriDate(dateStr);
   const isFemale = (userGender || '').toLowerCase() === 'female';
 
@@ -267,7 +276,9 @@ export const DailyProgressCard: React.FC<DailyProgressCardProps> = React.memo(({
 
   const prayerSteps = useMemo(() => {
     const dhuhrOrJumuahKey: PrayerType = isFriday ? 'jumuah' : 'dhuhr';
-    const dhuhrOrJumuahLabel = isFriday ? 'জুম\'আ' : 'যোহর';
+    const dhuhrOrJumuahLabel = isFriday
+      ? (language === 'bn' ? 'জুম\'আ' : 'Jumu\'ah')
+      : (language === 'bn' ? 'যোহর' : 'Dhuhr');
 
     const checkDone = (type: PrayerType) => {
       if (todayStatus?.prayers && (todayStatus.prayers as any)[type]) {
@@ -285,13 +296,13 @@ export const DailyProgressCard: React.FC<DailyProgressCardProps> = React.memo(({
     };
 
     return [
-      { key: 'fajr' as PrayerType, label: 'ফজর', isDone: checkDone('fajr') || Boolean(offlinePendingState['fajr']) },
+      { key: 'fajr' as PrayerType, label: language === 'bn' ? 'ফজর' : 'Fajr', isDone: checkDone('fajr') || Boolean(offlinePendingState['fajr']) },
       { key: dhuhrOrJumuahKey, label: dhuhrOrJumuahLabel, isDone: checkDone('jumuah') || checkDone('dhuhr') || Boolean(offlinePendingState['jumuah']) || Boolean(offlinePendingState['dhuhr']) },
-      { key: 'asr' as PrayerType, label: 'আসর', isDone: checkDone('asr') || Boolean(offlinePendingState['asr']) },
-      { key: 'maghrib' as PrayerType, label: 'মাগরিব', isDone: checkDone('maghrib') || Boolean(offlinePendingState['maghrib']) },
-      { key: 'isha' as PrayerType, label: 'এশা', isDone: checkDone('isha') || Boolean(offlinePendingState['isha']) },
+      { key: 'asr' as PrayerType, label: language === 'bn' ? 'আসর' : 'Asr', isDone: checkDone('asr') || Boolean(offlinePendingState['asr']) },
+      { key: 'maghrib' as PrayerType, label: language === 'bn' ? 'মাগরিব' : 'Maghrib', isDone: checkDone('maghrib') || Boolean(offlinePendingState['maghrib']) },
+      { key: 'isha' as PrayerType, label: language === 'bn' ? 'এশা' : 'Isha', isDone: checkDone('isha') || Boolean(offlinePendingState['isha']) },
     ];
-  }, [isFriday, todayStatus?.prayers, offlinePendingState]);
+  }, [isFriday, todayStatus?.prayers, offlinePendingState, language]);
 
   useEffect(() => {
     let isMounted = true;
@@ -351,56 +362,66 @@ export const DailyProgressCard: React.FC<DailyProgressCardProps> = React.memo(({
     if (tokenType === 'GOLD' || effectiveCount >= 5) {
       return {
         type: 'GOLD',
-        tokenName: 'গোল্ড টোকেন',
-        prefix: 'আজ অর্জিত:',
+        tokenName: language === 'bn' ? 'গোল্ড টোকেন' : 'Gold Token',
+        prefix: language === 'bn' ? 'আজ অর্জিত:' : 'Earned Today:',
         emoji: '🥇',
         badgeColor: 'bg-gradient-to-r from-amber-500/20 via-amber-400/20 to-amber-600/20 border-amber-400/50 text-amber-200',
         textColor: 'text-amber-300',
         pillBg: 'bg-amber-400/25 text-amber-300 border-amber-400/40',
-        headline: 'আজ অর্জিত',
-        subtext: 'মাশাআল্লাহ! ৫ ওয়াক্ত সালাত সম্পন্ন করে সর্বোচ্চ গোল্ড টোকেন অর্জন করেছেন'
+        headline: language === 'bn' ? 'আজ অর্জিত' : 'Earned Today',
+        subtext: language === 'bn' ? 'মাশাআল্লাহ! ৫ ওয়াক্ত সালাত সম্পন্ন করে সর্বোচ্চ গোল্ড টোকেন অর্জন করেছেন' : 'MashaAllah! Completed 5 prayers and earned the highest Gold Token'
       };
     }
     if (tokenType === 'SILVER' || effectiveCount === 4) {
       return {
         type: 'SILVER',
-        tokenName: 'সিলভার টোকেন',
-        prefix: 'আজ অর্জিত:',
+        tokenName: language === 'bn' ? 'সিলভার টোকেন' : 'Silver Token',
+        prefix: language === 'bn' ? 'আজ অর্জিত:' : 'Earned Today:',
         emoji: '🥈',
         badgeColor: 'bg-gradient-to-r from-slate-400/20 via-slate-300/20 to-slate-500/20 border-slate-300/50 text-slate-100',
         textColor: 'text-slate-100',
         pillBg: 'bg-slate-300/25 text-slate-100 border-slate-300/40',
-        headline: 'আজ অর্জিত',
-        subtext: 'আলহামদুলিল্লাহ! আর ১ ওয়াক্ত সালাত পড়লেই গোল্ড টোকেন অর্জন করবেন'
+        headline: language === 'bn' ? 'আজ অর্জিত' : 'Earned Today',
+        subtext: language === 'bn' ? 'আলহামদুলিল্লাহ! আর ১ ওয়াক্ত সালাত পড়লেই গোল্ড টোকেন অর্জন করবেন' : 'Alhamdulillah! Just 1 more prayer to unlock Gold Token'
       };
     }
     if (tokenType === 'BRONZE' || effectiveCount === 3) {
       return {
         type: 'BRONZE',
-        tokenName: 'ব্রোঞ্জ টোকেন',
-        prefix: 'আজ অর্জিত:',
+        tokenName: language === 'bn' ? 'ব্রোঞ্জ টোকেন' : 'Bronze Token',
+        prefix: language === 'bn' ? 'আজ অর্জিত:' : 'Earned Today:',
         emoji: '🥉',
         badgeColor: 'bg-gradient-to-r from-amber-800/20 via-amber-700/20 to-amber-900/20 border-amber-600/50 text-amber-200',
         textColor: 'text-amber-400',
         pillBg: 'bg-amber-700/30 text-amber-200 border-amber-600/40',
-        headline: 'আজ অর্জিত',
-        subtext: 'আলহামদুলিল্লাহ! পরবর্তী ওয়াক্ত সালাত আদায় করে সিলভার টোকেনের দিকে এগিয়ে যান'
+        headline: language === 'bn' ? 'আজ অর্জিত' : 'Earned Today',
+        subtext: language === 'bn' ? 'আলহামদুলিল্লাহ! পরবর্তী ওয়াক্ত সালাত আদায় করে সিলভার টোকেনের দিকে এগিয়ে যান' : 'Alhamdulillah! Complete next prayer to advance towards Silver Token'
       };
     }
     return {
       type: 'NONE',
-      tokenName: 'কোনো টোকেন নেই',
-      prefix: 'আজ আপনার অর্জিত',
+      tokenName: language === 'bn' ? 'কোনো টোকেন নেই' : 'No Token',
+      prefix: language === 'bn' ? 'আজ আপনার অর্জিত' : 'Today\'s Earnings',
       emoji: '🪙',
       badgeColor: 'bg-slate-900/80 border-slate-700/80 text-slate-300',
       textColor: 'text-amber-400',
       pillBg: 'bg-slate-800 text-slate-300 border-slate-700',
-      headline: 'আজ আপনার অর্জিত',
+      headline: language === 'bn' ? 'আজ আপনার অর্জিত' : 'Today\'s Earnings',
       subtext: completedCount === 0 
-        ? 'সালাত আদায় শুরু করুন এবং ৩ ওয়াক্ত পড়লেই পেয়ে যান ব্রোঞ্জ টোকেন!'
-        : `আর মাত্র ${toBnNumber(3 - completedCount)} ওয়াক্ত সালাত সম্পন্ন করলেই আজ ব্রোঞ্জ টোকেন আনলক হবে!`
+        ? (language === 'bn' ? 'সালাত আদায় শুরু করুন এবং ৩ ওয়াক্ত পড়লেই পেয়ে যান ব্রোঞ্জ টোকেন!' : 'Start praying and complete 3 prayers to unlock Bronze Token!')
+        : (language === 'bn' ? `আর মাত্র ${toBnNumber(3 - completedCount)} ওয়াক্ত সালাত সম্পন্ন করলেই আজ ব্রোঞ্জ টোকেন আনলক হবে!` : `Only ${3 - completedCount} more prayer(s) to unlock today's Bronze Token!`)
     };
-  }, [todayToken, completedCount]);
+  }, [todayToken, completedCount, language]);
+
+  const gregorianDateText = useMemo(() => {
+    if (language === 'bn') return formatBnDate(dateStr);
+    try {
+      const d = parseAppDate(dateStr);
+      return isNaN(d.getTime()) ? dateStr : d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' });
+    } catch {
+      return dateStr;
+    }
+  }, [dateStr, language]);
 
   return (
     <div 
@@ -415,11 +436,11 @@ export const DailyProgressCard: React.FC<DailyProgressCardProps> = React.memo(({
         <div className="flex flex-col min-w-0 justify-center">
           {/* Line 1: Golden Hijri Date */}
           <h2 className="text-xs sm:text-[13px] font-bold text-amber-300 leading-tight truncate">
-            {hijri.bengali || '২৮ ই রবিউল আউয়াল ১৪৪৮ হিজরী'}
+            {language === 'bn' ? (hijri.bengali || '২৮ ই রবিউল আউয়াল ১৪৪৮ হিজরী') : (hijri.english || '28 Rabi al-Awwal 1448 AH')}
           </h2>
           {/* Line 2: Light White English/Gregorian Date */}
           <span className="text-[11px] sm:text-xs text-emerald-300/90 font-normal leading-tight mt-0.5 truncate">
-            {formatBnDate(dateStr)}
+            {gregorianDateText}
           </span>
         </div>
       </div>
@@ -430,33 +451,37 @@ export const DailyProgressCard: React.FC<DailyProgressCardProps> = React.memo(({
         <div className="flex flex-col justify-center space-y-1">
           <div className="flex items-baseline gap-1.5">
             <span className="text-lg sm:text-xl font-bold text-slate-200 mr-1">
-              আজ
+              {language === 'bn' ? 'আজ' : 'Today'}
             </span>
             {/* Highlighted Big Completed Number */}
             <span 
               style={{ textShadow: '0 0 10px rgba(251,191,36,0.4)' }}
               className="text-4xl sm:text-5xl font-black text-amber-300 font-mono leading-none tracking-tight scale-110 origin-bottom"
             >
-              {toBnNumber(completedCount)}
+              {language === 'bn' ? toBnNumber(completedCount) : completedCount}
             </span>
             <span className="text-xl sm:text-2xl font-bold text-amber-400/70 mx-0.5">
               /
             </span>
             <span className="text-xl sm:text-2xl font-black text-amber-400/90 font-mono">
-              {toBnNumber(totalPrayers)}
+              {language === 'bn' ? toBnNumber(totalPrayers) : totalPrayers}
             </span>
           </div>
 
           <span className="text-xl sm:text-2xl font-bold text-white">
-            ওয়াক্ত
+            {language === 'bn' ? 'ওয়াক্ত' : 'Prayers'}
           </span>
 
           <span className="text-sm sm:text-base font-medium text-emerald-100/90 pt-1">
-            {isFemale ? 'সালাত সম্পন্ন' : 'সালাত জামাতে'}
+            {isFemale 
+              ? (language === 'bn' ? 'সালাত সম্পন্ন' : 'Prayers Completed') 
+              : (language === 'bn' ? 'সালাত জামাতে' : 'Prayers in Jama\'ah')}
           </span>
-          <span className="text-sm sm:text-base font-medium text-emerald-100/90 leading-none">
-            সম্পন্ন
-          </span>
+          {!isFemale && (
+            <span className="text-sm sm:text-base font-medium text-emerald-100/90 leading-none">
+              {language === 'bn' ? 'সম্পন্ন' : 'Completed'}
+            </span>
+          )}
         </div>
 
         {/* Right Column: Semi-Circular Arc Timer */}
@@ -523,7 +548,7 @@ export const DailyProgressCard: React.FC<DailyProgressCardProps> = React.memo(({
             </span>
             {tokenTierInfo.type !== 'NONE' && (
               <span className={`text-[9px] font-black px-1.5 py-0.2 rounded border ${tokenTierInfo.pillBg}`}>
-                অর্জিত
+                {language === 'bn' ? 'অর্জিত' : 'Earned'}
               </span>
             )}
           </div>
@@ -546,14 +571,16 @@ export const DailyProgressCard: React.FC<DailyProgressCardProps> = React.memo(({
             <div className="min-w-0 flex flex-col justify-center">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-bold text-white">
-                  {teaser?.headline || 'আমার সালাত জার্নি'}
+                  {language === 'bn' ? (teaser?.headline || 'আমার সালাত জার্নি') : 'My Prayer Journey'}
                 </span>
                 <span className="text-[11px] font-bold text-emerald-300 bg-[#033628] border border-[#0b5440] px-2 py-0.5 rounded-md">
-                  ↑ ১১%
+                  ↑ {language === 'bn' ? '১১%' : '11%'}
                 </span>
               </div>
               <span className="text-xs text-emerald-300/80 mt-0.5 truncate font-normal">
-                {teaser ? `${teaser.primaryStat} • ${teaser.secondaryStat}` : 'এই সপ্তাহে ৫/৩৫ ওয়াক্ত • গত সপ্তাহের তুলনায় ...'}
+                {language === 'bn'
+                  ? (teaser ? `${teaser.primaryStat} • ${teaser.secondaryStat}` : 'এই সপ্তাহে ৫/৩৫ ওয়াক্ত • গত সপ্তাহের তুলনায় ...')
+                  : `${completedCount}/35 prayers this week • Progress active`}
               </span>
             </div>
           </div>

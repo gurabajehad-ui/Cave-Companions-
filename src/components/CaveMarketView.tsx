@@ -26,73 +26,83 @@ import { MyOrdersModal } from './MyOrdersModal';
 import AdBanner from './AdBanner';
 import { toBnNumber } from '../data/prayerConfig';
 import { calculateProductRelevance, normalizeSearchText } from '../utils/marketSearch';
+import { useLanguage } from '../context/LanguageContext';
 
 export interface MarketCategoryOption {
   id: string;
   labelBn: string;
+  labelEn: string;
   icon: string;
   keywords: string[];
 }
 
 export const POPULAR_SEARCH_TAGS = [
-  { label: 'বই', icon: '📚' },
-  { label: 'কুরআন ও হাদিস', icon: '📖' },
-  { label: 'মধু', icon: '🍯' },
-  { label: 'পাঞ্জাবি', icon: '👕' },
-  { label: 'আতর', icon: '🕋' },
-  { label: 'খেজুর', icon: '🌴' },
-  { label: 'ঘি ও তেল', icon: '🧈' },
-  { label: 'টুপি', icon: '🧢' },
-  { label: 'বোরকা ও হিজাব', icon: '🧕' }
+  { labelBn: 'বই', labelEn: 'Books', icon: '📚' },
+  { labelBn: 'কুরআন ও হাদিস', labelEn: 'Quran & Hadith', icon: '📖' },
+  { labelBn: 'মধু', labelEn: 'Honey', icon: '🍯' },
+  { labelBn: 'পাঞ্জাবি', labelEn: 'Panjabi', icon: '👕' },
+  { labelBn: 'আতর', labelEn: 'Attar', icon: '🕋' },
+  { labelBn: 'খেজুর', labelEn: 'Dates', icon: '🌴' },
+  { labelBn: 'ঘি ও তেল', labelEn: 'Ghee & Oil', icon: '🧈' },
+  { labelBn: 'টুপি', labelEn: 'Prayer Cap', icon: '🧢' },
+  { labelBn: 'বোরকা ও হিজাব', labelEn: 'Burqa & Hijab', icon: '🧕' }
 ];
 
 export const MARKET_CATEGORIES: MarketCategoryOption[] = [
-  { id: 'all', labelBn: 'সকল পণ্য', icon: '🏪', keywords: [] },
+  { id: 'all', labelBn: 'সকল পণ্য', labelEn: 'All Products', icon: '🏪', keywords: [] },
   {
     id: 'books',
     labelBn: 'বই ও ইসলামিক সামগ্রী',
+    labelEn: 'Books & Islamic',
     icon: '📚',
     keywords: ['বই', 'book', 'books', 'কুরআন', 'হাদিস', 'ইসলামিক', 'library', 'বুক', 'তাফসির', 'কিতাব', 'মাসনুন', 'দোয়া', 'সিরাত']
   },
   {
     id: 'food',
     labelBn: 'খাবার ও রেস্তোরাঁ',
+    labelEn: 'Food & Restaurant',
     icon: '🍲',
     keywords: ['খাবার', 'food', 'রেস্তোরাঁ', 'restaurant', 'ক্যাফে', 'হানি', 'মিষ্টি', 'বিরিয়ানি', 'জুস', 'স্ন্যাকস', 'বিরিয়ানি', 'চা', 'কফি']
   },
   {
     id: 'grocery',
     labelBn: 'মুদি ও গ্রোসারি',
+    labelEn: 'Grocery & Market',
     icon: '🛒',
     keywords: ['মুদি', 'grocery', 'সুপারশপ', 'চাল', 'ডাল', 'তেল', 'মসলা', 'খেজুর', 'মধু', 'ঘি', 'সরিষার তেল', 'বাদাম']
   },
   {
     id: 'fashion',
     labelBn: 'পোশাক ও ফ্যাশন',
+    labelEn: 'Clothing & Fashion',
     icon: '👕',
     keywords: ['পোশাক', 'fashion', 'clothing', 'জুব্বা', 'পাঞ্জাবি', 'টুপি', 'বোরকা', 'হিজাব', 'আতর', 'তসবিহ', 'কাপড়', 'সালোয়ার']
   },
   {
     id: 'health',
     labelBn: 'ফার্মেসি ও ঔষধ',
+    labelEn: 'Pharmacy & Health',
     icon: '💊',
     keywords: ['ফার্মেসি', 'health', 'pharmacy', 'মেডিসিন', 'ঔষধ', 'অর্গানিক', 'সুরক্ষা', 'ক্যাপসুল', 'সিরাপ', 'সাপ্লিমেন্ট']
   },
   {
     id: 'electronics',
     labelBn: 'ইলেকট্রনিক্স ও গ্যাজেট',
+    labelEn: 'Electronics & Gadgets',
     icon: '📱',
     keywords: ['ইলেকট্রনিক্স', 'electronics', 'গ্যাজেট', 'মোবাইল', 'চার্জার', 'ঘড়ি', 'হেডফোন', 'পাওয়ার ব্যাংক', 'কেবল']
   },
   {
     id: 'beauty',
     labelBn: 'বিউটি ও প্রসাধন',
+    labelEn: 'Beauty & Cosmetics',
     icon: '💇',
     keywords: ['বিউটি', 'beauty', 'স্কিনকেয়ার', 'সাবান', 'শ্যাম্পু', 'তেল', 'ক্রিম', 'লোশন', 'পারফিউম', 'মেকআপ']
   },
   {
     id: 'service',
     labelBn: 'সেবা ও অন্যান্য',
+    labelEn: 'Services & Others',
     icon: '🔧',
     keywords: ['সার্ভিস', 'service', 'রিপায়ার', 'জেনারেল', 'other', 'others', 'মেরামত']
   }
@@ -100,16 +110,17 @@ export const MARKET_CATEGORIES: MarketCategoryOption[] = [
 
 export type MarketSortOption = 'newest' | 'discount_desc' | 'price_asc' | 'price_desc' | 'name_asc';
 
-export const SORT_OPTIONS: { id: MarketSortOption; labelBn: string; icon: string }[] = [
-  { id: 'newest', labelBn: 'নতুন যুক্ত', icon: '⚡' },
-  { id: 'discount_desc', labelBn: 'সর্বোচ্চ টোকেন ছাড়', icon: '🏷️' },
-  { id: 'price_asc', labelBn: 'দাম: কম থেকে বেশি', icon: '💰' },
-  { id: 'price_desc', labelBn: 'দাম: বেশি থেকে কম', icon: '💎' },
-  { id: 'name_asc', labelBn: 'নাম অনুযায়ী (A-Z)', icon: '🔤' }
+export const SORT_OPTIONS: { id: MarketSortOption; labelBn: string; labelEn: string; icon: string }[] = [
+  { id: 'newest', labelBn: 'নতুন যুক্ত', labelEn: 'Newest Arrivals', icon: '⚡' },
+  { id: 'discount_desc', labelBn: 'সর্বোচ্চ টোকেন ছাড়', labelEn: 'Highest Token Discount', icon: '🏷️' },
+  { id: 'price_asc', labelBn: 'দাম: কম থেকে বেশি', labelEn: 'Price: Low to High', icon: '💰' },
+  { id: 'price_desc', labelBn: 'দাম: বেশি থেকে কম', labelEn: 'Price: High to Low', icon: '💎' },
+  { id: 'name_asc', labelBn: 'নাম অনুযায়ী (A-Z)', labelEn: 'Name (A-Z)', icon: '🔤' }
 ];
 
 export const CaveMarketView: React.FC = () => {
   const { user } = useAuth();
+  const { t, language } = useLanguage();
   const [products, setProducts] = useState<(Product & {
     goldDiscount: number;
     silverDiscount: number;
@@ -299,7 +310,9 @@ export const CaveMarketView: React.FC = () => {
     bronzeDiscount: selectedProduct.bronzeDiscount || 0
   } : null;
 
-  const currentSortLabel = SORT_OPTIONS.find(s => s.id === sortBy)?.labelBn || 'নতুন যুক্ত';
+  const currentSortLabel = language === 'bn' 
+    ? (SORT_OPTIONS.find(s => s.id === sortBy)?.labelBn || 'নতুন যুক্ত')
+    : (SORT_OPTIONS.find(s => s.id === sortBy)?.labelEn || 'Newest');
   const selectedCatObj = MARKET_CATEGORIES.find(c => c.id === selectedCategory);
 
   return (
@@ -310,11 +323,11 @@ export const CaveMarketView: React.FC = () => {
           <div className="min-w-0">
             {/* Line 1: Title */}
             <h2 className="text-base sm:text-lg font-black tracking-tight text-white leading-tight flex items-center gap-1.5">
-              <span>কেভ মার্কেট (Cave Market)</span>
+              <span>{t('market.title')}</span>
             </h2>
             {/* Line 2: Subtitle */}
             <p className="text-[11px] sm:text-xs text-slate-300/90 truncate mt-0.5 font-medium">
-              নিষ্ঠা • স্বচ্ছতা • আমানদারিতা
+              {language === 'bn' ? 'নিষ্ঠা • স্বচ্ছতা • আমানদারিতা' : 'Sincerity • Transparency • Trustworthiness'}
             </p>
           </div>
 
@@ -325,10 +338,10 @@ export const CaveMarketView: React.FC = () => {
             className="relative flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 text-xs font-black rounded-lg transition shadow-md active:scale-95 cursor-pointer shrink-0"
           >
             <ShoppingCart className="w-3.5 h-3.5" />
-            <span>কার্ট</span>
+            <span>{t('shop.cart')}</span>
             {cartCount > 0 && (
               <span className="w-4 h-4 bg-slate-950 text-amber-300 border border-amber-400/40 rounded-full text-[9px] flex items-center justify-center font-black">
-                {toBnNumber(cartCount)}
+                {language === 'bn' ? toBnNumber(cartCount) : cartCount}
               </span>
             )}
           </button>
@@ -348,14 +361,14 @@ export const CaveMarketView: React.FC = () => {
               id="market-search-input"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              placeholder="পণ্য, ক্যাটাগরি, বই বা পার্টনার শপের নাম দিয়ে খুঁজুন..."
+              placeholder={t('market.searchPlaceholder')}
               className="w-full pl-10 pr-9 py-2.5 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-xl border border-slate-200 dark:border-slate-800 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
                 className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
-                title="মুছুন"
+                title={language === 'bn' ? 'মুছুন' : 'Clear'}
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -371,7 +384,7 @@ export const CaveMarketView: React.FC = () => {
             >
               <div className="flex items-center gap-1.5">
                 <ArrowUpDown className="w-3.5 h-3.5 text-emerald-500" />
-                <span className="text-slate-400 font-normal">সর্ট:</span>
+                <span className="text-slate-400 font-normal">{language === 'bn' ? 'সর্ট:' : 'Sort:'}</span>
                 <span className="text-emerald-700 dark:text-emerald-400 font-bold">{currentSortLabel}</span>
               </div>
               <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${showSortDropdown ? 'rotate-180' : ''}`} />
@@ -386,7 +399,7 @@ export const CaveMarketView: React.FC = () => {
                 />
                 <div className="absolute right-0 top-full mt-1.5 w-56 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl z-40 py-1.5 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
                   <div className="px-3 py-1 text-[10px] font-extrabold text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800">
-                    পণ্য সাজান (Sort By)
+                    {language === 'bn' ? 'পণ্য সাজান' : 'Sort Products'}
                   </div>
                   {SORT_OPTIONS.map(opt => {
                     const isSelected = sortBy === opt.id;
@@ -406,7 +419,7 @@ export const CaveMarketView: React.FC = () => {
                       >
                         <span className="flex items-center gap-2">
                           <span>{opt.icon}</span>
-                          <span>{opt.labelBn}</span>
+                          <span>{language === 'bn' ? opt.labelBn : opt.labelEn}</span>
                         </span>
                         {isSelected && <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />}
                       </button>
@@ -422,10 +435,11 @@ export const CaveMarketView: React.FC = () => {
         <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none text-[11px]">
           <span className="text-slate-400 font-medium shrink-0 flex items-center gap-1 pl-1">
             <Tag className="w-3 h-3 text-amber-500" />
-            জনপ্রিয় সার্চ:
+            {language === 'bn' ? 'জনপ্রিয় সার্চ:' : 'Popular Searches:'}
           </span>
           {POPULAR_SEARCH_TAGS.map((tag, idx) => {
-            const isCurrent = searchQuery.trim().toLowerCase() === tag.label.toLowerCase();
+            const tagLabel = language === 'bn' ? tag.labelBn : tag.labelEn;
+            const isCurrent = searchQuery.trim().toLowerCase() === tagLabel.toLowerCase();
             return (
               <button
                 key={idx}
@@ -434,7 +448,7 @@ export const CaveMarketView: React.FC = () => {
                   if (isCurrent) {
                     setSearchQuery('');
                   } else {
-                    setSearchQuery(tag.label);
+                    setSearchQuery(tagLabel);
                   }
                 }}
                 className={`px-2 py-0.5 rounded-lg border text-[11px] font-semibold whitespace-nowrap transition cursor-pointer active:scale-95 flex items-center gap-1 ${
@@ -444,7 +458,7 @@ export const CaveMarketView: React.FC = () => {
                 }`}
               >
                 <span>{tag.icon}</span>
-                <span>{tag.label}</span>
+                <span>{tagLabel}</span>
               </button>
             );
           })}
@@ -455,7 +469,7 @@ export const CaveMarketView: React.FC = () => {
           <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 px-1">
             <span className="font-bold flex items-center gap-1">
               <Layers className="w-3 h-3 text-emerald-500" />
-              ক্যাটাগরি অনুযায়ী ফিল্টার:
+              {language === 'bn' ? 'ক্যাটাগরি অনুযায়ী ফিল্টার:' : 'Filter by Category:'}
             </span>
             <label className="flex items-center gap-1.5 cursor-pointer select-none text-[11px] hover:text-emerald-500 transition">
               <input
@@ -465,7 +479,11 @@ export const CaveMarketView: React.FC = () => {
                 onChange={e => setOnlyAvailable(e.target.checked)}
                 className="w-3.5 h-3.5 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 accent-emerald-600 cursor-pointer"
               />
-              <span>কেবল স্টকে আছে ({toBnNumber(products.filter(p => p.isAvailable).length)})</span>
+              <span>
+                {language === 'bn' 
+                  ? `কেবল স্টকে আছে (${toBnNumber(products.filter(p => p.isAvailable).length)})` 
+                  : `In Stock Only (${products.filter(p => p.isAvailable).length})`}
+              </span>
             </label>
           </div>
 
@@ -486,7 +504,7 @@ export const CaveMarketView: React.FC = () => {
                   }`}
                 >
                   <span className="text-sm">{cat.icon}</span>
-                  <span>{cat.labelBn}</span>
+                  <span>{language === 'bn' ? cat.labelBn : cat.labelEn}</span>
                   <span
                     className={`px-1.5 py-0.2 rounded-full text-[9px] font-black ${
                       isSelected
@@ -494,7 +512,7 @@ export const CaveMarketView: React.FC = () => {
                         : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
                     }`}
                   >
-                    {toBnNumber(count)}
+                    {language === 'bn' ? toBnNumber(count) : count}
                   </span>
                 </button>
               );
@@ -505,15 +523,15 @@ export const CaveMarketView: React.FC = () => {
         {/* Active Filter Tags & Quick Reset */}
         {(selectedCategory !== 'all' || searchQuery || onlyAvailable || sortBy !== 'newest') && (
           <div className="flex items-center gap-2 flex-wrap pt-0.5 text-xs">
-            <span className="text-[11px] text-slate-400">ফিল্টার:</span>
+            <span className="text-[11px] text-slate-400">{language === 'bn' ? 'ফিল্টার:' : 'Filters:'}</span>
 
             {selectedCategory !== 'all' && (
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-bold text-[11px]">
-                <span>{selectedCatObj?.icon} {selectedCatObj?.labelBn}</span>
+                <span>{selectedCatObj?.icon} {language === 'bn' ? selectedCatObj?.labelBn : selectedCatObj?.labelEn}</span>
                 <button
                   onClick={() => setSelectedCategory('all')}
                   className="hover:text-emerald-800 dark:hover:text-emerald-200 ml-0.5"
-                  title="মুছুন"
+                  title={language === 'bn' ? 'মুছুন' : 'Clear'}
                 >
                   <X className="w-3 h-3" />
                 </button>
@@ -522,7 +540,7 @@ export const CaveMarketView: React.FC = () => {
 
             {onlyAvailable && (
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-bold text-[11px]">
-                <span>কেবল স্টকে আছে</span>
+                <span>{language === 'bn' ? 'কেবল স্টকে আছে' : 'In Stock Only'}</span>
                 <button
                   onClick={() => setOnlyAvailable(false)}
                   className="hover:text-emerald-800 dark:hover:text-emerald-200 ml-0.5"
@@ -534,7 +552,7 @@ export const CaveMarketView: React.FC = () => {
 
             {searchQuery && (
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 font-bold text-[11px]">
-                <span>সার্চ: "{searchQuery}"</span>
+                <span>{language === 'bn' ? `সার্চ: "${searchQuery}"` : `Search: "${searchQuery}"`}</span>
                 <button
                   onClick={() => setSearchQuery('')}
                   className="hover:text-amber-800 dark:hover:text-amber-200 ml-0.5"
@@ -553,7 +571,7 @@ export const CaveMarketView: React.FC = () => {
               }}
               className="text-[11px] text-slate-400 hover:text-rose-500 underline ml-auto cursor-pointer"
             >
-              সব ক্লিয়ার করুন
+              {language === 'bn' ? 'সব ক্লিয়ার করুন' : 'Clear All'}
             </button>
           </div>
         )}
@@ -561,11 +579,15 @@ export const CaveMarketView: React.FC = () => {
         {/* Found Results Count Indicator */}
         <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 px-1 pt-1">
           <span>
-            মোট <strong className="text-slate-900 dark:text-white font-bold">{toBnNumber(filteredAndSortedProducts.length)}</strong> টি পণ্য পাওয়া গেছে
+            {language === 'bn' ? (
+              <>মোট <strong className="text-slate-900 dark:text-white font-bold">{toBnNumber(filteredAndSortedProducts.length)}</strong> টি পণ্য পাওয়া গেছে</>
+            ) : (
+              <>Total <strong className="text-slate-900 dark:text-white font-bold">{filteredAndSortedProducts.length}</strong> products found</>
+            )}
           </span>
           {selectedCategory !== 'all' && (
             <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
-              {selectedCatObj?.labelBn} ক্যাটাগরি
+              {language === 'bn' ? `${selectedCatObj?.labelBn} ক্যাটাগরি` : `${selectedCatObj?.labelEn} Category`}
             </span>
           )}
         </div>
@@ -594,7 +616,7 @@ export const CaveMarketView: React.FC = () => {
             onClick={fetchProducts}
             className="px-4 py-2 bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300 text-xs font-bold rounded-lg hover:bg-rose-100 transition cursor-pointer"
           >
-            আবার চেষ্টা করুন
+            {language === 'bn' ? 'আবার চেষ্টা করুন' : 'Try Again'}
           </button>
         </div>
       ) : filteredAndSortedProducts.length === 0 ? (
@@ -604,12 +626,16 @@ export const CaveMarketView: React.FC = () => {
           </div>
           <div className="space-y-1">
             <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">
-              কোনো পণ্য পাওয়া যায়নি
+              {language === 'bn' ? 'কোনো পণ্য পাওয়া যায়নি' : 'No products found'}
             </h3>
             <p className="text-xs text-slate-400 max-w-sm mx-auto">
               {selectedCategory !== 'all'
-                ? `"${selectedCatObj?.labelBn}" ক্যাটাগরিতে এই মুহূর্তে কোনো পণ্য পাওয়া যায়নি।`
-                : 'আপনার ফিল্টার বা সার্চ করা কিওয়ার্ডের সাথে কোনো পণ্য মেলেনি।'}
+                ? (language === 'bn' 
+                    ? `"${selectedCatObj?.labelBn}" ক্যাটাগরিতে এই মুহূর্তে কোনো পণ্য পাওয়া যায়নি।`
+                    : `No products currently available in "${selectedCatObj?.labelEn}".`)
+                : (language === 'bn' 
+                    ? 'আপনার ফিল্টার বা সার্চ করা কিওয়ার্ডের সাথে কোনো পণ্য মেলেনি।'
+                    : 'No products matched your search or filters.')}
             </p>
           </div>
           <button
@@ -620,7 +646,7 @@ export const CaveMarketView: React.FC = () => {
             }}
             className="px-4 py-2 bg-emerald-600 text-white text-xs font-bold rounded-xl hover:bg-emerald-500 transition cursor-pointer"
           >
-            সকল পণ্য দেখুন
+            {language === 'bn' ? 'সকল পণ্য দেখুন' : 'View All Products'}
           </button>
         </div>
       ) : (
@@ -656,7 +682,7 @@ export const CaveMarketView: React.FC = () => {
                     <div className="absolute top-2 left-2 max-w-[70%]">
                       <span className="flex items-center gap-1 px-1.5 py-0.5 bg-slate-900/85 backdrop-blur-xs text-white text-[9px] font-extrabold rounded-md truncate shadow-sm">
                         <Store className="w-2.5 h-2.5 text-amber-400 shrink-0" />
-                        <span className="truncate">{product.shopName || 'পার্টনার শপ'}</span>
+                        <span className="truncate">{product.shopName || (language === 'bn' ? 'পার্টনার শপ' : 'Partner Shop')}</span>
                       </span>
                     </div>
 
@@ -669,7 +695,9 @@ export const CaveMarketView: React.FC = () => {
                             : 'bg-slate-700 text-slate-200'
                         }`}
                       >
-                        {isAvailable ? 'উপলব্ধ' : 'অনুপলব্ধ'}
+                        {isAvailable 
+                          ? (language === 'bn' ? 'উপলব্ধ' : 'In Stock') 
+                          : (language === 'bn' ? 'অনুপলব্ধ' : 'Out of Stock')}
                       </span>
                     </div>
                   </div>
@@ -681,13 +709,15 @@ export const CaveMarketView: React.FC = () => {
                     </h3>
                     <div className="flex items-center gap-1">
                       <span className="text-[10px] font-extrabold text-emerald-700 dark:text-emerald-400">
-                        ৳{Number(product.originalPrice || 0).toLocaleString('bn-BD')}
+                        ৳{language === 'bn' ? Number(product.originalPrice || 0).toLocaleString('bn-BD') : Number(product.originalPrice || 0).toLocaleString()}
                       </span>
                       {maxDiscount > 0 && (
                         <div className="flex items-center gap-1 px-1.5 py-0.5 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-500/20 rounded-md animate-pulse">
                           <Award className="w-2.5 h-2.5 text-amber-500" />
                           <span className="text-[8px] font-black text-amber-600 dark:text-amber-400">
-                            সর্বোচ্চ {toBnNumber(maxDiscount)}% টোকেন ছাড় প্রযোজ্য
+                            {language === 'bn' 
+                              ? `সর্বোচ্চ ${toBnNumber(maxDiscount)}% টোকেন ছাড় প্রযোজ্য` 
+                              : `Up to ${maxDiscount}% Token Discount`}
                           </span>
                         </div>
                       )}
@@ -702,7 +732,9 @@ export const CaveMarketView: React.FC = () => {
                     onClick={() => handleBuyClick(product)}
                     className="w-full py-1 px-1 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 dark:disabled:bg-slate-800 disabled:text-slate-400 text-white text-[10px] font-bold rounded-lg transition flex items-center justify-center gap-1 shadow-xs active:scale-95 cursor-pointer"
                   >
-                    {isAvailable ? 'কিনুন' : 'অনুপলব্ধ'}
+                    {isAvailable 
+                      ? (language === 'bn' ? 'কিনুন' : 'Buy') 
+                      : (language === 'bn' ? 'অনুপলব্ধ' : 'Out of Stock')}
                   </button>
                 </div>
               </motion.div>

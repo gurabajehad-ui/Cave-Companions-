@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Users, Plus, Link as LinkIcon, LogOut, Trash2, ArrowLeft, Heart, MessageCircle, Bell } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 
 interface CaveCirclesViewProps {
   onBack: () => void;
@@ -10,6 +11,7 @@ interface CaveCirclesViewProps {
 
 export const CaveCirclesView: React.FC<CaveCirclesViewProps> = ({ onBack, onShowToast }) => {
   const { user } = useAuth();
+  const { language, t } = useLanguage();
   const [circles, setCircles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCircleId, setActiveCircleId] = useState<string | null>(null);
@@ -44,7 +46,7 @@ export const CaveCirclesView: React.FC<CaveCirclesViewProps> = ({ onBack, onShow
       if (res.success) setCircles(res.circles);
     } catch (err) {
       console.error(err);
-      onShowToast('error', 'ত্রুটি', 'সার্কেল লোড করা যায়নি');
+      onShowToast('error', t('common.error'), t('circle.errors.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -61,7 +63,7 @@ export const CaveCirclesView: React.FC<CaveCirclesViewProps> = ({ onBack, onShow
       }
     } catch (err) {
       console.error(err);
-      onShowToast('error', 'ত্রুটি', 'সার্কেল বিস্তারিত লোড করা যায়নি');
+      onShowToast('error', t('common.error'), t('circle.errors.detailsLoadFailed'));
       setActiveCircleId(null);
     } finally {
       setDetailsLoading(false);
@@ -70,13 +72,13 @@ export const CaveCirclesView: React.FC<CaveCirclesViewProps> = ({ onBack, onShow
 
   const handleCreate = async () => {
     if (!newCircleName.trim()) {
-      onShowToast('error', 'সতর্কতা', 'সার্কেলের নাম দিন');
+      onShowToast('error', t('common.warning'), t('circle.errors.nameRequired'));
       return;
     }
     try {
       const res = await api.createCircle({ name: newCircleName, description: newCircleDesc });
       if (res.success) {
-        onShowToast('success', 'সফল', res.message);
+        onShowToast('success', t('common.success'), res.message || t('circle.createSuccess'));
         setShowCreate(false);
         setNewCircleName('');
         setNewCircleDesc('');
@@ -84,56 +86,56 @@ export const CaveCirclesView: React.FC<CaveCirclesViewProps> = ({ onBack, onShow
         setActiveCircleId(res.circleId);
       }
     } catch (err: any) {
-      onShowToast('error', 'ত্রুটি', err.message || 'সার্কেল তৈরি করা যায়নি');
+      onShowToast('error', t('common.error'), err.message || t('circle.errors.createFailed'));
     }
   };
 
   const handleJoin = async () => {
     if (!inviteCodeInput.trim()) {
-      onShowToast('error', 'সতর্কতা', 'ইনভাইট কোড দিন');
+      onShowToast('error', t('common.warning'), t('circle.errors.codeRequired'));
       return;
     }
     try {
       const res = await api.joinCircle(inviteCodeInput.trim());
       if (res.success) {
-        onShowToast('success', 'সফল', res.message);
+        onShowToast('success', t('common.success'), res.message || t('circle.joinSuccess'));
         setShowJoin(false);
         setInviteCodeInput('');
         fetchCircles();
         setActiveCircleId(res.circleId);
       }
     } catch (err: any) {
-      onShowToast('error', 'ত্রুটি', err.message || 'যুক্ত হওয়া যায়নি');
+      onShowToast('error', t('common.error'), err.message || t('circle.errors.joinFailed'));
     }
   };
 
   const handleLeave = async () => {
     if (!activeCircleId) return;
-    if (!window.confirm('আপনি কি এই সার্কেল থেকে বের হতে চান?')) return;
+    if (!window.confirm(t('circle.leaveConfirm'))) return;
     try {
       const res = await api.leaveCircle(activeCircleId);
       if (res.success) {
-        onShowToast('success', 'সফল', res.message);
+        onShowToast('success', t('common.success'), res.message || t('circle.leaveSuccess'));
         setActiveCircleId(null);
         fetchCircles();
       }
     } catch (err: any) {
-      onShowToast('error', 'ত্রুটি', err.message || 'বের হওয়া যায়নি');
+      onShowToast('error', t('common.error'), err.message || t('circle.errors.leaveFailed'));
     }
   };
 
   const handleDelete = async () => {
     if (!activeCircleId) return;
-    if (!window.confirm('আপনি কি নিশ্চিতভাবে এই সার্কেল মুছে ফেলতে চান?')) return;
+    if (!window.confirm(t('circle.deleteConfirm'))) return;
     try {
       const res = await api.deleteCircle(activeCircleId);
       if (res.success) {
-        onShowToast('success', 'সফল', res.message);
+        onShowToast('success', t('common.success'), res.message || t('circle.deleteSuccess'));
         setActiveCircleId(null);
         fetchCircles();
       }
     } catch (err: any) {
-      onShowToast('error', 'ত্রুটি', err.message || 'মুছে ফেলা যায়নি');
+      onShowToast('error', t('common.error'), err.message || t('circle.errors.deleteFailed'));
     }
   };
 
@@ -142,28 +144,28 @@ export const CaveCirclesView: React.FC<CaveCirclesViewProps> = ({ onBack, onShow
     try {
       const res = await api.createCircleInvite(activeCircleId);
       if (res.success) {
-        // copy to clipboard
         navigator.clipboard.writeText(res.inviteCode);
-        onShowToast('info', 'কপি করা হয়েছে', `ইনভাইট কোড: ${res.inviteCode}`);
+        onShowToast('info', t('common.copy'), `${t('circle.inviteCodeBtn')}: ${res.inviteCode}`);
       }
     } catch (err: any) {
-      onShowToast('error', 'ত্রুটি', err.message || 'ইনভাইট তৈরি করা যায়নি');
+      onShowToast('error', t('common.error'), err.message || t('circle.errors.inviteFailed'));
     }
   };
 
   const sendNotification = async (type: 'REMINDER' | 'ENCOURAGEMENT' | 'NOSIHA') => {
     if (!activeCircleId) return;
     let message = '';
-    if (type === 'ENCOURAGEMENT') message = 'মাশাআল্লাহ, চালিয়ে যান। 🌱';
-    if (type === 'NOSIHA') message = 'ভাই, সালাতের সময় হয়ে এসেছে। 🕌';
+    if (type === 'ENCOURAGEMENT') message = language === 'bn' ? 'মাশাআল্লাহ, চালিয়ে যান। 🌱' : 'MashaAllah, keep it up! 🌱';
+    if (type === 'NOSIHA') message = language === 'bn' ? 'ভাই, সালাতের সময় হয়ে এসেছে। 🕌' : 'Brother, prayer time has arrived. 🕌';
+    if (type === 'REMINDER') message = language === 'bn' ? 'চলো মসজিদে 🕌' : "Let's go to the Mosque 🕌";
     
     try {
       const res = await api.notifyCircle(activeCircleId, { type, message });
       if (res.success) {
-        onShowToast('success', 'সফল', 'বার্তা পাঠানো হয়েছে');
+        onShowToast('success', t('common.success'), t('circle.messageSent'));
       }
     } catch (err: any) {
-      onShowToast('error', 'ত্রুটি', err.message || 'বার্তা পাঠানো যায়নি');
+      onShowToast('error', t('common.error'), err.message || t('circle.errors.messageFailed'));
     }
   };
 
@@ -180,7 +182,7 @@ export const CaveCirclesView: React.FC<CaveCirclesViewProps> = ({ onBack, onShow
             <h2 className="text-xl font-bold text-white flex items-center gap-2">
               🏕️ {circleDetails.name}
             </h2>
-            <p className="text-sm text-emerald-400">{members.length} Companions</p>
+            <p className="text-sm text-emerald-400">{members.length} {language === 'bn' ? 'জন সাথী' : 'Companions'}</p>
           </div>
         </div>
 
@@ -193,13 +195,19 @@ export const CaveCirclesView: React.FC<CaveCirclesViewProps> = ({ onBack, onShow
         {/* Collective Progress */}
         <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-[#021812] to-[#01140e] border border-emerald-800/40 space-y-4 shadow-xl">
           <h3 className="text-emerald-300 font-bold text-sm flex items-center gap-2">
-            🕌 আজকের Circle Progress
+            🕌 {t('circle.todaysProgress')}
           </h3>
-          <p className="text-xs text-slate-400 italic">এখানে শুধুমাত্র Circle-এর মোট সালাত প্রদর্শন করা হয়, কারো ব্যক্তিগত তথ্য নয়।</p>
+          <p className="text-xs text-slate-400 italic">{t('circle.progressPrivacyNote')}</p>
           
           <div className="grid grid-cols-5 gap-2">
             {['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'].map((p) => {
-              const nameMap: any = { fajr: 'ফজর', dhuhr: 'যোহর', asr: 'আসর', maghrib: 'মাগরিব', isha: 'ইশা' };
+              const nameMap: any = { 
+                fajr: t('prayer.fajr'), 
+                dhuhr: t('prayer.dhuhr'), 
+                asr: t('prayer.asr'), 
+                maghrib: t('prayer.maghrib'), 
+                isha: t('prayer.isha') 
+              };
               const count = aggregateProgress ? aggregateProgress[p] || 0 : 0;
               return (
                 <div key={p} className="flex flex-col items-center gap-1.5 p-2 rounded-xl bg-slate-900/60 border border-slate-800/50">
@@ -218,7 +226,7 @@ export const CaveCirclesView: React.FC<CaveCirclesViewProps> = ({ onBack, onShow
             className="p-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white flex flex-col items-center justify-center gap-2 transition cursor-pointer active:scale-95"
           >
             <Bell className="w-6 h-6 text-emerald-200" />
-            <span className="font-bold text-sm">চলো মসজিদে</span>
+            <span className="font-bold text-sm">{t('circle.letsGoToMosque')}</span>
           </button>
           
           <button 
@@ -226,7 +234,7 @@ export const CaveCirclesView: React.FC<CaveCirclesViewProps> = ({ onBack, onShow
             className="p-4 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white flex flex-col items-center justify-center gap-2 transition cursor-pointer active:scale-95"
           >
             <Heart className="w-6 h-6 text-rose-400" />
-            <span className="font-bold text-sm">উৎসাহ দিন</span>
+            <span className="font-bold text-sm">{t('circle.encourage')}</span>
           </button>
           
           <button 
@@ -234,7 +242,7 @@ export const CaveCirclesView: React.FC<CaveCirclesViewProps> = ({ onBack, onShow
             className="p-4 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white flex flex-col items-center justify-center gap-2 transition cursor-pointer active:scale-95"
           >
             <MessageCircle className="w-6 h-6 text-amber-400" />
-            <span className="font-bold text-sm">Nosiha</span>
+            <span className="font-bold text-sm">{t('circle.nosiha')}</span>
           </button>
         </div>
 
@@ -243,19 +251,19 @@ export const CaveCirclesView: React.FC<CaveCirclesViewProps> = ({ onBack, onShow
           {isAdmin && (
             <button onClick={handleInvite} className="px-4 py-2 rounded-xl bg-emerald-950 text-emerald-300 text-sm font-semibold hover:bg-emerald-900 flex items-center gap-2 cursor-pointer transition">
               <LinkIcon className="w-4 h-4" />
-              ইনভাইট কোড
+              {t('circle.inviteCodeBtn')}
             </button>
           )}
           
           <button onClick={handleLeave} className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-sm font-semibold hover:bg-slate-700 flex items-center gap-2 cursor-pointer transition">
             <LogOut className="w-4 h-4" />
-            Circle ত্যাগ করুন
+            {t('circle.leaveCircle')}
           </button>
 
           {isAdmin && (
             <button onClick={handleDelete} className="px-4 py-2 rounded-xl bg-rose-950/30 text-rose-400 border border-rose-900/50 text-sm font-semibold hover:bg-rose-900/50 flex items-center gap-2 cursor-pointer transition">
               <Trash2 className="w-4 h-4" />
-              মুছে ফেলুন
+              {t('common.delete')}
             </button>
           )}
         </div>
@@ -271,7 +279,7 @@ export const CaveCirclesView: React.FC<CaveCirclesViewProps> = ({ onBack, onShow
         </button>
         <h2 className="text-xl font-bold text-white flex items-center gap-2">
           <Users className="w-6 h-6 text-emerald-400" />
-          Cave Circles
+          {t('circle.title')}
         </h2>
       </div>
 
@@ -279,67 +287,67 @@ export const CaveCirclesView: React.FC<CaveCirclesViewProps> = ({ onBack, onShow
         <div className="w-16 h-16 rounded-full bg-emerald-950/50 flex items-center justify-center mx-auto mb-2 border border-emerald-800/50">
           <Users className="w-8 h-8 text-emerald-400" />
         </div>
-        <p className="text-emerald-100 font-medium">বন্ধু ও পরিবারের সাথে ভালো কাজে একে অপরকে উৎসাহিত করুন।</p>
+        <p className="text-emerald-100 font-medium">{t('circle.subtitle')}</p>
         
         <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
           <button onClick={() => setShowCreate(true)} className="px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition flex items-center justify-center gap-2 cursor-pointer">
             <Plus className="w-5 h-5" />
-            নতুন Circle তৈরি করুন
+            {t('circle.createCircle')}
           </button>
           <button onClick={() => setShowJoin(true)} className="px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-bold transition flex items-center justify-center gap-2 cursor-pointer">
             <LinkIcon className="w-5 h-5" />
-            Circle-এ যোগ দিন
+            {t('circle.joinCircle')}
           </button>
         </div>
       </div>
 
       {showCreate && (
         <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
-          <h3 className="text-white font-bold">নতুন Circle তৈরি</h3>
+          <h3 className="text-white font-bold">{t('circle.createNew')}</h3>
           <input 
             type="text" 
             value={newCircleName} 
             onChange={(e) => setNewCircleName(e.target.value)} 
-            placeholder="Circle-এর নাম (উদাঃ আমাদের পরিবার)" 
+            placeholder={t('circle.circleNamePlaceholder')} 
             className="w-full p-3 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-emerald-500"
           />
           <input 
             type="text" 
             value={newCircleDesc} 
             onChange={(e) => setNewCircleDesc(e.target.value)} 
-            placeholder="বিবরণ (ঐচ্ছিক)" 
+            placeholder={t('circle.descriptionPlaceholder')} 
             className="w-full p-3 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-emerald-500"
           />
           <div className="flex justify-end gap-2 pt-2">
-            <button onClick={() => setShowCreate(false)} className="px-4 py-2 rounded-xl text-slate-400 font-medium hover:bg-slate-800 cursor-pointer">বাতিল</button>
-            <button onClick={handleCreate} className="px-4 py-2 rounded-xl bg-emerald-600 text-white font-bold hover:bg-emerald-500 cursor-pointer">তৈরি করুন</button>
+            <button onClick={() => setShowCreate(false)} className="px-4 py-2 rounded-xl text-slate-400 font-medium hover:bg-slate-800 cursor-pointer">{t('common.cancel')}</button>
+            <button onClick={handleCreate} className="px-4 py-2 rounded-xl bg-emerald-600 text-white font-bold hover:bg-emerald-500 cursor-pointer">{t('common.submit')}</button>
           </div>
         </div>
       )}
 
       {showJoin && (
         <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
-          <h3 className="text-white font-bold">Circle-এ যোগ দিন</h3>
+          <h3 className="text-white font-bold">{t('circle.joinCircle')}</h3>
           <input 
             type="text" 
             value={inviteCodeInput} 
             onChange={(e) => setInviteCodeInput(e.target.value.toUpperCase())} 
-            placeholder="ইনভাইট কোড দিন" 
+            placeholder={t('circle.inviteCodePlaceholder')} 
             className="w-full p-3 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-emerald-500 uppercase tracking-widest font-mono"
           />
           <div className="flex justify-end gap-2 pt-2">
-            <button onClick={() => setShowJoin(false)} className="px-4 py-2 rounded-xl text-slate-400 font-medium hover:bg-slate-800 cursor-pointer">বাতিল</button>
-            <button onClick={handleJoin} className="px-4 py-2 rounded-xl bg-emerald-600 text-white font-bold hover:bg-emerald-500 cursor-pointer">যোগ দিন</button>
+            <button onClick={() => setShowJoin(false)} className="px-4 py-2 rounded-xl text-slate-400 font-medium hover:bg-slate-800 cursor-pointer">{t('common.cancel')}</button>
+            <button onClick={handleJoin} className="px-4 py-2 rounded-xl bg-emerald-600 text-white font-bold hover:bg-emerald-500 cursor-pointer">{t('circle.joinCircle')}</button>
           </div>
         </div>
       )}
 
       {/* Circle List */}
       {loading ? (
-        <p className="text-slate-500 text-center py-10 animate-pulse text-sm">লোড হচ্ছে...</p>
+        <p className="text-slate-500 text-center py-10 animate-pulse text-sm">{t('common.loading')}</p>
       ) : circles.length > 0 && (
         <div className="space-y-3">
-          <h3 className="text-slate-400 text-sm font-bold uppercase tracking-wider pl-1">আমার Circles</h3>
+          <h3 className="text-slate-400 text-sm font-bold uppercase tracking-wider pl-1">{t('circle.myCircles')}</h3>
           <div className="grid gap-3">
             {circles.map(c => (
               <div 
@@ -349,7 +357,7 @@ export const CaveCirclesView: React.FC<CaveCirclesViewProps> = ({ onBack, onShow
               >
                 <div>
                   <h4 className="text-white font-bold text-base group-hover:text-emerald-400 transition">🏕️ {c.name}</h4>
-                  <p className="text-sm text-slate-500">{c.member_count} Companions</p>
+                  <p className="text-sm text-slate-500">{c.member_count} {language === 'bn' ? 'জন সাথী' : 'Companions'}</p>
                 </div>
                 <div className="w-8 h-8 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center group-hover:bg-emerald-900/50 group-hover:text-emerald-400 transition">
                   <ArrowLeft className="w-4 h-4 rotate-180" />
@@ -362,3 +370,4 @@ export const CaveCirclesView: React.FC<CaveCirclesViewProps> = ({ onBack, onShow
     </div>
   );
 };
+

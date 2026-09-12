@@ -1,21 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, RotateCcw, Volume2, VolumeX, Sparkles, Plus, Settings, Check, Compass } from 'lucide-react';
+import { X, RotateCcw, Volume2, VolumeX, Sparkles, Plus } from 'lucide-react';
 import { toBnNumber } from '../data/prayerConfig';
+import { useLanguage } from '../context/LanguageContext';
 
 interface TasbihPreset {
   id: string;
   nameBn: string;
+  nameEn: string;
   nameAr: string;
   target: number;
 }
 
 const PRESETS: TasbihPreset[] = [
-  { id: 'subhanallah', nameBn: 'সুবহানাল্লাহ', nameAr: 'سُبْحَانَ ٱللَّٰهِ', target: 33 },
-  { id: 'alhamdulillah', nameBn: 'আলহামদুলিল্লাহ', nameAr: 'ٱلْحَمْدُ لِلَّٰهِ', target: 33 },
-  { id: 'allahuakbar', nameBn: 'আল্লাহু আকবার', nameAr: 'ٱللَّٰهُ أَكْبَرُ', target: 34 },
-  { id: 'astaghfirullah', nameBn: 'আস্তাগফিরুল্লাহ', nameAr: 'أَسْتَغْفِرُ ٱللَّٰهَ', target: 100 },
-  { id: 'la_ilaha_illallah', nameBn: 'লা ইলাহা ইল্লাল্লাহ', nameAr: 'لَا إِلَٰهَ إِلَّا ٱللَّٰهُ', target: 100 }
+  { id: 'subhanallah', nameBn: 'সুবহানাল্লাহ', nameEn: 'SubhanAllah', nameAr: 'سُبْحَانَ ٱللَّٰهِ', target: 33 },
+  { id: 'alhamdulillah', nameBn: 'আলহামদুলিল্লাহ', nameEn: 'Alhamdulillah', nameAr: 'ٱلْحَمْدُ لِلَّٰهِ', target: 33 },
+  { id: 'allahuakbar', nameBn: 'আল্লাহু আকবার', nameEn: 'Allahu Akbar', nameAr: 'ٱللَّٰهُ أَكْبَرُ', target: 34 },
+  { id: 'astaghfirullah', nameBn: 'আস্তাগফিরুল্লাহ', nameEn: 'Astaghfirullah', nameAr: 'أَسْتَغْفِرُ ٱللَّٰهَ', target: 100 },
+  { id: 'la_ilaha_illallah', nameBn: 'লা ইলাহা ইল্লাল্লাহ', nameEn: 'La Ilaha Illallah', nameAr: 'لَا إِلَٰهَ إِلَّا ٱللَّٰهُ', target: 100 }
 ];
 
 interface DigitalTasbihModalProps {
@@ -25,6 +27,7 @@ interface DigitalTasbihModalProps {
 }
 
 export const DigitalTasbihModal: React.FC<DigitalTasbihModalProps> = ({ isOpen, onClose, onShowToast }) => {
+  const { language } = useLanguage();
   const [selectedPreset, setSelectedPreset] = useState<TasbihPreset>(PRESETS[0]);
   const [count, setCount] = useState<number>(0);
   const [totalCycles, setTotalCycles] = useState<number>(0);
@@ -36,6 +39,10 @@ export const DigitalTasbihModal: React.FC<DigitalTasbihModalProps> = ({ isOpen, 
   const [showCustomInput, setShowCustomInput] = useState<boolean>(false);
   const [customName, setCustomName] = useState<string>('');
   const [customTarget, setCustomTarget] = useState<number>(33);
+
+  const formatNum = (num: number) => {
+    return language === 'bn' ? toBnNumber(num) : num.toString();
+  };
 
   // Load saved counts from LocalStorage on mount
   useEffect(() => {
@@ -51,6 +58,7 @@ export const DigitalTasbihModal: React.FC<DigitalTasbihModalProps> = ({ isOpen, 
             setSelectedPreset({
               id: 'custom',
               nameBn: parsed.customName,
+              nameEn: parsed.customName,
               nameAr: 'ذِكْرٌ خَاصٌّ',
               target: parsed.customTarget || 33
             });
@@ -147,7 +155,11 @@ export const DigitalTasbihModal: React.FC<DigitalTasbihModalProps> = ({ isOpen, 
       }
 
       if (onShowToast) {
-        onShowToast(`মাশাআল্লাহ! "${selectedPreset.nameBn}" এর ${toBnNumber(selectedPreset.target)} বারের চক্র সম্পন্ন হয়েছে।`, 'success');
+        const title = language === 'bn' ? selectedPreset.nameBn : selectedPreset.nameEn;
+        const msg = language === 'bn'
+          ? `মাশাআল্লাহ! "${title}" এর ${formatNum(selectedPreset.target)} বারের চক্র সম্পন্ন হয়েছে।`
+          : `MashaAllah! Completed ${formatNum(selectedPreset.target)} cycle of "${title}".`;
+        onShowToast(msg, 'success');
       }
     } else {
       setCount(nextCount);
@@ -164,7 +176,7 @@ export const DigitalTasbihModal: React.FC<DigitalTasbihModalProps> = ({ isOpen, 
     setCount(0);
     setTotalCycles(0);
     if (onShowToast) {
-      onShowToast('তাসবীহ গণকটি রিসেট করা হয়েছে।', 'info');
+      onShowToast(language === 'bn' ? 'তাসবীহ গণকটি রিসেট করা হয়েছে।' : 'Tasbih counter has been reset.', 'info');
     }
   };
 
@@ -174,6 +186,7 @@ export const DigitalTasbihModal: React.FC<DigitalTasbihModalProps> = ({ isOpen, 
     const custom: TasbihPreset = {
       id: 'custom',
       nameBn: customName.trim(),
+      nameEn: customName.trim(),
       nameAr: 'ذِكْرٌ خَاصٌّ',
       target: Number(customTarget) || 33
     };
@@ -213,7 +226,7 @@ export const DigitalTasbihModal: React.FC<DigitalTasbihModalProps> = ({ isOpen, 
                 onClose();
               }}
               className="absolute top-4 right-4 p-2 rounded-xl bg-emerald-950/60 hover:bg-emerald-900 border border-emerald-800/40 text-emerald-400 hover:text-white cursor-pointer active:scale-95 transition z-50"
-              title="বন্ধ করুন"
+              title={language === 'bn' ? 'বন্ধ করুন' : 'Close'}
             >
               <X className="w-4 h-4" />
             </button>
@@ -221,20 +234,22 @@ export const DigitalTasbihModal: React.FC<DigitalTasbihModalProps> = ({ isOpen, 
             {/* Modal Header */}
             <div className="text-center relative z-10 mb-4">
               <h2 className="text-base font-bold text-amber-300">
-                ডিজিটাল তাসবীহ
+                {language === 'bn' ? 'ডিজিটাল তাসবীহ' : 'Digital Tasbih'}
               </h2>
             </div>
 
           {/* Preset Selector Panel */}
           <div className="relative z-10 space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-emerald-400/80">জিকির সিলেক্ট করুন:</span>
+              <span className="text-[11px] font-bold text-emerald-400/80">
+                {language === 'bn' ? 'জিকির সিলেক্ট করুন:' : 'Select Dhikr:'}
+              </span>
               <button
                 onClick={() => setShowCustomInput(!showCustomInput)}
                 className="text-[11px] text-amber-300 font-bold hover:text-white flex items-center gap-1 cursor-pointer transition"
               >
                 <Plus className="w-3.5 h-3.5" />
-                কাস্টম জিকির
+                {language === 'bn' ? 'কাস্টম জিকির' : 'Custom Dhikr'}
               </button>
             </div>
 
@@ -242,14 +257,16 @@ export const DigitalTasbihModal: React.FC<DigitalTasbihModalProps> = ({ isOpen, 
               <div className="p-3.5 rounded-2xl bg-emerald-950/80 border border-emerald-800/50 space-y-3">
                 <input
                   type="text"
-                  placeholder="জিকিরের নাম লিখুন (উদা: সুবহানাল্লাহ)"
+                  placeholder={language === 'bn' ? 'জিকিরের নাম লিখুন (উদা: সুবহানাল্লাহ)' : 'Enter Dhikr name (e.g. SubhanAllah)'}
                   value={customName}
                   onChange={(e) => setCustomName(e.target.value)}
                   className="w-full px-3 py-2 text-xs rounded-xl bg-[#01140e] border border-emerald-800 focus:border-amber-400 outline-none text-white"
                 />
                 <div className="flex items-center gap-3">
                   <div className="flex-1">
-                    <label className="text-[10px] text-emerald-300 block mb-1">টার্গেট সংখ্যা</label>
+                    <label className="text-[10px] text-emerald-300 block mb-1">
+                      {language === 'bn' ? 'টার্গেট সংখ্যা' : 'Target Count'}
+                    </label>
                     <input
                       type="number"
                       min="1"
@@ -263,7 +280,7 @@ export const DigitalTasbihModal: React.FC<DigitalTasbihModalProps> = ({ isOpen, 
                     onClick={handleSaveCustom}
                     className="px-4 py-2 mt-5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold cursor-pointer shadow"
                   >
-                    সেভ করুন
+                    {language === 'bn' ? 'সেভ করুন' : 'Save'}
                   </button>
                 </div>
               </div>
@@ -285,8 +302,10 @@ export const DigitalTasbihModal: React.FC<DigitalTasbihModalProps> = ({ isOpen, 
                           : 'bg-emerald-950/40 border-emerald-900/60 text-emerald-300/80 hover:text-white'
                       }`}
                     >
-                      <span>{preset.nameBn}</span>
-                      <span className="text-[9px] opacity-70">টার্গেট: {toBnNumber(preset.target)}</span>
+                      <span>{language === 'bn' ? preset.nameBn : preset.nameEn}</span>
+                      <span className="text-[9px] opacity-70">
+                        {language === 'bn' ? `টার্গেট: ${formatNum(preset.target)}` : `Target: ${formatNum(preset.target)}`}
+                      </span>
                     </button>
                   );
                 })}
@@ -299,7 +318,9 @@ export const DigitalTasbihModal: React.FC<DigitalTasbihModalProps> = ({ isOpen, 
             <h3 className="text-xl font-bold font-serif text-amber-300 drop-shadow-[0_0_10px_rgba(251,191,36,0.15)]">
               {selectedPreset.nameAr}
             </h3>
-            <p className="text-xs text-emerald-300 font-semibold">{selectedPreset.nameBn}</p>
+            <p className="text-xs text-emerald-300 font-semibold">
+              {language === 'bn' ? selectedPreset.nameBn : selectedPreset.nameEn}
+            </p>
           </div>
 
           {/* Main Visual Counter Ring */}
@@ -349,16 +370,18 @@ export const DigitalTasbihModal: React.FC<DigitalTasbihModalProps> = ({ isOpen, 
                 }`} />
 
                 <span className="text-[10px] tracking-wider text-emerald-400/80 font-bold uppercase block mb-1">
-                  বর্তমান জপ
+                  {language === 'bn' ? 'বর্তমান জপ' : 'Current Count'}
                 </span>
                 
                 <span className="text-5xl font-black font-mono tracking-widest text-amber-300 drop-shadow-[0_0_8px_rgba(245,158,11,0.25)]">
-                  {toBnNumber(count)}
+                  {formatNum(count)}
                 </span>
 
                 <div className="flex items-center gap-1 text-[10px] text-emerald-300/80 mt-2 font-bold bg-emerald-950/80 px-2 py-0.5 rounded-full border border-emerald-800/40">
-                  <span className="text-[8px] uppercase tracking-wider">টার্গেট:</span>
-                  <span>{toBnNumber(selectedPreset.target)}</span>
+                  <span className="text-[8px] uppercase tracking-wider">
+                    {language === 'bn' ? 'টার্গেট:' : 'Target:'}
+                  </span>
+                  <span>{formatNum(selectedPreset.target)}</span>
                 </div>
               </button>
             </div>
@@ -369,9 +392,11 @@ export const DigitalTasbihModal: React.FC<DigitalTasbihModalProps> = ({ isOpen, 
             
             {/* Cycle Counter */}
             <div className="p-2 rounded-2xl bg-emerald-950/40 border border-emerald-900/40 flex flex-col items-center text-center">
-              <span className="text-[9px] uppercase tracking-wider text-emerald-400/80 font-bold">পূর্ণ চক্র</span>
+              <span className="text-[9px] uppercase tracking-wider text-emerald-400/80 font-bold">
+                {language === 'bn' ? 'পূর্ণ চক্র' : 'Completed Cycles'}
+              </span>
               <span className="text-sm font-black text-white mt-0.5">
-                {toBnNumber(totalCycles)}
+                {formatNum(totalCycles)}
               </span>
             </div>
 
@@ -383,7 +408,7 @@ export const DigitalTasbihModal: React.FC<DigitalTasbihModalProps> = ({ isOpen, 
                 className={`p-1.5 rounded-xl transition cursor-pointer ${
                   soundEnabled ? 'text-amber-400 bg-amber-400/10' : 'text-emerald-500 hover:text-white'
                 }`}
-                title={soundEnabled ? 'সাউন্ড অন' : 'সাউন্ড অফ'}
+                title={soundEnabled ? (language === 'bn' ? 'সাউন্ড অন' : 'Sound On') : (language === 'bn' ? 'সাউন্ড অফ' : 'Sound Off')}
               >
                 {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
               </button>
@@ -394,12 +419,12 @@ export const DigitalTasbihModal: React.FC<DigitalTasbihModalProps> = ({ isOpen, 
                 className={`p-1.5 rounded-xl transition cursor-pointer ${
                   vibrationEnabled ? 'text-amber-400 bg-amber-400/10' : 'text-emerald-500 hover:text-white'
                 }`}
-                title={vibrationEnabled ? 'ভাইব্রেশন অন' : 'ভাইব্রেশন অফ'}
+                title={vibrationEnabled ? (language === 'bn' ? 'ভাইব্রেশন অন' : 'Vibration On') : (language === 'bn' ? 'ভাইব্রেশন অফ' : 'Vibration Off')}
               >
                 {vibrationEnabled ? (
-                  <span className="font-bold text-[10px]">VIB</span>
+                  <span className="font-bold text-[10px]">{language === 'bn' ? 'কম্পন' : 'Vibrate'}</span>
                 ) : (
-                  <span className="text-emerald-600 line-through text-[10px] font-bold">VIB</span>
+                  <span className="text-emerald-600 line-through text-[10px] font-bold">{language === 'bn' ? 'কম্পন' : 'Vibrate'}</span>
                 )}
               </button>
             </div>
@@ -408,17 +433,23 @@ export const DigitalTasbihModal: React.FC<DigitalTasbihModalProps> = ({ isOpen, 
             <button
               onClick={handleReset}
               className="p-2 rounded-2xl bg-emerald-950/40 hover:bg-red-950/20 hover:text-red-400 border border-emerald-900/40 hover:border-red-900/30 text-emerald-300 flex flex-col items-center text-center cursor-pointer transition active:scale-95"
-              title="রিসেট করুন"
+              title={language === 'bn' ? 'রিসেট করুন' : 'Reset'}
             >
               <RotateCcw className="w-4 h-4" />
-              <span className="text-[9px] mt-0.5 font-bold uppercase tracking-wider">রিসেট</span>
+              <span className="text-[9px] mt-0.5 font-bold uppercase tracking-wider">
+                {language === 'bn' ? 'রিসেট' : 'Reset'}
+              </span>
             </button>
           </div>
 
           {/* Deep Offline Caching Note Footer */}
           <div className="relative z-10 pt-4 mt-4 border-t border-emerald-900/40 flex items-center justify-center gap-1.5 text-[10px] text-emerald-400/70 text-center">
             <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-            <span>সম্পূর্ণ অফলাইনে অটো-সেভ করা থাকে এবং রিয়েল-টাইমে সেভ হয়।</span>
+            <span>
+              {language === 'bn'
+                ? 'সম্পূর্ণ অফলাইনে অটো-সেভ করা থাকে এবং রিয়েল-টাইমে সেভ হয়।'
+                : 'Auto-saved offline in real-time.'}
+            </span>
           </div>
 
         </motion.div>

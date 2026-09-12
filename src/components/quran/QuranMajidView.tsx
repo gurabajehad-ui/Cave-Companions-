@@ -23,6 +23,7 @@ import { quranIndexedDb } from '../../services/quranIndexedDb';
 import { QuranAboutModal } from './QuranAboutModal';
 import { QuranBookmarksModal } from './QuranBookmarksModal';
 import { SurahReaderView } from './SurahReaderView';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface QuranMajidViewProps {
   onBack: () => void;
@@ -30,6 +31,7 @@ interface QuranMajidViewProps {
 }
 
 export const QuranMajidView: React.FC<QuranMajidViewProps> = ({ onBack, onShowToast }) => {
+  const { language, t } = useLanguage();
   // Navigation & States
   const [selectedSurah, setSelectedSurah] = useState<number | null>(null);
   const listScrollRef = useRef<number>(0);
@@ -113,7 +115,12 @@ export const QuranMajidView: React.FC<QuranMajidViewProps> = ({ onBack, onShowTo
     }
 
     setIsDownloadingAll(false);
-    onShowToast('আলহামদুলিল্লাহ! সম্পূর্ণ ১১৪টি সূরা অফলাইন স্টোরেজে সেভ করা হয়েছে।', 'success');
+    onShowToast(
+      language === 'bn'
+        ? 'আলহামদুলিল্লাহ! সম্পূর্ণ ১১৪টি সূরা অফলাইন স্টোরেজে সেভ করা হয়েছে।'
+        : 'Alhamdulillah! All 114 Surahs have been saved to offline storage.',
+      'success'
+    );
   };
 
   // Handle Search Input
@@ -143,7 +150,7 @@ export const QuranMajidView: React.FC<QuranMajidViewProps> = ({ onBack, onShowTo
   const handleRemoveBookmark = (surahNumber: number, ayahNumber: number) => {
     const updated = quranService.removeBookmark(surahNumber, ayahNumber);
     setBookmarks(updated);
-    onShowToast('বুকমার্ক সরানো হয়েছে', 'info');
+    onShowToast(language === 'bn' ? 'বুকমার্ক সরানো হয়েছে' : 'Bookmark removed', 'info');
   };
 
   // Select Bookmark or Last Read to Jump Directly
@@ -157,7 +164,7 @@ export const QuranMajidView: React.FC<QuranMajidViewProps> = ({ onBack, onShowTo
     e.stopPropagation();
     localStorage.removeItem('cave_quran_last_read_v1');
     setLastRead(null);
-    onShowToast('ইতিহাস মুছে ফেলা হয়েছে', 'info');
+    onShowToast(language === 'bn' ? 'ইতিহাস মুছে ফেলা হয়েছে' : 'History cleared', 'info');
   };
 
   // Filter Surahs
@@ -169,8 +176,9 @@ export const QuranMajidView: React.FC<QuranMajidViewProps> = ({ onBack, onShowTo
     });
   }, [surahs, activeFilter]);
 
-  // Safe Bengali Number Convertor
+  // Safe Bengali/English Number Convertor
   const toBnNum = (num: number): string => {
+    if (language === 'en') return String(num);
     const en = num.toString();
     const bn = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
     return en.replace(/[0-9]/g, (w) => bn[parseInt(w, 10)]);
@@ -209,9 +217,9 @@ export const QuranMajidView: React.FC<QuranMajidViewProps> = ({ onBack, onShowTo
             </button>
             <div>
               <h1 className="text-base font-bold text-white flex items-center gap-1.5">
-                আল-কুরআন মাজীদ
+                {t('quran.title')}
               </h1>
-              <p className="text-[10px] text-emerald-300/80">পবিত্র কুরআনুল কারীম বাংলা অর্থসহ</p>
+              <p className="text-[10px] text-emerald-300/80">{language === 'bn' ? 'পবিত্র কুরআনুল কারীম বাংলা অর্থসহ' : 'Al-Quran Al-Kareem with Translation'}</p>
             </div>
           </div>
 
@@ -220,7 +228,7 @@ export const QuranMajidView: React.FC<QuranMajidViewProps> = ({ onBack, onShowTo
             <button
               onClick={() => setBookmarksOpen(true)}
               className="p-2 rounded-xl bg-emerald-950/70 text-amber-300 hover:text-amber-200 border border-emerald-900/50 cursor-pointer active:scale-95 transition relative"
-              title="বুকমার্কস"
+              title={t('quran.bookmarks')}
             >
               <Bookmark className="w-4 h-4 fill-amber-300" />
               {bookmarks.length > 0 && (
@@ -234,7 +242,7 @@ export const QuranMajidView: React.FC<QuranMajidViewProps> = ({ onBack, onShowTo
             <button
               onClick={() => setAboutOpen(true)}
               className="p-2 rounded-xl bg-emerald-950/70 text-emerald-300 hover:text-white border border-emerald-900/50 cursor-pointer active:scale-95 transition"
-              title="উৎস ও লাইসেন্স"
+              title={language === 'bn' ? 'উৎস ও লাইসেন্স' : 'Sources & License'}
             >
               <HelpCircle className="w-4 h-4" />
             </button>
@@ -256,13 +264,17 @@ export const QuranMajidView: React.FC<QuranMajidViewProps> = ({ onBack, onShowTo
               <div>
                 <span className="text-[10px] uppercase font-bold text-amber-300 flex items-center gap-1">
                   <Sparkles className="w-3 h-3 text-amber-400 animate-pulse" />
-                  পড়া চালিয়ে যান
+                  {language === 'bn' ? 'পড়া চালিয়ে যান' : 'Continue Reading'}
                 </span>
                 <h3 className="text-sm font-bold text-white">
-                  সূরা {lastRead.surahNameBn} (আয়াত {lastRead.ayahNumber})
+                  {language === 'bn' 
+                    ? `সূরা ${lastRead.surahNameBn} (আয়াত ${toBnNum(lastRead.ayahNumber)})`
+                    : `Surah ${lastRead.surahNameEn || lastRead.surahNameBn} (Ayah ${lastRead.ayahNumber})`}
                 </h3>
                 <p className="text-[10px] text-emerald-300/70">
-                  সর্বশেষ পাঠ: {new Date(lastRead.timestamp).toLocaleDateString('bn-BD', { month: 'short', day: 'numeric' })}
+                  {language === 'bn'
+                    ? `সর্বশেষ পাঠ: ${new Date(lastRead.timestamp).toLocaleDateString('bn-BD', { month: 'short', day: 'numeric' })}`
+                    : `Last read: ${new Date(lastRead.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
                 </p>
               </div>
             </div>
@@ -270,7 +282,7 @@ export const QuranMajidView: React.FC<QuranMajidViewProps> = ({ onBack, onShowTo
               <button
                 onClick={handleClearLastRead}
                 className="p-1.5 rounded-lg bg-emerald-950 hover:bg-red-950 hover:text-red-400 text-emerald-400 border border-emerald-900/60 hover:border-red-900/40 cursor-pointer transition"
-                title="মুছে ফেলুন"
+                title={language === 'bn' ? 'মুছে ফেলুন' : 'Delete'}
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -288,7 +300,7 @@ export const QuranMajidView: React.FC<QuranMajidViewProps> = ({ onBack, onShowTo
           </div>
           <input
             type="text"
-            placeholder="সূরা নম্বর, নাম (যেমন: ফাতিহা) দিয়ে সার্চ করুন..."
+            placeholder={t('quran.searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-10 py-3 rounded-2xl bg-[#032017]/90 border border-emerald-900/70 focus:border-amber-400/80 focus:ring-1 focus:ring-amber-400/80 text-white placeholder-emerald-500/80 text-xs transition outline-none"
@@ -312,16 +324,18 @@ export const QuranMajidView: React.FC<QuranMajidViewProps> = ({ onBack, onShowTo
               </div>
               <div>
                 <span className="text-[9px] uppercase tracking-wider text-emerald-400 font-bold block">
-                  ডিপ অফলাইন স্টোরেজ
+                  {language === 'bn' ? 'ডিপ অফলাইন স্টোরেজ' : 'Deep Offline Storage'}
                 </span>
                 <span className="text-xs font-semibold text-white">
                   {cachedSurahs.length === 114 ? (
                     <span className="text-emerald-400 flex items-center gap-1">
                       <CheckCircle2 className="w-3.5 h-3.5" />
-                      সম্পূর্ণ কুরআন অফলাইন প্রস্তুত
+                      {language === 'bn' ? 'সম্পূর্ণ কুরআন অফলাইন প্রস্তুত' : 'Complete Quran Offline Ready'}
                     </span>
                   ) : (
-                    `১১৪টির মধ্যে ${toBnNum(cachedSurahs.length)}টি সূরা সংরক্ষিত`
+                    language === 'bn'
+                      ? `১১৪টির মধ্যে ${toBnNum(cachedSurahs.length)}টি সূরা সংরক্ষিত`
+                      : `${cachedSurahs.length} of 114 Surahs saved`
                   )}
                 </span>
               </div>
@@ -336,12 +350,12 @@ export const QuranMajidView: React.FC<QuranMajidViewProps> = ({ onBack, onShowTo
                 {isDownloadingAll ? (
                   <>
                     <RefreshCw className="w-3 h-3 animate-spin" />
-                    <span>ক্যাশ হচ্ছে...</span>
+                    <span>{language === 'bn' ? 'ক্যাশ হচ্ছে...' : 'Caching...'}</span>
                   </>
                 ) : (
                   <>
                     <DownloadCloud className="w-3.5 h-3.5" />
-                    <span>সব ডাউনলোড করুন</span>
+                    <span>{language === 'bn' ? 'সব ডাউনলোড করুন' : 'Download All'}</span>
                   </>
                 )}
               </button>
@@ -352,7 +366,7 @@ export const QuranMajidView: React.FC<QuranMajidViewProps> = ({ onBack, onShowTo
           {isDownloadingAll && (
             <div className="space-y-1">
               <div className="flex items-center justify-between text-[10px] text-emerald-400/90 px-0.5">
-                <span>সূরা ডাউনলোড ও অফলাইন ক্যাশিং চলছে...</span>
+                <span>{language === 'bn' ? 'সূরা ডাউনলোড ও অফলাইন ক্যাশিং চলছে...' : 'Downloading & caching surahs...'}</span>
                 <span className="font-mono font-bold text-amber-300">{toBnNum(downloadProgress)}%</span>
               </div>
               <div className="w-full h-1.5 bg-emerald-950 rounded-full overflow-hidden">
@@ -370,10 +384,12 @@ export const QuranMajidView: React.FC<QuranMajidViewProps> = ({ onBack, onShowTo
           <div className="bg-[#031d16] border border-emerald-800/60 rounded-2xl p-4 space-y-3">
             <h3 className="text-[11px] font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
               <Search className="w-3.5 h-3.5" />
-              <span>অনুসন্ধানের ফলাফল ({searchResults.length})</span>
+              <span>{language === 'bn' ? `অনুসন্ধানের ফলাফল (${toBnNum(searchResults.length)})` : `Search Results (${searchResults.length})`}</span>
             </h3>
             {searchResults.length === 0 ? (
-              <p className="text-xs text-emerald-400/70 py-2">কোনো সূরা বা আয়াত খুঁজে পাওয়া যায়নি।</p>
+              <p className="text-xs text-emerald-400/70 py-2">
+                {language === 'bn' ? 'কোনো সূরা বা আয়াত খুঁজে পাওয়া যায়নি।' : 'No surah or ayah found.'}
+              </p>
             ) : (
               <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
                 {searchResults.map((res, idx) => (
@@ -384,10 +400,10 @@ export const QuranMajidView: React.FC<QuranMajidViewProps> = ({ onBack, onShowTo
                   >
                     <div>
                       <p className="text-xs font-bold text-white">
-                        {res.surahNameBn} ({toBnNum(res.surahNumber)})
+                        {language === 'bn' ? res.surahNameBn : res.surahNameEn} ({toBnNum(res.surahNumber)})
                       </p>
                       <p className="text-[10.5px] text-emerald-300/80 line-clamp-1 mt-0.5">
-                        {res.bengaliText}
+                        {language === 'bn' ? res.bengaliText : (res.englishText || res.bengaliText)}
                       </p>
                     </div>
                     <ChevronRight className="w-4 h-4 text-emerald-500" />
@@ -409,7 +425,7 @@ export const QuranMajidView: React.FC<QuranMajidViewProps> = ({ onBack, onShowTo
                   : 'text-emerald-400 hover:text-white'
               }`}
             >
-              সকল সূরা ({toBnNum(114)})
+              {language === 'bn' ? `সকল সূরা (${toBnNum(114)})` : `All Surahs (${114})`}
             </button>
             <button
               onClick={() => setActiveFilter('makki')}
@@ -419,7 +435,7 @@ export const QuranMajidView: React.FC<QuranMajidViewProps> = ({ onBack, onShowTo
                   : 'text-emerald-400 hover:text-white'
               }`}
             >
-              মাক্কী ({toBnNum(86)})
+              {language === 'bn' ? `মাক্কী (${toBnNum(86)})` : `Makki (${86})`}
             </button>
             <button
               onClick={() => setActiveFilter('madani')}
@@ -429,7 +445,7 @@ export const QuranMajidView: React.FC<QuranMajidViewProps> = ({ onBack, onShowTo
                   : 'text-emerald-400 hover:text-white'
               }`}
             >
-              মাদানী ({toBnNum(28)})
+              {language === 'bn' ? `মাদানী (${toBnNum(28)})` : `Madani (${28})`}
             </button>
           </div>
         )}
@@ -454,10 +470,10 @@ export const QuranMajidView: React.FC<QuranMajidViewProps> = ({ onBack, onShowTo
 
                   <div>
                     <h3 className="text-sm font-bold text-white group-hover:text-amber-300 transition-colors">
-                      {surah.nameBn}
+                      {language === 'bn' ? surah.nameBn : surah.nameEn}
                     </h3>
                     <p className="text-[10.5px] text-emerald-400/80">
-                      {surah.revelationTypeBn} • {toBnNum(surah.ayahCount)}টি আয়াত
+                      {language === 'bn' ? surah.revelationTypeBn : surah.revelationType} • {language === 'bn' ? `${toBnNum(surah.ayahCount)}টি আয়াত` : `${surah.ayahCount} Ayahs`}
                     </p>
                   </div>
                 </div>

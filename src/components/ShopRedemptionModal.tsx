@@ -26,6 +26,7 @@ import { PartnerShop, UserToken, UserRedemptionRecord, TokenType, TokenRedemptio
 import { toBnNumber } from '../data/prayerConfig';
 import { ErrorBoundary } from './ErrorBoundary';
 import { DigitalCashMemoModal } from './DigitalCashMemoModal';
+import { useLanguage } from '../context/LanguageContext';
 
 interface ShopRedemptionModalProps {
   shop?: PartnerShop | null;
@@ -54,6 +55,9 @@ const ShopRedemptionModalContent: React.FC<ShopRedemptionModalProps> = ({
   onShowToast,
   onNavigateToMarket
 }) => {
+  const { language, t } = useLanguage();
+  const formatNum = (val: number | string) => language === 'bn' ? toBnNumber(val) : String(val);
+
   const [selectedToken, setSelectedToken] = useState<UserToken | null>(
     initialToken || (availableTokens.length > 0 ? availableTokens[0] : null)
   );
@@ -92,7 +96,11 @@ const ShopRedemptionModalContent: React.FC<ShopRedemptionModalProps> = ({
   const [verificationId, setVerificationId] = useState<string | null>(null);
   const [detectedShop, setDetectedShop] = useState<PartnerShop | null>(null);
   const [isVerifyingShop, setIsVerifyingShop] = useState(false);
-  const [verificationErrorMsg, setVerificationErrorMsg] = useState<string>('এই QR কোডটি কোনো বৈধ Cave Companions পার্টনার শপের QR কোড নয়।');
+  const [verificationErrorMsg, setVerificationErrorMsg] = useState<string>(
+    language === 'bn' 
+      ? 'এই QR কোডটি কোনো বৈধ Cave Companions পার্টনার শপের QR কোড নয়।' 
+      : 'This QR code is not a valid Cave Companions partner shop QR code.'
+  );
 
   // Camera scanner state
   const [showCameraScanner, setShowCameraScanner] = useState(true); // Always show scanner initially
@@ -145,7 +153,11 @@ const ShopRedemptionModalContent: React.FC<ShopRedemptionModalProps> = ({
         } catch (err: any) {
           console.warn('Shop camera start error:', err);
           if (isMounted) {
-            setCameraError('ক্যামেরা চালু করা যায়নি। ক্যামেরার পারমিশন নিশ্চিত করুন অথবা নিচের টেক্সট বক্স ব্যবহার করুন।');
+            setCameraError(
+              language === 'bn'
+                ? 'ক্যামেরা চালু করা যায়নি। ক্যামেরার পারমিশন নিশ্চিত করুন অথবা নিচের টেক্সট বক্স ব্যবহার করুন।'
+                : 'Could not access camera. Please allow camera permissions or use the input box below.'
+            );
           }
         }
       };
@@ -160,7 +172,7 @@ const ShopRedemptionModalContent: React.FC<ShopRedemptionModalProps> = ({
     } else {
       stopCameraSafely();
     }
-  }, [showCameraScanner, redemptionStep]);
+  }, [showCameraScanner, redemptionStep, language]);
 
   // Real-time polling for Merchant Approval when in PENDING_APPROVAL step
   useEffect(() => {
@@ -181,18 +193,38 @@ const ShopRedemptionModalContent: React.FC<ShopRedemptionModalProps> = ({
             onSuccess(res.request.redemption);
           }
           setRedemptionStep('COMPLETED');
-          onShowToast('success', 'মার্চেন্ট অনুমোদন সম্পন্ন!', 'দোকানদার আপনার টোকেন অফার অনুমোদন করেছেন।');
+          onShowToast(
+            'success',
+            language === 'bn' ? 'মার্চেন্ট অনুমোদন সম্পন্ন!' : 'Merchant Approved!',
+            language === 'bn' ? 'দোকানদার আপনার টোকেন অফার অনুমোদন করেছেন।' : 'The shopkeeper approved your token offer.'
+          );
         } else if (currentStatus === 'REJECTED') {
-          setRejectionReason(res.request.rejectionReason || 'দোকানদার কর্তৃক অনুরোধটি প্রত্যাখ্যান করা হয়েছে।');
+          setRejectionReason(
+            res.request.rejectionReason || (language === 'bn' ? 'দোকানদার কর্তৃক অনুরোধটি প্রত্যাখ্যান করা হয়েছে।' : 'Request rejected by the shopkeeper.')
+          );
           setRedemptionStep('REJECTED');
-          onShowToast('error', 'অনুরোধ প্রত্যাখ্যাত', 'দোকানদার অনুরোধটি প্রত্যাখ্যান করেছেন। আপনার টোকেন অক্ষত রয়েছে।');
+          onShowToast(
+            'error',
+            language === 'bn' ? 'অনুরোধ প্রত্যাখ্যাত' : 'Request Rejected',
+            language === 'bn' ? 'দোকানদার অনুরোধটি প্রত্যাখ্যান করেছেন। আপনার টোকেন অক্ষত রয়েছে।' : 'Shopkeeper rejected the request. Your token remains intact.'
+          );
         } else if (currentStatus === 'EXPIRED') {
-          setVerificationErrorMsg('অনুরোধটির ১৫ মিনিটের সময়সীমা পার হয়ে গেছে। আপনার টোকেন অক্ষত রয়েছে।');
+          setVerificationErrorMsg(
+            language === 'bn' ? 'অনুরোধটির ১৫ মিনিটের সময়সীমা পার হয়ে গেছে। আপনার টোকেন অক্ষত রয়েছে।' : 'The 15-minute request window expired. Your token remains intact.'
+          );
           setRedemptionStep('ERROR');
-          onShowToast('error', 'সময়সীমা অতিক্রান্ত', 'অনুরোধের সময়সীমা অতিক্রান্ত হয়েছে।');
+          onShowToast(
+            'error',
+            language === 'bn' ? 'সময়সীমা অতিক্রান্ত' : 'Request Expired',
+            language === 'bn' ? 'অনুরোধের সময়সীমা অতিক্রান্ত হয়েছে।' : 'Request timed out.'
+          );
         } else if (currentStatus === 'CANCELLED') {
           setRedemptionStep('FORM');
-          onShowToast('info', 'অনুরোধ বাতিল', 'অনুরোধটি বাতিল করা হয়েছে।');
+          onShowToast(
+            'info',
+            language === 'bn' ? 'অনুরোধ বাতিল' : 'Request Cancelled',
+            language === 'bn' ? 'অনুরোধটি বাতিল করা হয়েছে।' : 'The request has been cancelled.'
+          );
         }
       } catch (err) {
         console.warn('Polling redemption request status error:', err);
@@ -203,7 +235,7 @@ const ShopRedemptionModalContent: React.FC<ShopRedemptionModalProps> = ({
       isPollingActive = false;
       clearInterval(pollInterval);
     };
-  }, [redemptionStep, activeRequest?.id, onSuccess, onShowToast]);
+  }, [redemptionStep, activeRequest?.id, onSuccess, onShowToast, language]);
 
   const handleVerifyQr = async (payloadToVerify: string) => {
     await stopCameraSafely();
@@ -212,9 +244,12 @@ const ShopRedemptionModalContent: React.FC<ShopRedemptionModalProps> = ({
     console.log('[TRACE] handleVerifyQr payloadToVerify:', payloadToVerify);
 
     if (!payloadToVerify || !payloadToVerify.trim()) {
-      setVerificationErrorMsg('ভুল বা অকার্যকর দোকানের QR কোড স্ক্যান করা হয়েছে। অনুগ্রহ করে সঠিক দোকানের QR কোড স্ক্যান করুন।');
+      const err = language === 'bn'
+        ? 'ভুল বা অকার্যকর দোকানের QR কোড স্ক্যান করা হয়েছে। অনুগ্রহ করে সঠিক দোকানের QR কোড স্ক্যান করুন।'
+        : 'Invalid shop QR code scanned. Please scan the correct shop QR code.';
+      setVerificationErrorMsg(err);
       setRedemptionStep('ERROR');
-      onShowToast('error', 'ত্রুটি', 'ভুল বা অকার্যকর দোকানের QR কোড স্ক্যান করা হয়েছে।');
+      onShowToast('error', language === 'bn' ? 'ত্রুটি' : 'Error', err);
       return;
     }
     try {
@@ -227,23 +262,29 @@ const ShopRedemptionModalContent: React.FC<ShopRedemptionModalProps> = ({
         setDetectedShop(res.shop);
         setVerificationId(res.verificationId);
         setRedemptionStep('FORM');
-        onShowToast('success', 'দোকান শনাক্ত হয়েছে', `${res.shop.nameBn || res.shop.name} শনাক্ত করা হয়েছে।`);
+        onShowToast(
+          'success',
+          language === 'bn' ? 'দোকান শনাক্ত হয়েছে' : 'Shop Identified',
+          `${language === 'bn' ? (res.shop.nameBn || res.shop.name) : (res.shop.name || res.shop.nameBn)} ${language === 'bn' ? 'শনাক্ত করা হয়েছে।' : 'identified.'}`
+        );
       } else {
         console.warn('[TRACE] verifyShopQr validation failed on response:', res);
-        throw new Error(res?.message || 'এই QR কোডটি কোনো বৈধ Cave Companions পার্টনার শপের QR কোড নয়।');
+        throw new Error(
+          res?.message || (language === 'bn' ? 'এই QR কোডটি কোনো বৈধ Cave Companions পার্টনার শপের QR কোড নয়।' : 'This QR code is not a valid Cave Companions partner shop QR code.')
+        );
       }
     } catch (err: any) {
       console.error('[TRACE] Verify QR error caught:', err);
-      const isNetworkError = err.message?.includes('নেটওয়ার্ক') || err.message?.includes('সার্ভার') || err.message?.includes('সাড়া');
+      const isNetworkError = err.message?.includes('নেটওয়ার্ক') || err.message?.includes('সার্ভার') || err.message?.includes('সাড়া') || err.message?.includes('network');
       const errorMsg = isNetworkError
-        ? 'QR কোড যাচাই করা যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।'
-        : (err.message || 'এই QR কোডটি কোনো বৈধ Cave Companions পার্টনার শপের QR কোড নয়।');
+        ? (language === 'bn' ? 'QR কোড যাচাই করা যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।' : 'Could not verify QR code. Please try again.')
+        : (err.message || (language === 'bn' ? 'এই QR কোডটি কোনো বৈধ Cave Companions পার্টনার শপের QR কোড নয়।' : 'This QR code is not a valid Cave Companions partner shop QR code.'));
 
       setVerificationErrorMsg(errorMsg);
       setDetectedShop(null);
       setVerificationId(null);
       setRedemptionStep('ERROR');
-      onShowToast('error', 'ত্রুটি', errorMsg);
+      onShowToast('error', language === 'bn' ? 'ত্রুটি' : 'Error', errorMsg);
     } finally {
       setIsVerifyingShop(false);
     }
@@ -273,18 +314,30 @@ const ShopRedemptionModalContent: React.FC<ShopRedemptionModalProps> = ({
     const currentAmountNum = Math.max(0, parseFloat(purchaseAmount) || 0);
 
     if (!selectedToken) {
-      onShowToast('error', 'টোকেন নির্বাচন করুন', 'অনুগ্রহ করে একটি ব্যবহারযোগ্য টোকেন নির্বাচন করুন।');
+      onShowToast(
+        'error',
+        language === 'bn' ? 'টোকেন নির্বাচন করুন' : 'Select a Token',
+        language === 'bn' ? 'অনুগ্রহ করে একটি ব্যবহারযোগ্য টোকেন নির্বাচন করুন।' : 'Please select an available token.'
+      );
       return;
     }
 
     if (!verificationId) {
-      onShowToast('error', 'QR স্ক্যান আবশ্যক', 'টোকেন রিডিম করতে আগে সঠিক দোকানের QR কোড স্ক্যান করতে হবে।');
+      onShowToast(
+        'error',
+        language === 'bn' ? 'QR স্ক্যান আবশ্যক' : 'QR Scan Required',
+        language === 'bn' ? 'টোকেন রিডিম করতে আগে সঠিক দোকানের QR কোড স্ক্যান করতে হবে।' : 'Please scan the shop QR code first to redeem token.'
+      );
       setRedemptionStep('SCANNING');
       return;
     }
 
     if (currentAmountNum <= 0) {
-      onShowToast('error', 'ভুল পরিমাণ', 'অনুগ্রহ করে ক্রয়ের পরিমাণ (টাকা) প্রদান করুন।');
+      onShowToast(
+        'error',
+        language === 'bn' ? 'ভুল পরিমাণ' : 'Invalid Amount',
+        language === 'bn' ? 'অনুগ্রহ করে ক্রয়ের পরিমাণ (টাকা) প্রদান করুন।' : 'Please enter the purchase amount.'
+      );
       return;
     }
 
@@ -295,13 +348,21 @@ const ShopRedemptionModalContent: React.FC<ShopRedemptionModalProps> = ({
       if (res.success && res.request) {
         setActiveRequest(res.request);
         setRedemptionStep('PENDING_APPROVAL');
-        onShowToast('success', 'অনুরোধ পাঠানো হয়েছে', 'দোকানের অনুমোদনের জন্য অপেক্ষা করুন।');
+        onShowToast(
+          'success',
+          language === 'bn' ? 'অনুরোধ পাঠানো হয়েছে' : 'Request Sent',
+          language === 'bn' ? 'দোকানের অনুমোদনের জন্য অপেক্ষা করুন।' : 'Waiting for merchant approval.'
+        );
       } else {
-        throw new Error(res.message || 'টোকেন অফার রিকোয়েস্ট পাঠানো সম্ভব হয়নি।');
+        throw new Error(res.message || (language === 'bn' ? 'টোকেন অফার রিকোয়েস্ট পাঠানো সম্ভব হয়নি।' : 'Failed to send token offer request.'));
       }
     } catch (err: any) {
       console.error('Redemption request error:', err);
-      onShowToast('error', 'অনুরোধ ব্যর্থ', err.message || 'টোকেন অফার রিকোয়েস্ট পাঠাতে ব্যর্থ হয়েছে।');
+      onShowToast(
+        'error',
+        language === 'bn' ? 'অনুরোধ ব্যর্থ' : 'Request Failed',
+        err.message || (language === 'bn' ? 'টোকেন অফার রিকোয়েস্ট পাঠাতে ব্যর্থ হয়েছে।' : 'Failed to send token redemption request.')
+      );
       if (err.error === 'QR_VERIFICATION_INVALID') {
         setVerificationId(null);
         setRedemptionStep('SCANNING');
@@ -322,13 +383,17 @@ const ShopRedemptionModalContent: React.FC<ShopRedemptionModalProps> = ({
       if (res.success) {
         setActiveRequest(null);
         setRedemptionStep('FORM');
-        onShowToast('info', 'অনুরোধ বাতিল করা হয়েছে', 'আপনার টোকেন অক্ষত রয়েছে এবং পুনরায় ব্যবহারযোগ্য।');
+        onShowToast(
+          'info',
+          language === 'bn' ? 'অনুরোধ বাতিল করা হয়েছে' : 'Request Cancelled',
+          language === 'bn' ? 'আপনার টোকেন অক্ষত রয়েছে এবং পুনরায় ব্যবহারযোগ্য।' : 'Your token remains intact and available.'
+        );
       } else {
-        throw new Error(res.message || 'অনুরোধ বাতিল করা সম্ভব হয়নি।');
+        throw new Error(res.message || (language === 'bn' ? 'অনুরোধ বাতিল করা সম্ভব হয়নি।' : 'Failed to cancel request.'));
       }
     } catch (err: any) {
       console.error('Cancel request error:', err);
-      onShowToast('error', 'ত্রুটি', err.message || 'অনুরোধ বাতিল করতে ব্যর্থ হয়েছে।');
+      onShowToast('error', language === 'bn' ? 'ত্রুটি' : 'Error', err.message || (language === 'bn' ? 'অনুরোধ বাতিল করতে ব্যর্থ হয়েছে।' : 'Failed to cancel request.'));
     } finally {
       setIsCancelling(false);
     }
@@ -337,11 +402,26 @@ const ShopRedemptionModalContent: React.FC<ShopRedemptionModalProps> = ({
   const getTokenTierLabel = (type: TokenType) => {
     switch (type) {
       case 'GOLD':
-        return { name: 'গোল্ড টোকেন', icon: '🥇', color: 'text-amber-300', bg: 'from-amber-900/60 to-yellow-900/40 border-amber-500/50' };
+        return {
+          name: language === 'bn' ? 'গোল্ড টোকেন' : 'Gold Token',
+          icon: '🥇',
+          color: 'text-amber-300',
+          bg: 'from-amber-900/60 to-yellow-900/40 border-amber-500/50'
+        };
       case 'SILVER':
-        return { name: 'সিলভার টোকেন', icon: '🥈', color: 'text-slate-200', bg: 'from-slate-800/60 to-slate-900/40 border-slate-400/50' };
+        return {
+          name: language === 'bn' ? 'সিলভার টোকেন' : 'Silver Token',
+          icon: '🥈',
+          color: 'text-slate-200',
+          bg: 'from-slate-800/60 to-slate-900/40 border-slate-400/50'
+        };
       case 'BRONZE':
-        return { name: 'ব্রোঞ্জ টোকেন', icon: '🥉', color: 'text-amber-500', bg: 'from-amber-950/60 to-orange-950/40 border-amber-700/50' };
+        return {
+          name: language === 'bn' ? 'ব্রোঞ্জ টোকেন' : 'Bronze Token',
+          icon: '🥉',
+          color: 'text-amber-500',
+          bg: 'from-amber-950/60 to-orange-950/40 border-amber-700/50'
+        };
     }
   };
 
@@ -362,13 +442,13 @@ const ShopRedemptionModalContent: React.FC<ShopRedemptionModalProps> = ({
 
             <div className="space-y-1">
               <span className="px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 uppercase">
-                Redemption Successful
+                {language === 'bn' ? 'সফল রিডেম্পশন' : 'Redemption Successful'}
               </span>
               <h3 className="text-xl font-black text-white pt-1">
-                টোকেন রিডেম্পশন রসিদ (Receipt)
+                {language === 'bn' ? 'টোকেন রিডেম্পশন রসিদ (Receipt)' : 'Token Redemption Receipt'}
               </h3>
               <p className="text-xs text-slate-300">
-                পার্টনার শপে সফলভাবে ছাড় গ্রহণ করা হয়েছে
+                {language === 'bn' ? 'পার্টনার শপে সফলভাবে ছাড় গ্রহণ করা হয়েছে' : 'Discount successfully redeemed at partner shop'}
               </p>
             </div>
 
@@ -376,26 +456,34 @@ const ShopRedemptionModalContent: React.FC<ShopRedemptionModalProps> = ({
             <div className="bg-slate-950/90 border border-slate-800 rounded-3xl p-5 text-left space-y-4 text-xs font-mono">
               <div className="flex items-center justify-between pb-3 border-b border-slate-800">
                 <div>
-                  <span className="text-[10px] text-slate-400 block font-sans">দোকানের নাম</span>
+                  <span className="text-[10px] text-slate-400 block font-sans">
+                    {language === 'bn' ? 'দোকানের নাম' : 'Shop Name'}
+                  </span>
                   <span className="font-bold text-white text-sm font-sans">{completedReceipt.shopName}</span>
                 </div>
                 <div className="text-right">
-                  <span className="text-[10px] text-slate-400 block font-sans">রসিদ নম্বর</span>
+                  <span className="text-[10px] text-slate-400 block font-sans">
+                    {language === 'bn' ? 'রসিদ নম্বর' : 'Receipt No.'}
+                  </span>
                   <span className="font-bold text-amber-400">{completedReceipt.id}</span>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3 py-1">
                 <div>
-                  <span className="text-[10px] text-slate-400 block font-sans">ব্যবহৃত টোকেন</span>
+                  <span className="text-[10px] text-slate-400 block font-sans">
+                    {language === 'bn' ? 'ব্যবহৃত টোকেন' : 'Used Token'}
+                  </span>
                   <span className="font-bold text-amber-300 font-sans">
-                    {completedReceipt.tokenType} TOKEN ({toBnNumber(completedReceipt.discountPercentage)}% ছাড়)
+                    {completedReceipt.tokenType} TOKEN ({formatNum(completedReceipt.discountPercentage)}% {language === 'bn' ? 'ছাড়' : 'Off'})
                   </span>
                 </div>
                 <div>
-                  <span className="text-[10px] text-slate-400 block font-sans">তারিখ ও সময়</span>
+                  <span className="text-[10px] text-slate-400 block font-sans">
+                    {language === 'bn' ? 'তারিখ ও সময়' : 'Date & Time'}
+                  </span>
                   <span className="text-slate-300 font-sans text-[11px]">
-                    {new Date(completedReceipt.createdAt).toLocaleDateString('bn-BD', {
+                    {new Date(completedReceipt.createdAt).toLocaleDateString(language === 'bn' ? 'bn-BD' : 'en-US', {
                       year: 'numeric',
                       month: 'short',
                       day: 'numeric',
@@ -409,29 +497,32 @@ const ShopRedemptionModalContent: React.FC<ShopRedemptionModalProps> = ({
               {/* Financial Calculation Breakdown */}
               <div className="space-y-2 pt-3 border-t border-slate-800 font-sans">
                 <div className="flex justify-between text-slate-300">
-                  <span>মোট ক্রয়ের পরিমাণ:</span>
-                  <span className="font-bold">৳ {toBnNumber(completedReceipt.purchaseAmount)}</span>
+                  <span>{language === 'bn' ? 'মোট ক্রয়ের পরিমাণ:' : 'Total Purchase:'}</span>
+                  <span className="font-bold">৳ {formatNum(completedReceipt.purchaseAmount)}</span>
                 </div>
                 {completedReceipt.isDonated ? (
                   <div className="flex justify-between text-rose-400 font-semibold">
-                    <span>কল্যাণ তহবিলে দানকৃত ({toBnNumber(completedReceipt.discountPercentage)}%):</span>
-                    <span>৳ {toBnNumber(completedReceipt.donatedAmount || 0)} ❤️</span>
+                    <span>{language === 'bn' ? `কল্যাণ তহবিলে দানকৃত (${formatNum(completedReceipt.discountPercentage)}%):` : `Donated to Welfare (${formatNum(completedReceipt.discountPercentage)}%):`}</span>
+                    <span>৳ {formatNum(completedReceipt.donatedAmount || 0)} ❤️</span>
                   </div>
                 ) : (
                   <div className="flex justify-between text-emerald-400 font-semibold">
-                    <span>টোকেন ডিসকাউন্ট ({toBnNumber(completedReceipt.discountPercentage)}%):</span>
-                    <span>- ৳ {toBnNumber(completedReceipt.discountAmount)}</span>
+                    <span>{language === 'bn' ? `টোকেন ডিসকাউন্ট (${formatNum(completedReceipt.discountPercentage)}%):` : `Token Discount (${formatNum(completedReceipt.discountPercentage)}%):`}</span>
+                    <span>- ৳ {formatNum(completedReceipt.discountAmount)}</span>
                   </div>
                 )}
                 <div className="flex justify-between text-sm font-extrabold text-white pt-2 border-t border-slate-800">
-                  <span>পরিশোধযোগ্য বিল (Final Payable):</span>
-                  <span className="text-amber-400 font-black text-base">৳ {toBnNumber(completedReceipt.finalPayableAmount)}</span>
+                  <span>{language === 'bn' ? 'পরিশোধযোগ্য বিল (Final Payable):' : 'Final Payable Amount:'}</span>
+                  <span className="text-amber-400 font-black text-base">৳ {formatNum(completedReceipt.finalPayableAmount)}</span>
                 </div>
               </div>
             </div>
 
             <div className="p-3 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 text-[11px] text-emerald-200/90 leading-relaxed text-left">
-              <strong>বিশেষ নিয়ম:</strong> আপনার টোকেন রিডিম সফল হয়েছে! ওয়ালেটে আরও ব্যবহারযোগ্য টোকেন থাকলে আপনি আজই ব্যবহার করতে পারবেন।
+              <strong>{language === 'bn' ? 'বিশেষ নিয়ম:' : 'Note:'}</strong>{' '}
+              {language === 'bn'
+                ? 'আপনার টোকেন রিডিম সফল হয়েছে! ওয়ালেটে আরও ব্যবহারযোগ্য টোকেন থাকলে আপনি আজই ব্যবহার করতে পারবেন।'
+                : 'Your token redemption was successful! If you have more available tokens in your wallet, you can use them today.'}
             </div>
 
             <div className="space-y-2">
@@ -442,7 +533,7 @@ const ShopRedemptionModalContent: React.FC<ShopRedemptionModalProps> = ({
                 className="w-full py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs sm:text-sm shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
                 <FileText className="w-4 h-4" />
-                📄 ডিজিটাল ক্যাশ মেমো দেখুন (View Cash Memo)
+                {language === 'bn' ? '📄 ডিজিটাল ক্যাশ মেমো দেখুন (View Cash Memo)' : '📄 View Digital Cash Memo'}
               </button>
 
               <button
@@ -451,7 +542,7 @@ const ShopRedemptionModalContent: React.FC<ShopRedemptionModalProps> = ({
                 onClick={onClose}
                 className="w-full py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs active:scale-95 transition-all cursor-pointer"
               >
-                সম্পন্ন (Done)
+                {language === 'bn' ? 'সম্পন্ন (Done)' : 'Done'}
               </button>
             </div>
           </div>
@@ -467,13 +558,17 @@ const ShopRedemptionModalContent: React.FC<ShopRedemptionModalProps> = ({
 
             <div className="space-y-1.5">
               <span className="px-3.5 py-1 rounded-full text-[11px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/40 uppercase animate-pulse">
-                মার্চেন্ট অনুমোদনের অপেক্ষায় (Pending Approval)
+                {language === 'bn' ? 'মার্চেন্ট অনুমোদনের অপেক্ষায় (Pending Approval)' : 'Pending Merchant Approval'}
               </span>
               <h3 className="text-xl font-black text-white pt-1">
-                দোকানদারের অনুমোদনের জন্য অপেক্ষা করুন
+                {language === 'bn' ? 'দোকানদারের অনুমোদনের জন্য অপেক্ষা করুন' : 'Waiting for Merchant Approval'}
               </h3>
               <p className="text-xs text-slate-300 max-w-sm mx-auto leading-relaxed">
-                আপনার অনুরোধটি <strong className="text-amber-300">{activeRequest.shopName}</strong> এ পাঠানো হয়েছে। দোকানদার বিল ও টোকেন অফার অনুমোদন করলেই ছাড়টি চূড়ান্ত হবে।
+                {language === 'bn' ? (
+                  <>আপনার অনুরোধটি <strong className="text-amber-300">{activeRequest.shopName}</strong> এ পাঠানো হয়েছে। দোকানদার বিল ও টোকেন অফার অনুমোদন করলেই ছাড়টি চূড়ান্ত হবে।</>
+                ) : (
+                  <>Your request was sent to <strong className="text-amber-300">{activeRequest.shopName}</strong>. Once approved by the shopkeeper, your discount will be finalized.</>
+                )}
               </p>
             </div>
 
@@ -481,34 +576,41 @@ const ShopRedemptionModalContent: React.FC<ShopRedemptionModalProps> = ({
             <div className="bg-slate-950/90 border border-slate-800 rounded-3xl p-5 text-left space-y-3.5 text-xs">
               <div className="flex justify-between items-center pb-2.5 border-b border-slate-800">
                 <div>
-                  <span className="text-[10px] text-slate-400 block font-sans">দোকান</span>
+                  <span className="text-[10px] text-slate-400 block font-sans">
+                    {language === 'bn' ? 'দোকান' : 'Shop'}
+                  </span>
                   <span className="font-bold text-white text-sm">{activeRequest.shopName}</span>
                 </div>
                 <div className="text-right">
-                  <span className="text-[10px] text-slate-400 block font-sans">টোকেন</span>
+                  <span className="text-[10px] text-slate-400 block font-sans">
+                    {language === 'bn' ? 'টোকেন' : 'Token'}
+                  </span>
                   <span className="font-bold text-amber-300">{activeRequest.tokenType} TOKEN</span>
                 </div>
               </div>
 
               <div className="space-y-2">
                 <div className="flex justify-between text-slate-300">
-                  <span>মোট ক্রয়ের পরিমাণ:</span>
-                  <span className="font-bold">৳ {toBnNumber(activeRequest.purchaseAmount)}</span>
+                  <span>{language === 'bn' ? 'মোট ক্রয়ের পরিমাণ:' : 'Total Purchase Amount:'}</span>
+                  <span className="font-bold">৳ {formatNum(activeRequest.purchaseAmount)}</span>
                 </div>
                 <div className="flex justify-between text-emerald-400 font-bold">
-                  <span>টোকেন ছাড় ({toBnNumber(activeRequest.discountPercentage)}%):</span>
-                  <span>- ৳ {toBnNumber(activeRequest.discountAmount)}</span>
+                  <span>{language === 'bn' ? `টোকেন ছাড় (${formatNum(activeRequest.discountPercentage)}%):` : `Token Discount (${formatNum(activeRequest.discountPercentage)}%):`}</span>
+                  <span>- ৳ {formatNum(activeRequest.discountAmount)}</span>
                 </div>
                 <div className="flex justify-between text-white font-extrabold text-sm pt-2 border-t border-slate-800">
-                  <span>চূড়ান্ত পরিশোধযোগ্য বিল:</span>
+                  <span>{language === 'bn' ? 'চূড়ান্ত পরিশোধযোগ্য বিল:' : 'Final Payable:'}</span>
                   <span className="text-amber-400 font-black text-base">
-                    ৳ {toBnNumber(activeRequest.finalPayableAmount)}
+                    ৳ {formatNum(activeRequest.finalPayableAmount)}
                   </span>
                 </div>
               </div>
 
               <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-200/90 leading-relaxed">
-                🛡️ <strong>টোকেন নিরাপত্তা নিশ্চয়তা:</strong> দোকানদার অনুমোদন না দেওয়া পর্যন্ত আপনার টোকেন ব্যবহার হবে না। যেকোনো কারণে বাতিল বা প্রত্যাখ্যাত হলে আপনার টোকেন সম্পূর্ণ অক্ষত থাকবে।
+                🛡️ <strong>{language === 'bn' ? 'টোকেন নিরাপত্তা নিশ্চয়তা:' : 'Token Security Guarantee:'}</strong>{' '}
+                {language === 'bn'
+                  ? 'দোকানদার অনুমোদন না দেওয়া পর্যন্ত আপনার টোকেন ব্যবহার হবে না। যেকোনো কারণে বাতিল বা প্রত্যাখ্যাত হলে আপনার টোকেন সম্পূর্ণ অক্ষত থাকবে।'
+                  : 'Your token is not consumed until the shopkeeper approves. If cancelled or rejected, your token remains completely intact.'}
               </div>
             </div>
 
@@ -521,9 +623,9 @@ const ShopRedemptionModalContent: React.FC<ShopRedemptionModalProps> = ({
                 className="w-full py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold text-xs transition-all flex items-center justify-center gap-2 border border-slate-700 disabled:opacity-50"
               >
                 {isCancelling ? (
-                  <span>বাতিল করা হচ্ছে...</span>
+                  <span>{language === 'bn' ? 'বাতিল করা হচ্ছে...' : 'Cancelling...'}</span>
                 ) : (
-                  <span>অনুরোধ বাতিল করুন (Cancel Request)</span>
+                  <span>{language === 'bn' ? 'অনুরোধ বাতিল করুন (Cancel Request)' : 'Cancel Request'}</span>
                 )}
               </button>
             </div>
@@ -537,23 +639,25 @@ const ShopRedemptionModalContent: React.FC<ShopRedemptionModalProps> = ({
 
             <div className="space-y-1.5">
               <span className="px-3 py-1 rounded-full text-xs font-black bg-rose-500/20 text-rose-300 border border-rose-500/40 uppercase">
-                Request Rejected
+                {language === 'bn' ? 'অনুরোধ প্রত্যাখ্যাত' : 'Request Rejected'}
               </span>
               <h3 className="text-xl font-black text-white pt-1">
-                অনুরোধটি দোকানদার কর্তৃক প্রত্যাখ্যাত হয়েছে
+                {language === 'bn' ? 'অনুরোধটি দোকানদার কর্তৃক প্রত্যাখ্যাত হয়েছে' : 'The request was rejected by the merchant'}
               </h3>
               <p className="text-xs text-slate-300 max-w-sm mx-auto leading-relaxed">
-                {rejectionReason || 'দোকানদার এই মুহূর্তে অফারটি অনুমোদন করতে পারেননি।'}
+                {rejectionReason || (language === 'bn' ? 'দোকানদার এই মুহূর্তে অফারটি অনুমোদন করতে পারেননি।' : 'The shopkeeper could not approve the offer at this time.')}
               </p>
             </div>
 
             <div className="p-4 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 text-xs text-emerald-300 text-left space-y-1">
               <div className="font-bold flex items-center gap-1.5">
                 <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                <span>আপনার টোকেন অক্ষত রয়েছে!</span>
+                <span>{language === 'bn' ? 'আপনার টোকেন অক্ষত রয়েছে!' : 'Your token is safe!'}</span>
               </div>
               <p className="text-[11px] text-slate-300">
-                কোনো পয়েন্ট বা টোকেন কাটা হয়নি। আপনি পরবর্তীতে যেকোনো সময় এই টোকেনটি ব্যবহার করতে পারবেন।
+                {language === 'bn'
+                  ? 'কোনো পয়েন্ট বা টোকেন কাটা হয়নি। আপনি পরবর্তীতে যেকোনো সময় এই টোকেনটি ব্যবহার করতে পারবেন।'
+                  : 'No points or tokens were deducted. You can use this token again at any time.'}
               </p>
             </div>
 
@@ -566,13 +670,13 @@ const ShopRedemptionModalContent: React.FC<ShopRedemptionModalProps> = ({
                 }}
                 className="w-full py-3 rounded-2xl bg-amber-600 hover:bg-amber-500 text-white font-extrabold text-xs shadow-xl active:scale-95 transition-all"
               >
-                আবার চেষ্টা করুন (Try Again)
+                {language === 'bn' ? 'আবার চেষ্টা করুন (Try Again)' : 'Try Again'}
               </button>
               <button
                 onClick={onClose}
                 className="w-full py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition-all"
               >
-                বন্ধ করুন (Close)
+                {language === 'bn' ? 'বন্ধ করুন (Close)' : 'Close'}
               </button>
             </div>
           </div>
@@ -585,7 +689,7 @@ const ShopRedemptionModalContent: React.FC<ShopRedemptionModalProps> = ({
 
             <div className="space-y-2">
               <span className="px-3 py-1 rounded-full text-xs font-extrabold bg-rose-500/20 text-rose-300 border border-rose-500/40 uppercase">
-                অকার্যকর QR কোড (Invalid QR)
+                {language === 'bn' ? 'অকার্যকর QR কোড (Invalid QR)' : 'Invalid QR Code'}
               </span>
               <h3 className="text-base font-bold text-white px-2 leading-relaxed">
                 {verificationErrorMsg}
@@ -602,13 +706,13 @@ const ShopRedemptionModalContent: React.FC<ShopRedemptionModalProps> = ({
                 className="w-full py-3 rounded-2xl bg-amber-600 hover:bg-amber-500 text-white font-extrabold text-xs shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2"
               >
                 <RefreshCw className="w-4 h-4" />
-                <span>আবার স্ক্যান করুন (Scan Again)</span>
+                <span>{language === 'bn' ? 'আবার স্ক্যান করুন (Scan Again)' : 'Scan Again'}</span>
               </button>
               <button
                 onClick={onClose}
                 className="w-full py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition-all"
               >
-                বাতিল করুন (Cancel)
+                {language === 'bn' ? 'বাতিল করুন (Cancel)' : 'Cancel'}
               </button>
             </div>
           </div>
@@ -622,8 +726,12 @@ const ShopRedemptionModalContent: React.FC<ShopRedemptionModalProps> = ({
               </div>
             </div>
             <div className="text-center space-y-2">
-              <h3 className="text-lg font-bold text-white">দোকান যাচাই করা হচ্ছে...</h3>
-              <p className="text-sm text-slate-400">অনুগ্রহ করে কয়েক সেকেন্ড অপেক্ষা করুন।</p>
+              <h3 className="text-lg font-bold text-white">
+                {language === 'bn' ? 'দোকান যাচাই করা হচ্ছে...' : 'Verifying shop...'}
+              </h3>
+              <p className="text-sm text-slate-400">
+                {language === 'bn' ? 'অনুগ্রহ করে কয়েক সেকেন্ড অপেক্ষা করুন।' : 'Please wait a few moments.'}
+              </p>
             </div>
           </div>
         ) : redemptionStep === 'SCANNING' ? (
@@ -635,8 +743,12 @@ const ShopRedemptionModalContent: React.FC<ShopRedemptionModalProps> = ({
                   <QrCode className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-extrabold text-white">QR কোড স্ক্যান করুন</h3>
-                  <p className="text-[11px] text-slate-400">পার্টনার শপের QR কোড স্ক্যান করুন</p>
+                  <h3 className="text-base font-extrabold text-white">
+                    {language === 'bn' ? 'QR কোড স্ক্যান করুন' : 'Scan QR Code'}
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    {language === 'bn' ? 'পার্টনার শপের QR কোড স্ক্যান করুন' : 'Scan partner shop QR code'}
+                  </p>
                 </div>
               </div>
               <button
@@ -663,7 +775,9 @@ const ShopRedemptionModalContent: React.FC<ShopRedemptionModalProps> = ({
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <div className="h-px flex-1 bg-slate-800" />
-                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">অথবা আইডি লিখুন</span>
+                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                    {language === 'bn' ? 'অথবা আইডি লিখুন' : 'Or enter Shop ID'}
+                  </span>
                   <div className="h-px flex-1 bg-slate-800" />
                 </div>
                 
@@ -672,7 +786,7 @@ const ShopRedemptionModalContent: React.FC<ShopRedemptionModalProps> = ({
                     type="text"
                     value={manualQrInput}
                     onChange={(e) => setManualQrInput(e.target.value)}
-                    placeholder="দোকান আইডি বা QR টেক্সট"
+                    placeholder={language === 'bn' ? 'দোকান আইডি বা QR টেক্সট' : 'Shop ID or QR text'}
                     className="flex-1 px-4 py-2.5 rounded-2xl bg-slate-900 border border-slate-700 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 transition-all shadow-inner"
                   />
                   <button
@@ -680,7 +794,7 @@ const ShopRedemptionModalContent: React.FC<ShopRedemptionModalProps> = ({
                     disabled={!manualQrInput.trim() || isVerifyingShop}
                     className="px-4 py-2.5 rounded-2xl bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white text-sm font-extrabold transition-all active:scale-95 shadow-lg"
                   >
-                    যাচাই
+                    {language === 'bn' ? 'যাচাই' : 'Verify'}
                   </button>
                 </div>
               </div>
@@ -690,7 +804,7 @@ const ShopRedemptionModalContent: React.FC<ShopRedemptionModalProps> = ({
               onClick={onClose}
               className="w-full py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-all"
             >
-              পিছনে যান (Back)
+              {language === 'bn' ? 'পিছনে যান (Back)' : 'Back'}
             </button>
           </div>
         ) : (
@@ -704,10 +818,10 @@ const ShopRedemptionModalContent: React.FC<ShopRedemptionModalProps> = ({
                 </div>
                 <div>
                   <h3 className="text-base font-extrabold text-white">
-                    টোকেন ব্যবহার করুন (Redeem Token)
+                    {language === 'bn' ? 'টোকেন ব্যবহার করুন (Redeem Token)' : 'Redeem Token'}
                   </h3>
                   <p className="text-[11px] text-slate-400">
-                    পার্টনার শপে ডিসকাউন্ট গ্রহণ করুন
+                    {language === 'bn' ? 'পার্টনার শপে ডিসকাউন্ট গ্রহণ করুন' : 'Get discounts at partner shops'}
                   </p>
                 </div>
               </div>
@@ -728,7 +842,7 @@ const ShopRedemptionModalContent: React.FC<ShopRedemptionModalProps> = ({
                   <div className="flex items-center gap-2">
                     <Building2 className="w-4 h-4 text-emerald-400" />
                     <h4 className="font-bold text-white text-sm">
-                      {detectedShop.nameBn || detectedShop.name}
+                      {language === 'bn' ? (detectedShop.nameBn || detectedShop.name) : (detectedShop.name || detectedShop.nameBn)}
                     </h4>
                   </div>
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
@@ -742,16 +856,16 @@ const ShopRedemptionModalContent: React.FC<ShopRedemptionModalProps> = ({
                 {/* Available Discounts in this shop */}
                 <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-800 text-[11px] text-center">
                   <div className="p-1.5 rounded-xl bg-amber-950/40 border border-amber-500/30">
-                    <span className="text-amber-300 font-extrabold block">🥇 {toBnNumber(detectedShop.goldDiscount)}%</span>
-                    <span className="text-[10px] text-slate-400">গোল্ড ছাড়</span>
+                    <span className="text-amber-300 font-extrabold block">🥇 {formatNum(detectedShop.goldDiscount)}%</span>
+                    <span className="text-[10px] text-slate-400">{language === 'bn' ? 'গোল্ড ছাড়' : 'Gold Off'}</span>
                   </div>
                   <div className="p-1.5 rounded-xl bg-slate-800/60 border border-slate-700">
-                    <span className="text-slate-200 font-extrabold block">🥈 {toBnNumber(detectedShop.silverDiscount)}%</span>
-                    <span className="text-[10px] text-slate-400">সিলভার ছাড়</span>
+                    <span className="text-slate-200 font-extrabold block">🥈 {formatNum(detectedShop.silverDiscount)}%</span>
+                    <span className="text-[10px] text-slate-400">{language === 'bn' ? 'সিলভার ছাড়' : 'Silver Off'}</span>
                   </div>
                   <div className="p-1.5 rounded-xl bg-amber-950/20 border border-amber-800/40">
-                    <span className="text-amber-400 font-extrabold block">🥉 {toBnNumber(detectedShop.bronzeDiscount)}%</span>
-                    <span className="text-[10px] text-slate-400">ব্রোঞ্জ ছাড়</span>
+                    <span className="text-amber-400 font-extrabold block">🥉 {formatNum(detectedShop.bronzeDiscount)}%</span>
+                    <span className="text-[10px] text-slate-400">{language === 'bn' ? 'ব্রোঞ্জ ছাড়' : 'Bronze Off'}</span>
                   </div>
                 </div>
               </div>
@@ -760,15 +874,15 @@ const ShopRedemptionModalContent: React.FC<ShopRedemptionModalProps> = ({
             {/* Token Selection */}
             <div className="space-y-2">
               <label className="text-xs font-bold text-slate-300 flex items-center justify-between">
-                <span>ব্যবহারের জন্য Token নির্বাচন করুন:</span>
+                <span>{language === 'bn' ? 'ব্যবহারের জন্য Token নির্বাচন করুন:' : 'Select Token to Redeem:'}</span>
                 <span className="text-[11px] text-amber-400 font-normal">
-                  {toBnNumber(availableTokens.length)} টি ব্যবহারযোগ্য
+                  {language === 'bn' ? `${formatNum(availableTokens.length)} টি ব্যবহারযোগ্য` : `${formatNum(availableTokens.length)} available`}
                 </span>
               </label>
 
               {availableTokens.length === 0 ? (
                 <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 text-xs text-slate-400 text-center">
-                  আপনার কোনো সক্রিয় AVAILABLE টোকেন নেই।
+                  {language === 'bn' ? 'আপনার কোনো সক্রিয় AVAILABLE টোকেন নেই।' : 'You do not have any active AVAILABLE tokens.'}
                 </div>
               ) : (
                 <div className="space-y-2 max-h-36 overflow-y-auto pr-1">
@@ -796,23 +910,25 @@ const ShopRedemptionModalContent: React.FC<ShopRedemptionModalProps> = ({
                               {tier.name}
                               {token.isDonated && (
                                 <span className="px-1.5 py-0.2 bg-rose-500/20 text-rose-300 text-[9px] font-black rounded border border-rose-500/40 animate-pulse">
-                                  দান করার জন্য বাছাইকৃত
+                                  {language === 'bn' ? 'দান করার জন্য বাছাইকৃত' : 'Designated for Donation'}
                                 </span>
                               )}
                             </span>
                             <span className="text-[10px] text-slate-400 font-mono block">
-                              ID: {token.id} • অর্জিত: {token.earnedDate}
+                              ID: {token.id} • {language === 'bn' ? 'অর্জিত' : 'Earned'}: {token.earnedDate}
                             </span>
                           </div>
                         </div>
 
                         <div className="text-right">
                           <span className="text-xs font-extrabold text-emerald-400 block">
-                            {token.isDonated ? 'দান হবে' : `${toBnNumber(discount)}% ছাড়`}
+                            {token.isDonated 
+                              ? (language === 'bn' ? 'দান হবে' : 'Donated') 
+                              : `${formatNum(discount)}% ${language === 'bn' ? 'ছাড়' : 'Off'}`}
                           </span>
                           {isSelected && (
                             <span className="text-[10px] text-amber-300 font-bold flex items-center gap-0.5 justify-end">
-                              <Check className="w-3 h-3" /> নির্বাচিত
+                              <Check className="w-3 h-3" /> {language === 'bn' ? 'নির্বাচিত' : 'Selected'}
                             </span>
                           )}
                         </div>
@@ -827,7 +943,7 @@ const ShopRedemptionModalContent: React.FC<ShopRedemptionModalProps> = ({
             <div className="space-y-3 pt-1">
               <div>
                 <label className="text-xs font-bold text-slate-300 block mb-1">
-                  মোট ক্রয়ের পরিমাণ (৳ Purchase Amount)
+                  {language === 'bn' ? 'মোট ক্রয়ের পরিমাণ (৳ Purchase Amount)' : 'Total Purchase Amount (৳)'}
                 </label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-bold">
@@ -839,7 +955,7 @@ const ShopRedemptionModalContent: React.FC<ShopRedemptionModalProps> = ({
                     min="1"
                     value={purchaseAmount}
                     onChange={(e) => setPurchaseAmount(e.target.value)}
-                    placeholder="টাকার পরিমাণ লিখুন"
+                    placeholder={language === 'bn' ? 'টাকার পরিমাণ লিখুন' : 'Enter amount in BDT'}
                     className="w-full pl-8 pr-4 py-2.5 rounded-2xl bg-slate-950 border border-slate-700 text-sm text-white font-bold placeholder-slate-500 focus:outline-none focus:border-emerald-500"
                   />
                 </div>
@@ -848,15 +964,19 @@ const ShopRedemptionModalContent: React.FC<ShopRedemptionModalProps> = ({
                 <div className="mt-2 flex items-center justify-between gap-1 text-[11.5px] text-rose-400 font-semibold px-0.5">
                   <span className="flex items-center gap-1 text-rose-400">
                     <span>💡</span>
-                    <span>পণ্য কেনার আগে পণ্যের ন্যায্য মূল্য যাচাই করুন</span>
+                    <span>
+                      {language === 'bn' 
+                        ? 'পণ্য কেনার আগে পণ্যের ন্যায্য মূল্য যাচাই করুন' 
+                        : 'Verify fair market price before purchasing'}
+                    </span>
                   </span>
                   <button
                     type="button"
                     onClick={handleOpenCaveMarket}
                     className="text-rose-400 hover:text-rose-300 font-bold underline underline-offset-2 hover:no-underline inline-flex items-center gap-0.5 cursor-pointer shrink-0 transition"
-                    title="কেভ মার্কেটে যান"
+                    title={language === 'bn' ? 'কেভ মার্কেটে যান' : 'Go to Cave Market'}
                   >
-                    <span>(কেভ মার্কেট)</span>
+                    <span>{language === 'bn' ? '(কেভ মার্কেট)' : '(Cave Market)'}</span>
                   </button>
                 </div>
               </div>
@@ -866,32 +986,42 @@ const ShopRedemptionModalContent: React.FC<ShopRedemptionModalProps> = ({
                 <div className="space-y-2">
                   <div className="p-4 rounded-2xl bg-slate-950/90 border border-slate-800 space-y-2 text-xs">
                     <div className="flex justify-between text-slate-300">
-                      <span>ক্রয়ের পরিমাণ:</span>
-                      <span className="font-bold">৳ {toBnNumber(amountNum)}</span>
+                      <span>{language === 'bn' ? 'ক্রয়ের পরিমাণ:' : 'Purchase Amount:'}</span>
+                      <span className="font-bold">৳ {formatNum(amountNum)}</span>
                     </div>
                     <div className="flex justify-between text-emerald-400 font-bold">
                       <span>
-                        টোকেন ছাড় ({toBnNumber(customerDiscountPct)}% {selectedToken.tokenType}):
+                        {language === 'bn' 
+                          ? `টোকেন ছাড় (${formatNum(customerDiscountPct)}% ${selectedToken.tokenType}):`
+                          : `Token Discount (${formatNum(customerDiscountPct)}% ${selectedToken.tokenType}):`}
                       </span>
-                      <span>- ৳ {toBnNumber(calculatedDiscountAmount)}</span>
+                      <span>- ৳ {formatNum(calculatedDiscountAmount)}</span>
                     </div>
                     {isSelectedTokenDonated && (
                       <div className="flex justify-between text-rose-400 font-bold">
-                        <span>কল্যাণ তহবিলে দানকৃত ({toBnNumber(currentDiscountPct)}%):</span>
-                        <span>৳ {toBnNumber(donationAmount)} ❤️</span>
+                        <span>
+                          {language === 'bn' 
+                            ? `কল্যাণ তহবিলে দানকৃত (${formatNum(currentDiscountPct)}%):`
+                            : `Donated to Welfare Fund (${formatNum(currentDiscountPct)}%):`}
+                        </span>
+                        <span>৳ {formatNum(donationAmount)} ❤️</span>
                       </div>
                     )}
                     <div className="flex justify-between text-white font-extrabold text-sm pt-2 border-t border-slate-800">
-                      <span>চূড়ান্ত পরিশোধযোগ্য বিল:</span>
+                      <span>{language === 'bn' ? 'চূড়ান্ত পরিশোধযোগ্য বিল:' : 'Final Payable Amount:'}</span>
                       <span className="text-amber-400 font-black text-base">
-                        ৳ {toBnNumber(finalPayable)}
+                        ৳ {formatNum(finalPayable)}
                       </span>
                     </div>
                   </div>
                   {isSelectedTokenDonated && (
                     <div className="p-3 rounded-2xl bg-rose-950/40 border border-rose-500/20 text-[10px] text-rose-300 font-bold flex items-start gap-1.5 leading-relaxed">
                       <span>❤️</span>
-                      <span>এই টোকেনটি ব্যবহার করলে ডিসকাউন্ট সরাসরি মসজিদ কল্যাণ তহবিলে চলে যাবে (আপনি রেগুলার মূল্যে পণ্য কিনবেন)।</span>
+                      <span>
+                        {language === 'bn'
+                          ? 'এই টোকেনটি ব্যবহার করলে ডিসকাউন্ট সরাসরি মসজিদ কল্যাণ তহবিলে চলে যাবে (আপনি রেগুলার মূল্যে পণ্য কিনবেন)।'
+                          : 'Using this token routes the discount directly to the mosque welfare fund (you pay the regular item price).'}
+                      </span>
                     </div>
                   )}
                 </div>
@@ -910,12 +1040,16 @@ const ShopRedemptionModalContent: React.FC<ShopRedemptionModalProps> = ({
                 {isSubmitting ? (
                   <span className="flex items-center gap-2 text-white">
                     <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    <span>অনুরোধ পাঠানো হচ্ছে...</span>
+                    <span>{language === 'bn' ? 'অনুরোধ পাঠানো হচ্ছে...' : 'Sending request...'}</span>
                   </span>
                 ) : (
                   <>
                     <ShieldCheck className="w-5 h-5 text-slate-950" />
-                    <span>অনুমোদনের অনুরোধ পাঠান (Send for Approval)</span>
+                    <span>
+                      {language === 'bn' 
+                        ? 'অনুমোদনের অনুরোধ পাঠান (Send for Approval)' 
+                        : 'Send for Approval'}
+                    </span>
                   </>
                 )}
               </button>
@@ -926,7 +1060,7 @@ const ShopRedemptionModalContent: React.FC<ShopRedemptionModalProps> = ({
                 onClick={onClose}
                 className="w-full py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-all"
               >
-                বাতিল করুন (Cancel)
+                {language === 'bn' ? 'বাতিল করুন (Cancel)' : 'Cancel'}
               </button>
             </div>
           </>

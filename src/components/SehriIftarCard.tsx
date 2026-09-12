@@ -3,13 +3,14 @@ import { Coordinates, CalculationMethod, PrayerTimes as AdhanPrayerTimes, Madhab
 import { MapPin, RefreshCw, Moon, Sunset } from 'lucide-react';
 import { getSavedOrGpsLocation, getFastInitialLocation, getDhakaDateClient } from '../services/prayerTimeService';
 import { toBnNumber } from '../data/prayerConfig';
+import { useLanguage } from '../context/LanguageContext';
 
 interface SehriIftarCardProps {
   userDistrict?: string;
   onShowToast?: (type: string, title: string, message: string) => void;
 }
 
-const SehriIftarCountdown: React.FC<{ targetDate: Date; isFasting: boolean }> = React.memo(({ targetDate, isFasting }) => {
+const SehriIftarCountdown: React.FC<{ targetDate: Date; isFasting: boolean; language: string }> = React.memo(({ targetDate, isFasting, language }) => {
   const countdownRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
@@ -21,18 +22,25 @@ const SehriIftarCountdown: React.FC<{ targetDate: Date; isFasting: boolean }> = 
       const mins = Math.floor((totalSecs % 3600) / 60);
       const secs = totalSecs % 60;
       if (countdownRef.current) {
-        countdownRef.current.textContent = `${toBnNumber(hours.toString().padStart(2, '0'))}:${toBnNumber(mins.toString().padStart(2, '0'))}:${toBnNumber(secs.toString().padStart(2, '0'))}`;
+        const hStr = hours.toString().padStart(2, '0');
+        const mStr = mins.toString().padStart(2, '0');
+        const sStr = secs.toString().padStart(2, '0');
+        countdownRef.current.textContent = language === 'bn' 
+          ? `${toBnNumber(hStr)}:${toBnNumber(mStr)}:${toBnNumber(sStr)}`
+          : `${hStr}:${mStr}:${sStr}`;
       }
     };
     update();
     const timer = setInterval(update, 1000);
     return () => clearInterval(timer);
-  }, [targetDate]);
+  }, [targetDate, language]);
 
   return (
     <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-amber-400">
       <span className="text-[10px] text-slate-300 font-sans font-medium">
-        {isFasting ? 'ইফতারের বাকি:' : 'সাহরির বাকি:'}
+        {isFasting 
+          ? (language === 'bn' ? 'ইফতারের বাকি:' : 'Iftar in:')
+          : (language === 'bn' ? 'সাহরির বাকি:' : 'Sehri in:')}
       </span>
       <span ref={countdownRef} className="text-amber-400">
         00:00:00
@@ -42,13 +50,14 @@ const SehriIftarCountdown: React.FC<{ targetDate: Date; isFasting: boolean }> = 
 });
 
 export const SehriIftarCard: React.FC<SehriIftarCardProps> = React.memo(({ userDistrict, onShowToast }) => {
+  const { language } = useLanguage();
   const [coords, setCoords] = useState<{ lat: number; lng: number; source: 'gps' | 'district' | 'default'; name: string } | null>(() => {
     const init = getFastInitialLocation(userDistrict);
     return {
       lat: init.latitude,
       lng: init.longitude,
       source: init.source,
-      name: init.locationName || 'ঢাকা'
+      name: init.locationName || (language === 'bn' ? 'ঢাকা' : 'Dhaka')
     };
   });
   const [loading, setLoading] = useState(false);
@@ -61,13 +70,14 @@ export const SehriIftarCard: React.FC<SehriIftarCardProps> = React.memo(({ userD
 
     try {
       const loc = await getSavedOrGpsLocation(userDistrict);
+      const defaultName = language === 'bn' ? 'ঢাকা' : 'Dhaka';
       setCoords(prev => {
         if (
           prev &&
           Math.abs(prev.lat - loc.latitude) < 0.0001 &&
           Math.abs(prev.lng - loc.longitude) < 0.0001 &&
           prev.source === loc.source &&
-          prev.name === (loc.locationName || 'ঢাকা')
+          prev.name === (loc.locationName || defaultName)
         ) {
           return prev;
         }
@@ -75,14 +85,16 @@ export const SehriIftarCard: React.FC<SehriIftarCardProps> = React.memo(({ userD
           lat: loc.latitude,
           lng: loc.longitude,
           source: loc.source,
-          name: loc.locationName || 'ঢাকা'
+          name: loc.locationName || defaultName
         };
       });
       if (manual && onShowToast) {
         onShowToast(
           'success',
-          'লোকেশন আপডেট সফল',
-          loc.source === 'gps' ? 'জিপিএস (GPS) অনুযায়ী সময়সূচী সেট করা হয়েছে।' : `আপনার জেলা (${loc.locationName}) অনুযায়ী সেট করা হয়েছে।`
+          language === 'bn' ? 'লোকেশন আপডেট সফল' : 'Location Updated',
+          loc.source === 'gps' 
+            ? (language === 'bn' ? 'জিপিএস (GPS) অনুযায়ী সময়সূচী সেট করা হয়েছে।' : 'Timetable set according to GPS.')
+            : (language === 'bn' ? `আপনার জেলা (${loc.locationName}) অনুযায়ী সেট করা হয়েছে।` : `Set according to district (${loc.locationName}).`)
         );
       }
     } catch (err) {
@@ -91,7 +103,7 @@ export const SehriIftarCard: React.FC<SehriIftarCardProps> = React.memo(({ userD
         lat: 23.8103,
         lng: 90.4125,
         source: 'default',
-        name: 'ঢাকা (ডিফল্ট)'
+        name: language === 'bn' ? 'ঢাকা (ডিফল্ট)' : 'Dhaka (Default)'
       });
     } finally {
       setLoading(false);
@@ -151,7 +163,9 @@ export const SehriIftarCard: React.FC<SehriIftarCardProps> = React.memo(({ userD
       const m = date.getMinutes();
       const hStr = h < 10 ? `0${h}` : `${h}`;
       const mStr = m < 10 ? `0${m}` : `${m}`;
-      return `${toBnNumber(hStr)}:${toBnNumber(mStr)}`;
+      return language === 'bn' 
+        ? `${toBnNumber(hStr)}:${toBnNumber(mStr)}`
+        : `${hStr}:${mStr}`;
     };
 
     return {
@@ -160,7 +174,7 @@ export const SehriIftarCard: React.FC<SehriIftarCardProps> = React.memo(({ userD
       countdownTarget,
       isFastingNow
     };
-  }, [coords, tickerTime]);
+  }, [coords, tickerTime, language]);
 
   return (
     <div 
@@ -170,13 +184,14 @@ export const SehriIftarCard: React.FC<SehriIftarCardProps> = React.memo(({ userD
       {/* Header */}
       <div className="flex items-center justify-between pb-2.5 border-b border-[#0a4838] text-xs">
         <span className="font-bold text-slate-100 flex items-center gap-1.5">
-          সাহরি ও ইফতার
+          {language === 'bn' ? 'সাহরি ও ইফতার' : 'Sehri & Iftar'}
         </span>
 
         {sehriIftarData && (
           <SehriIftarCountdown 
             targetDate={sehriIftarData.countdownTarget} 
             isFasting={sehriIftarData.isFastingNow} 
+            language={language}
           />
         )}
       </div>
@@ -184,7 +199,7 @@ export const SehriIftarCard: React.FC<SehriIftarCardProps> = React.memo(({ userD
       {/* 2-Column Time Summary */}
       {loading ? (
         <div className="py-3 text-center text-xs text-emerald-300/70">
-          সময়সূচী হিসেব হচ্ছে...
+          {language === 'bn' ? 'সময়সূচী হিসেব হচ্ছে...' : 'Calculating timetable...'}
         </div>
       ) : sehriIftarData ? (
         <div className="grid grid-cols-2 gap-3 pt-2.5">
@@ -195,7 +210,7 @@ export const SehriIftarCard: React.FC<SehriIftarCardProps> = React.memo(({ userD
             </div>
             <div className="flex flex-col min-w-0">
               <span className="text-[10px] text-emerald-200/80 font-medium">
-                পরবর্তী সাহরি
+                {language === 'bn' ? 'পরবর্তী সাহরি' : 'Next Sehri'}
               </span>
               <span className="text-sm font-black font-mono text-white">
                 {sehriIftarData.nextSehri} AM
@@ -210,7 +225,7 @@ export const SehriIftarCard: React.FC<SehriIftarCardProps> = React.memo(({ userD
             </div>
             <div className="flex flex-col min-w-0">
               <span className="text-[10px] text-emerald-200/80 font-medium">
-                পরবর্তী ইফতার
+                {language === 'bn' ? 'পরবর্তী ইফতার' : 'Next Iftar'}
               </span>
               <span className="text-sm font-black font-mono text-white">
                 {sehriIftarData.nextIftar} PM

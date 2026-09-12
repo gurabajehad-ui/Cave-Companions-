@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import * as L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { useLanguage } from '../context/LanguageContext';
 
 interface MosqueLocationPickerModalProps {
   initialLat: number; initialLng: number; address: string;
@@ -30,6 +31,7 @@ export const MosqueLocationPickerModal: React.FC<MosqueLocationPickerModalProps>
   onSuccess,
   onShowToast
 }) => {
+  const { language } = useLanguage();
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
@@ -71,7 +73,7 @@ export const MosqueLocationPickerModal: React.FC<MosqueLocationPickerModalProps>
     try {
       const response = await fetch(
         `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`,
-        { headers: { 'Accept-Language': 'bn, en' } }
+        { headers: { 'Accept-Language': language === 'bn' ? 'bn, en' : 'en, bn' } }
       );
       if (response.ok) {
         const data = await response.json();
@@ -109,7 +111,8 @@ export const MosqueLocationPickerModal: React.FC<MosqueLocationPickerModalProps>
           draggable: true
         }).addTo(map);
 
-        marker.bindPopup(`<b>মসজিদ</b><br/>মসজিদের অবস্থান`).openPopup();
+        const popupText = language === 'bn' ? '<b>মসজিদ</b><br/>মসজিদের অবস্থান' : '<b>Mosque</b><br/>Mosque Location';
+        marker.bindPopup(popupText).openPopup();
 
         // Drag event
         marker.on('dragend', (e: any) => {
@@ -140,7 +143,11 @@ export const MosqueLocationPickerModal: React.FC<MosqueLocationPickerModalProps>
       }
     } catch (err) {
       console.error('Leaflet initialization failed:', err);
-      onShowToast('error', 'ম্যাপ ত্রুটি', 'ম্যাপ লোড করতে সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।');
+      onShowToast(
+        'error',
+        language === 'bn' ? 'ম্যাপ ত্রুটি' : 'Map Error',
+        language === 'bn' ? 'ম্যাপ লোড করতে সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।' : 'Failed to load map. Please try again.'
+      );
     }
 
     return () => {
@@ -170,7 +177,11 @@ export const MosqueLocationPickerModal: React.FC<MosqueLocationPickerModalProps>
   // Use Current Device GPS Location
   const handleUseCurrentLocation = () => {
     if (!navigator.geolocation) {
-      onShowToast('info', 'লোকেশন অনুপলব্ধ', 'আপনার ডিভাইস বা ব্রাউজার GPS লোকেশন সমর্থন করে না।');
+      onShowToast(
+        'info',
+        language === 'bn' ? 'লোকেশন অনুপলব্ধ' : 'Location Unavailable',
+        language === 'bn' ? 'আপনার ডিভাইস বা ব্রাউজার GPS লোকেশন সমর্থন করে না।' : 'Your device or browser does not support GPS location.'
+      );
       return;
     }
 
@@ -182,13 +193,21 @@ export const MosqueLocationPickerModal: React.FC<MosqueLocationPickerModalProps>
         const { latitude, longitude } = pos.coords;
         updateMapPosition(latitude, longitude, 17, true);
         setIsLocating(false);
-        onShowToast('success', 'বর্তমান লোকেশন চিহ্নিত', 'আপনার ডিভাইসের অবস্থান ম্যাপে পিন করা হয়েছে।');
+        onShowToast(
+          'success',
+          language === 'bn' ? 'বর্তমান লোকেশন চিহ্নিত' : 'Current Location Marked',
+          language === 'bn' ? 'আপনার ডিভাইসের অবস্থান ম্যাপে পিন করা হয়েছে।' : 'Your device location has been pinned on the map.'
+        );
       },
       (err) => {
         console.warn('Geolocation error:', err);
         setIsLocating(false);
         setHasPermissionError(true);
-        onShowToast('warning', 'লোকেশন অনুমতি প্রয়োজন', 'GPS লোকেশন অনুমতি না পাওয়ায় অনুগ্রহ করে ম্যাপে ক্লিক করে বা ঠিকানা অনুসন্ধান করে নির্বাচন করুন।');
+        onShowToast(
+          'warning',
+          language === 'bn' ? 'লোকেশন অনুমতি প্রয়োজন' : 'Location Permission Required',
+          language === 'bn' ? 'GPS লোকেশন অনুমতি না পাওয়ায় অনুগ্রহ করে ম্যাপে ক্লিক করে বা ঠিকানা অনুসন্ধান করে নির্বাচন করুন।' : 'GPS permission not granted. Please click on map or search address.'
+        );
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
@@ -206,7 +225,7 @@ export const MosqueLocationPickerModal: React.FC<MosqueLocationPickerModalProps>
       const q = encodeURIComponent(searchQuery.trim() + ', Bangladesh');
       const response = await fetch(
         `https://nominatim.openstreetmap.org/search?format=json&q=${q}&limit=5`,
-        { headers: { 'Accept-Language': 'bn, en' } }
+        { headers: { 'Accept-Language': language === 'bn' ? 'bn, en' : 'en, bn' } }
       );
 
       if (response.ok) {
@@ -220,11 +239,19 @@ export const MosqueLocationPickerModal: React.FC<MosqueLocationPickerModalProps>
           updateMapPosition(lat, lon, 16, false);
           setFormattedAddress(first.display_name);
         } else {
-          onShowToast('info', 'ফলাফল পাওয়া যায়নি', 'অনুসন্ধানকৃত ঠিকানার কোনো অবস্থান পাওয়া যায়নি। অন্য এলাকা লিখে চেষ্টা করুন।');
+          onShowToast(
+            'info',
+            language === 'bn' ? 'ফলাফল পাওয়া যায়নি' : 'No Results Found',
+            language === 'bn' ? 'অনুসন্ধানকৃত ঠিকানার কোনো অবস্থান পাওয়া যায়নি। অন্য এলাকা লিখে চেষ্টা করুন।' : 'No location found matching your search. Please try a different area.'
+          );
         }
       }
     } catch {
-      onShowToast('error', 'অনুসন্ধান ত্রুটি', 'ঠিকানা অনুসন্ধান করতে সমস্যা হয়েছে। ম্যাপে সরাসরি ক্লিক করুন।');
+      onShowToast(
+        'error',
+        language === 'bn' ? 'অনুসন্ধান ত্রুটি' : 'Search Error',
+        language === 'bn' ? 'ঠিকানা অনুসন্ধান করতে সমস্যা হয়েছে। ম্যাপে সরাসরি ক্লিক করুন।' : 'Failed to search address. Please click directly on the map.'
+      );
     } finally {
       setIsSearching(false);
     }
@@ -260,13 +287,13 @@ export const MosqueLocationPickerModal: React.FC<MosqueLocationPickerModalProps>
             </div>
             <div>
               <h2 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
-                মসজিদের লোকেশন সেট করুন
+                {language === 'bn' ? 'মসজিদের লোকেশন সেট করুন' : 'Set Mosque Location'}
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">
                   Google / OSM Maps
                 </span>
               </h2>
               <p className="text-xs text-slate-400">
-                {"Mosque"} • ম্যাপে সঠিক স্থানটি পিন করুন
+                {language === 'bn' ? 'মসজিদ • ম্যাপে সঠিক স্থানটি পিন করুন' : 'Mosque • Pin the exact location on map'}
               </p>
             </div>
           </div>
@@ -293,7 +320,7 @@ export const MosqueLocationPickerModal: React.FC<MosqueLocationPickerModalProps>
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="এলাকা, বাজার বা ঠিকানা দিয়ে খুঁজুন (যেমন: ধানমন্ডি, মিরপুর)..."
+                placeholder={language === 'bn' ? 'এলাকা, বাজার বা ঠিকানা দিয়ে খুঁজুন (যেমন: ধানমন্ডি, মিরপুর)...' : 'Search by area, place or address (e.g. Dhanmondi, Mirpur)...'}
                 className="w-full pl-10 pr-20 py-2.5 rounded-2xl bg-slate-950 border border-slate-800 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
               />
               <button
@@ -301,7 +328,7 @@ export const MosqueLocationPickerModal: React.FC<MosqueLocationPickerModalProps>
                 disabled={isSearching || !searchQuery.trim()}
                 className="absolute right-1.5 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
               >
-                {isSearching ? <RotateCw className="w-3 h-3 animate-spin" /> : <span>খুঁজুন</span>}
+                {isSearching ? <RotateCw className="w-3 h-3 animate-spin" /> : <span>{language === 'bn' ? 'খুঁজুন' : 'Search'}</span>}
               </button>
             </form>
 
@@ -314,14 +341,14 @@ export const MosqueLocationPickerModal: React.FC<MosqueLocationPickerModalProps>
               className="px-4 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-slate-700 hover:border-emerald-500/50 text-xs font-bold transition-all shrink-0 flex items-center justify-center gap-2 cursor-pointer active:scale-95"
             >
               <Navigation className={`w-4 h-4 ${isLocating ? 'animate-spin text-emerald-400' : 'text-emerald-400'}`} />
-              <span>{isLocating ? 'শনাক্ত হচ্ছে...' : 'বর্তমান লোকেশন ব্যবহার করুন'}</span>
+              <span>{isLocating ? (language === 'bn' ? 'শনাক্ত হচ্ছে...' : 'Locating...') : (language === 'bn' ? 'বর্তমান লোকেশন ব্যবহার করুন' : 'Use Current Location')}</span>
             </button>
           </div>
 
           {/* Search suggestions dropdown if any */}
           {searchResults.length > 0 && (
             <div className="p-2 rounded-2xl bg-slate-950 border border-slate-800 space-y-1 shadow-lg max-h-40 overflow-y-auto">
-              <span className="text-[10px] font-bold text-slate-500 px-2 block">অনুসন্ধানের ফলাফল:</span>
+              <span className="text-[10px] font-bold text-slate-500 px-2 block">{language === 'bn' ? 'অনুসন্ধানের ফলাফল:' : 'Search Results:'}</span>
               {searchResults.map((res, i) => (
                 <button
                   key={i}
@@ -340,7 +367,9 @@ export const MosqueLocationPickerModal: React.FC<MosqueLocationPickerModalProps>
             <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-2">
               <AlertCircle className="w-4 h-4 shrink-0" />
               <span>
-                ডিভাইস লোকেশন পাওয়া যায়নি। আপনি নিচের ম্যাপে যে কোনো জায়গায় ক্লিক করে অথবা মার্কারটি টেনে সঠিক স্থান নির্ধারণ করতে পারেন।
+                {language === 'bn'
+                  ? 'ডিভাইস লোকেশন পাওয়া যায়নি। আপনি নিচের ম্যাপে যে কোনো জায়গায় ক্লিক করে অথবা মার্কারটি টেনে সঠিক স্থান নির্ধারণ করতে পারেন।'
+                  : 'Device location not found. You can click anywhere on the map below or drag the marker to set the exact location.'}
               </span>
             </div>
           )}
@@ -352,7 +381,7 @@ export const MosqueLocationPickerModal: React.FC<MosqueLocationPickerModalProps>
             {/* Map Floating Tip Badge */}
             <div className="absolute top-3 left-3 z-10 px-3 py-1.5 rounded-xl bg-slate-900/90 backdrop-blur-md border border-slate-700 text-[11px] text-slate-200 shadow-md flex items-center gap-1.5 pointer-events-none">
               <MapPin className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
-              <span>মার্কার টেনে সঠিক স্থানে রাখুন বা ম্যাপে ক্লিক করুন</span>
+              <span>{language === 'bn' ? 'মার্কার টেনে সঠিক স্থানে রাখুন বা ম্যাপে ক্লিক করুন' : 'Drag marker to exact spot or click on map'}</span>
             </div>
           </div>
 
@@ -361,7 +390,7 @@ export const MosqueLocationPickerModal: React.FC<MosqueLocationPickerModalProps>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <span className="text-xs font-bold text-slate-400 flex items-center gap-1.5">
                 <Compass className="w-3.5 h-3.5 text-emerald-400" />
-                নির্বাচিত কোঅর্ডিনেট:
+                {language === 'bn' ? 'নির্বাচিত কোঅর্ডিনেট:' : 'Selected Coordinates:'}
               </span>
               <div className="flex items-center gap-3 text-xs font-mono">
                 <span className="px-2 py-0.5 rounded-lg bg-slate-900 text-emerald-400 border border-slate-800">
@@ -376,13 +405,13 @@ export const MosqueLocationPickerModal: React.FC<MosqueLocationPickerModalProps>
             {/* Formatted Address Field */}
             <div className="pt-2 border-t border-slate-800/80 space-y-1">
               <label className="text-[11px] text-slate-400 block font-medium">
-                মসজিদের ঠিকানা / ল্যান্ডমার্ক বিবরণ:
+                {language === 'bn' ? 'মসজিদের ঠিকানা / ল্যান্ডমার্ক বিবরণ:' : 'Mosque Address / Landmark Description:'}
               </label>
               <input
                 type="text"
                 value={formattedAddress}
                 onChange={(e) => setFormattedAddress(e.target.value)}
-                placeholder="মসজিদের বিস্তারিত ঠিকানা বা ল্যান্ডমার্ক..."
+                placeholder={language === 'bn' ? 'মসজিদের বিস্তারিত ঠিকানা বা ল্যান্ডমার্ক...' : 'Detailed mosque address or landmarks...'}
                 className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500"
               />
             </div>
@@ -396,7 +425,7 @@ export const MosqueLocationPickerModal: React.FC<MosqueLocationPickerModalProps>
             onClick={onClose}
             className="px-4 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-all cursor-pointer"
           >
-            বাতিল
+            {language === 'bn' ? 'বাতিল' : 'Cancel'}
           </button>
 
           <button
@@ -409,12 +438,12 @@ export const MosqueLocationPickerModal: React.FC<MosqueLocationPickerModalProps>
             {isSaving ? (
               <>
                 <RotateCw className="w-4 h-4 animate-spin" />
-                <span>সংরক্ষণ হচ্ছে...</span>
+                <span>{language === 'bn' ? 'সংরক্ষণ হচ্ছে...' : 'Saving...'}</span>
               </>
             ) : (
               <>
                 <CheckCircle2 className="w-4 h-4 text-emerald-200" />
-                <span>লোকেশন নিশ্চিত ও সংরক্ষণ করুন</span>
+                <span>{language === 'bn' ? 'লোকেশন নিশ্চিত ও সংরক্ষণ করুন' : 'Confirm & Save Location'}</span>
               </>
             )}
           </button>
@@ -423,3 +452,4 @@ export const MosqueLocationPickerModal: React.FC<MosqueLocationPickerModalProps>
     </div>
   );
 };
+

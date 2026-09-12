@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Type, RotateCcw, Check } from 'lucide-react';
 import { QuranReadingSettings } from '../../types/quran';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface QuranSettingsModalProps {
   isOpen: boolean;
@@ -15,6 +16,7 @@ export const QuranSettingsModal: React.FC<QuranSettingsModalProps> = ({
   settings,
   onSaveSettings
 }) => {
+  const { language } = useLanguage();
   const [current, setCurrent] = useState<QuranReadingSettings>(settings);
 
   if (!isOpen) return null;
@@ -46,8 +48,12 @@ export const QuranSettingsModal: React.FC<QuranSettingsModalProps> = ({
               <Type className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-white">পড়ার সেটিংস ও ফন্ট সাইজ</h2>
-              <p className="text-xs text-emerald-300/80">পছন্দমতো ফন্ট সাইজ পরিবর্তন করুন</p>
+              <h2 className="text-base font-bold text-white">
+                {language === 'bn' ? 'পড়ার সেটিংস ও ফন্ট সাইজ' : 'Reading Settings & Font Size'}
+              </h2>
+              <p className="text-xs text-emerald-300/80">
+                {language === 'bn' ? 'পছন্দমতো ফন্ট সাইজ পরিবর্তন করুন' : 'Adjust font size according to your preference'}
+              </p>
             </div>
           </div>
           <button
@@ -63,7 +69,7 @@ export const QuranSettingsModal: React.FC<QuranSettingsModalProps> = ({
           {/* Live Preview Box */}
           <div className="p-4 rounded-2xl bg-[#04261c] border border-emerald-800/80 space-y-3">
             <span className="text-[10px] uppercase font-bold text-amber-300 tracking-wider">
-              লাইভ প্রিভিউ (Live Preview)
+              {language === 'bn' ? 'লাইভ প্রিভিউ (Live Preview)' : 'Live Preview'}
             </span>
             {current.showArabic && (
               <p
@@ -79,7 +85,7 @@ export const QuranSettingsModal: React.FC<QuranSettingsModalProps> = ({
                 className="text-emerald-100/90 leading-normal"
                 style={{ fontSize: `${current.bengaliFontSize}px` }}
               >
-                পরম করুণাময়, অসীম দয়ালু আল্লাহর নামে।
+                {language === 'bn' ? 'পরম করুণাময়, অসীম দয়ালু আল্লাহর নামে।' : 'In the name of Allah, the Entirely Merciful, the Especially Merciful.'}
               </p>
             )}
           </div>
@@ -87,7 +93,9 @@ export const QuranSettingsModal: React.FC<QuranSettingsModalProps> = ({
           {/* Arabic Font Size Control */}
           <div className="space-y-2">
             <div className="flex items-center justify-between text-xs">
-              <span className="font-semibold text-emerald-200">আরবি ফন্ট সাইজ</span>
+              <span className="font-semibold text-emerald-200">
+                {language === 'bn' ? 'আরবি ফন্ট সাইজ' : 'Arabic Font Size'}
+              </span>
               <span className="font-mono text-amber-300 font-bold bg-amber-500/20 px-2 py-0.5 rounded border border-amber-500/40">
                 {current.arabicFontSize}px
               </span>
@@ -120,7 +128,9 @@ export const QuranSettingsModal: React.FC<QuranSettingsModalProps> = ({
           {/* Bengali Font Size Control */}
           <div className="space-y-2">
             <div className="flex items-center justify-between text-xs">
-              <span className="font-semibold text-emerald-200">বাংলা অনুবাদ ফন্ট সাইজ</span>
+              <span className="font-semibold text-emerald-200">
+                {language === 'bn' ? 'বাংলা অনুবাদ ফন্ট সাইজ' : 'Translation Font Size'}
+              </span>
               <span className="font-mono text-amber-300 font-bold bg-amber-500/20 px-2 py-0.5 rounded border border-amber-500/40">
                 {current.bengaliFontSize}px
               </span>
@@ -161,7 +171,7 @@ export const QuranSettingsModal: React.FC<QuranSettingsModalProps> = ({
               }`}
             >
               {current.showArabic && <Check className="w-3.5 h-3.5 text-amber-400" />}
-              <span>আরবি টেক্সট</span>
+              <span>{language === 'bn' ? 'আরবি টেক্সট' : 'Arabic Text'}</span>
             </button>
             <button
               onClick={() => handleUpdate({ showTranslation: !current.showTranslation })}
@@ -172,7 +182,7 @@ export const QuranSettingsModal: React.FC<QuranSettingsModalProps> = ({
               }`}
             >
               {current.showTranslation && <Check className="w-3.5 h-3.5 text-amber-400" />}
-              <span>বাংলা অর্থ</span>
+              <span>{language === 'bn' ? 'বাংলা অর্থ' : 'Translation'}</span>
             </button>
           </div>
         </div>
@@ -184,13 +194,13 @@ export const QuranSettingsModal: React.FC<QuranSettingsModalProps> = ({
             className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-emerald-950/60 hover:bg-emerald-900 text-emerald-300 text-xs font-semibold border border-emerald-800/40 cursor-pointer transition"
           >
             <RotateCcw className="w-3.5 h-3.5" />
-            <span>রিসেট ডিফল্ট</span>
+            <span>{language === 'bn' ? 'রিসেট ডিফল্ট' : 'Reset Defaults'}</span>
           </button>
           <button
             onClick={onClose}
             className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs transition cursor-pointer shadow-md"
           >
-            সংরক্ষণ ও বন্ধ করুন
+            {language === 'bn' ? 'সংরক্ষণ ও বন্ধ করুন' : 'Save & Close'}
           </button>
         </div>
       </div>

@@ -17,6 +17,7 @@ import { SurahDetail, AyahItem, QuranReadingSettings } from '../../types/quran';
 import { quranService } from '../../services/quranService';
 import { QuranSettingsModal } from './QuranSettingsModal';
 import { AyahExplanationModal } from './AyahExplanationModal';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface SurahReaderViewProps {
   surahNumber: number;
@@ -37,6 +38,7 @@ export const SurahReaderView: React.FC<SurahReaderViewProps> = ({
   onSaveSettings,
   onShowToast
 }) => {
+  const { language } = useLanguage();
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [surah, setSurah] = useState<SurahDetail | null>(null);
@@ -76,7 +78,7 @@ export const SurahReaderView: React.FC<SurahReaderViewProps> = ({
               handleOpenExplanation(ayah, numStr);
             }}
             className="inline-flex items-center justify-center px-1.5 py-0.5 mx-0.5 rounded-md bg-amber-500/25 border border-amber-400/80 text-amber-300 font-bold text-xs cursor-pointer hover:bg-amber-400 hover:text-emerald-950 transition-all shadow-xs active:scale-95"
-            title={`টীকা ${part} ব্যাখ্যা দেখতে ট্যাপ করুন`}
+            title={language === 'bn' ? `টীকা ${part} ব্যাখ্যা দেখতে ট্যাপ করুন` : `Tap to view footnote ${part} explanation`}
           >
             {part}
           </span>
@@ -113,7 +115,7 @@ export const SurahReaderView: React.FC<SurahReaderViewProps> = ({
         }
       } catch (err: any) {
         if (active) {
-          setError(err?.message || 'কুরআনের ডেটা লোড করতে ব্যর্থ হয়েছে।');
+          setError(err?.message || (language === 'bn' ? 'কুরআনের ডেটা লোড করতে ব্যর্থ হয়েছে।' : 'Failed to load Quran data.'));
           setLoading(false);
         }
       }
@@ -135,10 +137,10 @@ export const SurahReaderView: React.FC<SurahReaderViewProps> = ({
   };
 
   const handleCopyAyah = (ayah: AyahItem) => {
-    const textToCopy = `${ayah.arabicText}\n\n[বাংলা অনুবাদ: ${ayah.bengaliText}]\n\n— সূরা ${surah?.meta.nameBn} (আয়াত: ${ayah.ayahNumber})`;
+    const textToCopy = `${ayah.arabicText}\n\n[${language === 'bn' ? 'বাংলা অনুবাদ' : 'Translation'}: ${ayah.bengaliText}]\n\n— ${language === 'bn' ? 'সূরা' : 'Surah'} ${language === 'bn' ? surah?.meta.nameBn : surah?.meta.nameEn} (${language === 'bn' ? 'আয়াত' : 'Ayah'}: ${ayah.ayahNumber})`;
     navigator.clipboard.writeText(textToCopy)
-      .then(() => onShowToast('আয়াত কপি করা হয়েছে!', 'success'))
-      .catch(() => onShowToast('কপি করতে ব্যর্থ হয়েছে।', 'error'));
+      .then(() => onShowToast(language === 'bn' ? 'আয়াত কপি করা হয়েছে!' : 'Ayah copied!', 'success'))
+      .catch(() => onShowToast(language === 'bn' ? 'কপি করতে ব্যর্থ হয়েছে।' : 'Failed to copy.', 'error'));
   };
 
   const handleToggleBookmark = (ayah: AyahItem) => {
@@ -161,29 +163,32 @@ export const SurahReaderView: React.FC<SurahReaderViewProps> = ({
     }));
 
     if (isNowBookmarked) {
-      onShowToast(`আয়াত ${ayah.ayahNumber} বুকমার্ক করা হয়েছে`, 'success');
+      onShowToast(language === 'bn' ? `আয়াত ${ayah.ayahNumber} বুকমার্ক করা হয়েছে` : `Ayah ${ayah.ayahNumber} bookmarked`, 'success');
     } else {
-      onShowToast(`আয়াত ${ayah.ayahNumber} বুকমার্ক থেকে সরানো হয়েছে`, 'info');
+      onShowToast(language === 'bn' ? `আয়াত ${ayah.ayahNumber} বুকমার্ক থেকে সরানো হয়েছে` : `Ayah ${ayah.ayahNumber} removed from bookmarks`, 'info');
     }
   };
 
   const handleShareAyah = (ayah: AyahItem) => {
     if (!surah) return;
-    const textToShare = `পবিত্র কুরআন মাজীদ • সূরা ${surah.meta.nameBn} • আয়াত ${ayah.ayahNumber}\n\n${ayah.arabicText}\n\nঅর্থ: ${ayah.bengaliText}\n\n— কেভ কম্প্যানিয়ন্স ডাউনলোড করুন এবং জামাতে নামাজে অভ্যস্ত হোন।`;
+    const textToShare = language === 'bn' 
+      ? `পবিত্র কুরআন মাজীদ • সূরা ${surah.meta.nameBn} • আয়াত ${ayah.ayahNumber}\n\n${ayah.arabicText}\n\nঅর্থ: ${ayah.bengaliText}\n\n— কেভ কম্প্যানিয়ন্স ডাউনলোড করুন এবং জামাতে নামাজে অভ্যস্ত হোন।`
+      : `Holy Quran • Surah ${surah.meta.nameEn || surah.meta.nameBn} • Ayah ${ayah.ayahNumber}\n\n${ayah.arabicText}\n\nTranslation: ${ayah.bengaliText}\n\n— Download Cave Companions and build your Salah habits.`;
 
     if (navigator.share) {
       navigator.share({
-        title: `সূরা ${surah.meta.nameBn} - আয়াত ${ayah.ayahNumber}`,
+        title: `${language === 'bn' ? 'সূরা' : 'Surah'} ${language === 'bn' ? surah.meta.nameBn : surah.meta.nameEn} - ${language === 'bn' ? 'আয়াত' : 'Ayah'} ${ayah.ayahNumber}`,
         text: textToShare
       }).catch(() => {});
     } else {
       navigator.clipboard.writeText(textToShare);
-      onShowToast('শেয়ার করার লিংক ও টেক্সট কপি করা হয়েছে!', 'success');
+      onShowToast(language === 'bn' ? 'শেয়ার করার লিংক ও টেক্সট কপি করা হয়েছে!' : 'Share text copied to clipboard!', 'success');
     }
   };
 
   // Safe Bengali Number Convertor
   const toBnNum = (num: number): string => {
+    if (language === 'en') return String(num);
     const en = num.toString();
     const bn = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
     return en.replace(/[0-9]/g, (w) => bn[parseInt(w, 10)]);
@@ -193,7 +198,9 @@ export const SurahReaderView: React.FC<SurahReaderViewProps> = ({
     return (
       <div className="flex flex-col items-center justify-center min-h-[70vh] text-center space-y-4">
         <div className="w-12 h-12 rounded-full border-4 border-amber-400 border-t-transparent animate-spin"></div>
-        <p className="text-sm font-semibold text-emerald-300">পবিত্র সূরা লোড হচ্ছে...</p>
+        <p className="text-sm font-semibold text-emerald-300">
+          {language === 'bn' ? 'পবিত্র সূরা লোড হচ্ছে...' : 'Loading Surah...'}
+        </p>
       </div>
     );
   }
@@ -205,14 +212,14 @@ export const SurahReaderView: React.FC<SurahReaderViewProps> = ({
           <X className="w-8 h-8" />
         </div>
         <div className="space-y-1 max-w-sm">
-          <p className="text-base font-bold text-red-400">ত্রুটি দেখা দিয়েছে</p>
-          <p className="text-xs text-emerald-300/80">{error || 'কোনো অজানা সমস্যা দেখা দিয়েছে।'}</p>
+          <p className="text-base font-bold text-red-400">{language === 'bn' ? 'ত্রুটি দেখা দিয়েছে' : 'An error occurred'}</p>
+          <p className="text-xs text-emerald-300/80">{error || (language === 'bn' ? 'কোনো অজানা সমস্যা দেখা দিয়েছে।' : 'An unknown error occurred.')}</p>
         </div>
         <button
           onClick={onBack}
           className="px-6 py-2.5 rounded-xl bg-emerald-900 border border-emerald-800 text-white font-bold text-xs cursor-pointer active:scale-95 transition"
         >
-          কুরআনে ফিরে যান
+          {language === 'bn' ? 'কুরআনে ফিরে যান' : 'Back to Quran'}
         </button>
       </div>
     );
@@ -232,13 +239,13 @@ export const SurahReaderView: React.FC<SurahReaderViewProps> = ({
             </button>
             <div>
               <h1 className="text-sm font-bold text-white flex items-center gap-1.5">
-                {surah.meta.nameBn}
+                {language === 'bn' ? surah.meta.nameBn : surah.meta.nameEn}
                 <span className="text-[10px] bg-amber-500/10 border border-amber-500/30 text-amber-300 font-bold px-1.5 py-0.5 rounded-full font-mono">
                   #{surah.meta.number}
                 </span>
               </h1>
               <p className="text-[10px] text-emerald-400/80">
-                {surah.meta.revelationTypeBn} • {toBnNum(surah.meta.ayahCount)}টি আয়াত
+                {language === 'bn' ? surah.meta.revelationTypeBn : surah.meta.revelationType} • {language === 'bn' ? `${toBnNum(surah.meta.ayahCount)}টি আয়াত` : `${surah.meta.ayahCount} Ayahs`}
               </p>
             </div>
           </div>
@@ -248,7 +255,7 @@ export const SurahReaderView: React.FC<SurahReaderViewProps> = ({
             <button
               onClick={() => setSettingsOpen(true)}
               className="p-2 rounded-xl bg-emerald-950/70 text-emerald-300 hover:text-white border border-emerald-900/50 cursor-pointer active:scale-95 transition"
-              title="পড়ার সেটিংস"
+              title={language === 'bn' ? 'পড়ার সেটিংস' : 'Reading Settings'}
             >
               <Settings className="w-4 h-4" />
             </button>
@@ -258,7 +265,7 @@ export const SurahReaderView: React.FC<SurahReaderViewProps> = ({
               onClick={() => setJumpMenuOpen(!jumpMenuOpen)}
               className="px-3 py-1.5 rounded-xl bg-amber-500/10 text-amber-300 border border-amber-500/30 text-xs font-bold cursor-pointer hover:bg-amber-500/20 transition active:scale-95 flex items-center gap-1"
             >
-              <span>যাও</span>
+              <span>{language === 'bn' ? 'যাও' : 'Jump'}</span>
               <BookOpen className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -269,7 +276,9 @@ export const SurahReaderView: React.FC<SurahReaderViewProps> = ({
       {jumpMenuOpen && (
         <div className="fixed top-14 left-1/2 -translate-x-1/2 z-40 bg-[#03231a] border border-amber-500/40 rounded-2xl w-[90%] max-w-sm shadow-2xl p-4 animate-scaleUp">
           <div className="flex items-center justify-between mb-3 border-b border-emerald-800/40 pb-2">
-            <span className="text-xs font-bold text-amber-300">আয়াতে সরাসরি যান</span>
+            <span className="text-xs font-bold text-amber-300">
+              {language === 'bn' ? 'আয়াতে সরাসরি যান' : 'Jump to Ayah'}
+            </span>
             <button
               onClick={() => setJumpMenuOpen(false)}
               className="p-1 rounded-full text-emerald-400 hover:bg-emerald-900/40"
@@ -307,21 +316,21 @@ export const SurahReaderView: React.FC<SurahReaderViewProps> = ({
 
           <div className="inline-flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[10px] font-bold px-2.5 py-1 rounded-full">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>সূরা তিলাওয়াত</span>
+            <span>{language === 'bn' ? 'সূরা তিলাওয়াত' : 'Surah Recitation'}</span>
           </div>
 
           <div className="space-y-1">
             <h2 className="font-arabic text-amber-200 text-3xl leading-none">{surah.meta.nameAr}</h2>
-            <h3 className="text-xl font-extrabold text-white">{surah.meta.nameBn}</h3>
+            <h3 className="text-xl font-extrabold text-white">{language === 'bn' ? surah.meta.nameBn : surah.meta.nameEn}</h3>
             <p className="text-xs text-emerald-300/80 italic">
-              অর্থ: {surah.meta.meaningBn} • ({surah.meta.nameEn})
+              {language === 'bn' ? `অর্থ: ${surah.meta.meaningBn}` : `Meaning: ${surah.meta.meaningBn}`} • ({surah.meta.nameEn})
             </p>
           </div>
 
           <div className="border-t border-emerald-800/40 pt-3 flex items-center justify-center gap-4 text-xs text-emerald-200/80 font-semibold">
-            <span>নাযিল: {surah.meta.revelationTypeBn}</span>
+            <span>{language === 'bn' ? `নাযিল: ${surah.meta.revelationTypeBn}` : `Revelation: ${surah.meta.revelationType}`}</span>
             <span className="w-1.5 h-1.5 rounded-full bg-amber-400/80"></span>
-            <span>মোট আয়াত: {toBnNum(surah.meta.ayahCount)}</span>
+            <span>{language === 'bn' ? `মোট আয়াত: ${toBnNum(surah.meta.ayahCount)}` : `Total Ayahs: ${surah.meta.ayahCount}`}</span>
           </div>
 
           {/* Bismillah Cover Image/Art */}
@@ -331,7 +340,7 @@ export const SurahReaderView: React.FC<SurahReaderViewProps> = ({
                 بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ
               </p>
               <p className="text-[11px] text-emerald-400/80 mt-1">
-                পরম করুণাময় অসীম দয়ালু আল্লাহর নামে শুরু করছি।
+                {language === 'bn' ? 'পরম করুণাময় অসীম দয়ালু আল্লাহর নামে শুরু করছি।' : 'In the name of Allah, the Entirely Merciful, the Especially Merciful.'}
               </p>
             </div>
           )}
@@ -371,7 +380,7 @@ export const SurahReaderView: React.FC<SurahReaderViewProps> = ({
                     {toBnNum(ayah.ayahNumber)}
                   </span>
                   <span className="text-[10px] text-emerald-400/70 font-mono">
-                    {surah.meta.nameBn} • আয়াত
+                    {language === 'bn' ? surah.meta.nameBn : surah.meta.nameEn} • {language === 'bn' ? 'আয়াত' : 'Ayah'}
                   </span>
                 </div>
 
@@ -383,10 +392,10 @@ export const SurahReaderView: React.FC<SurahReaderViewProps> = ({
                       handleOpenExplanation(ayah);
                     }}
                     className="px-2 py-1.5 rounded-lg bg-amber-500/15 border border-amber-500/40 text-amber-300 hover:bg-amber-400 hover:text-emerald-950 cursor-pointer active:scale-95 transition flex items-center gap-1 text-[11px] font-bold"
-                    title="ব্যাখ্যা ও টীকা দেখুন"
+                    title={language === 'bn' ? 'ব্যাখ্যা ও টীকা দেখুন' : 'View Explanation & Notes'}
                   >
                     <MessageSquareText className="w-3.5 h-3.5 text-amber-400" />
-                    <span>ব্যাখ্যা</span>
+                    <span>{language === 'bn' ? 'ব্যাখ্যা' : 'Tafsir'}</span>
                   </button>
 
                   {/* Bookmark Button */}
@@ -411,7 +420,7 @@ export const SurahReaderView: React.FC<SurahReaderViewProps> = ({
                       handleCopyAyah(ayah);
                     }}
                     className="p-2 rounded-lg bg-emerald-950/60 border border-emerald-900 text-emerald-400 hover:text-white cursor-pointer active:scale-95 transition"
-                    title="আয়াত কপি করুন"
+                    title={language === 'bn' ? 'আয়াত কপি করুন' : 'Copy Ayah'}
                   >
                     <Copy className="w-3.5 h-3.5" />
                   </button>
@@ -423,7 +432,7 @@ export const SurahReaderView: React.FC<SurahReaderViewProps> = ({
                       handleShareAyah(ayah);
                     }}
                     className="p-2 rounded-lg bg-emerald-950/60 border border-emerald-900 text-emerald-400 hover:text-white cursor-pointer active:scale-95 transition"
-                    title="শেয়ার করুন"
+                    title={language === 'bn' ? 'শেয়ার করুন' : 'Share'}
                   >
                     <Share2 className="w-3.5 h-3.5" />
                   </button>
@@ -472,7 +481,7 @@ export const SurahReaderView: React.FC<SurahReaderViewProps> = ({
             className="flex-1 py-3 rounded-2xl bg-emerald-950/80 border border-emerald-900 hover:bg-emerald-900 text-emerald-300 hover:text-white font-bold text-xs flex items-center justify-center gap-1.5 transition active:scale-95 disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>পূর্ববর্তী সূরা</span>
+            <span>{language === 'bn' ? 'পূর্ববর্তী সূরা' : 'Previous Surah'}</span>
           </button>
 
           {/* Next Surah */}
@@ -481,7 +490,7 @@ export const SurahReaderView: React.FC<SurahReaderViewProps> = ({
             onClick={() => onNavigateSurah(surahNumber + 1)}
             className="flex-1 py-3 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition active:scale-95 disabled:opacity-40 disabled:pointer-events-none cursor-pointer shadow-md"
           >
-            <span>পরবর্তী সূরা</span>
+            <span>{language === 'bn' ? 'পরবর্তী সূরা' : 'Next Surah'}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </div>

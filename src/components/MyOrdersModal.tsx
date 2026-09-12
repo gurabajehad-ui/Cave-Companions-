@@ -4,6 +4,8 @@ import { ShoppingBag, X, Clock, CheckCircle2, AlertCircle, Truck, XCircle, Chevr
 import { Order } from '../types';
 import { api } from '../services/api';
 import { DigitalCashMemoModal } from './DigitalCashMemoModal';
+import { useLanguage } from '../context/LanguageContext';
+import { toBnNumber } from '../data/prayerConfig';
 
 interface MyOrdersModalProps {
   isOpen: boolean;
@@ -11,6 +13,9 @@ interface MyOrdersModalProps {
 }
 
 export const MyOrdersModal: React.FC<MyOrdersModalProps> = ({ isOpen, onClose }) => {
+  const { language } = useLanguage();
+  const formatNum = (val: number | string) => language === 'bn' ? toBnNumber(val) : String(val);
+
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -33,7 +38,7 @@ export const MyOrdersModal: React.FC<MyOrdersModalProps> = ({ isOpen, onClose })
       }
     } catch (err: any) {
       console.error('Error fetching my orders:', err);
-      setError(err.message || 'অর্ডারের তথ্য লোড করতে ব্যর্থ হয়েছে।');
+      setError(err.message || (language === 'bn' ? 'অর্ডারের তথ্য লোড করতে ব্যর্থ হয়েছে।' : 'Failed to load order information.'));
     } finally {
       setLoading(false);
     }
@@ -47,21 +52,21 @@ export const MyOrdersModal: React.FC<MyOrdersModalProps> = ({ isOpen, onClose })
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-200 text-xs font-bold rounded-full">
             <Clock className="w-3 h-3" />
-            অপেক্ষারত
+            {language === 'bn' ? 'অপেক্ষারত' : 'Pending'}
           </span>
         );
       case 'APPROVED':
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold rounded-full">
             <CheckCircle2 className="w-3 h-3" />
-            অনুমোদিত
+            {language === 'bn' ? 'অনুমোদিত' : 'Approved'}
           </span>
         );
       case 'DELIVERED':
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold rounded-full">
             <Truck className="w-3 h-3" />
-            ডেলিভারি সম্পন্ন
+            {language === 'bn' ? 'ডেলিভারি সম্পন্ন' : 'Delivered'}
           </span>
         );
       case 'REJECTED':
@@ -69,7 +74,7 @@ export const MyOrdersModal: React.FC<MyOrdersModalProps> = ({ isOpen, onClose })
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-rose-50 text-rose-700 border border-rose-200 text-xs font-bold rounded-full">
             <XCircle className="w-3 h-3" />
-            বাতিল
+            {language === 'bn' ? 'বাতিল' : 'Cancelled'}
           </span>
         );
       default:
@@ -97,8 +102,12 @@ export const MyOrdersModal: React.FC<MyOrdersModalProps> = ({ isOpen, onClose })
                 <ShoppingBag className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-slate-900">আমার সকল অর্ডার</h3>
-                <p className="text-[11px] text-slate-500 font-medium">ক্যাশ অন ডেলিভারি কেনাকাটার ইতিহাস</p>
+                <h3 className="text-base font-bold text-slate-900">
+                  {language === 'bn' ? 'আমার সকল অর্ডার' : 'My Orders'}
+                </h3>
+                <p className="text-[11px] text-slate-500 font-medium">
+                  {language === 'bn' ? 'ক্যাশ অন ডেলিভারি কেনাকাটার ইতিহাস' : 'Cash on delivery shopping history'}
+                </p>
               </div>
             </div>
             <button
@@ -113,7 +122,7 @@ export const MyOrdersModal: React.FC<MyOrdersModalProps> = ({ isOpen, onClose })
             {loading ? (
               <div className="py-12 text-center text-xs text-slate-400">
                 <ShoppingBag className="w-8 h-8 mx-auto mb-2 animate-bounce text-emerald-500 opacity-60" />
-                অর্ডারের তালিকা লোড হচ্ছে...
+                {language === 'bn' ? 'অর্ডারের তালিকা লোড হচ্ছে...' : 'Loading orders...'}
               </div>
             ) : error ? (
               <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-center space-y-2">
@@ -123,20 +132,24 @@ export const MyOrdersModal: React.FC<MyOrdersModalProps> = ({ isOpen, onClose })
                   onClick={fetchOrders}
                   className="px-3 py-1.5 bg-rose-600 text-white text-xs font-bold rounded-lg"
                 >
-                  আবার চেষ্টা করুন
+                  {language === 'bn' ? 'আবার চেষ্টা করুন' : 'Try Again'}
                 </button>
               </div>
             ) : orders.length === 0 ? (
               <div className="py-12 text-center space-y-2">
                 <ShoppingBag className="w-12 h-12 text-slate-300 mx-auto" />
-                <h4 className="text-sm font-bold text-slate-700">আপনার কোনো অর্ডার পাওয়া যায়নি</h4>
-                <p className="text-xs text-slate-400">আপনি এখনও অনলাইন মার্কেটপ্লেসে কোনো অর্ডার করেননি।</p>
+                <h4 className="text-sm font-bold text-slate-700">
+                  {language === 'bn' ? 'আপনার কোনো অর্ডার পাওয়া যায়নি' : 'No orders found'}
+                </h4>
+                <p className="text-xs text-slate-400">
+                  {language === 'bn' ? 'আপনি এখনও অনলাইন মার্কেটপ্লেসে কোনো অর্ডার করেননি।' : 'You have not placed any orders in the online marketplace yet.'}
+                </p>
               </div>
             ) : (
               <div className="space-y-3">
                 {orders.map(order => {
                   const isExpanded = expandedOrderId === order.id;
-                  const dateStr = new Date(order.createdAt).toLocaleDateString('bn-BD', {
+                  const dateStr = new Date(order.createdAt).toLocaleDateString(language === 'bn' ? 'bn-BD' : 'en-US', {
                     day: 'numeric',
                     month: 'short',
                     year: 'numeric'
@@ -164,15 +177,19 @@ export const MyOrdersModal: React.FC<MyOrdersModalProps> = ({ isOpen, onClose })
                             {getStatusBadge(order.status)}
                           </div>
                           <p className="text-[11px] text-slate-500">
-                            তারিখ: {dateStr} • {order.items?.length || 0} টি আইটেম
+                            {language === 'bn' 
+                              ? `তারিখ: ${dateStr} • ${formatNum(order.items?.length || 0)} টি আইটেম`
+                              : `Date: ${dateStr} • ${formatNum(order.items?.length || 0)} item(s)`}
                           </p>
                         </div>
 
                         <div className="flex items-center gap-3 shrink-0">
                           <div className="text-right">
-                            <span className="text-xs font-medium text-slate-500 block">মোট প্রদেয়</span>
+                            <span className="text-xs font-medium text-slate-500 block">
+                              {language === 'bn' ? 'মোট প্রদেয়' : 'Total Payable'}
+                            </span>
                             <span className="text-sm font-extrabold text-emerald-700">
-                              ৳{Number(orderTotalPayable).toLocaleString('bn-BD')}
+                              ৳{language === 'bn' ? Number(orderTotalPayable).toLocaleString('bn-BD') : Number(orderTotalPayable).toLocaleString('en-US')}
                             </span>
                           </div>
                           <div className="p-1 text-slate-400">
@@ -186,7 +203,7 @@ export const MyOrdersModal: React.FC<MyOrdersModalProps> = ({ isOpen, onClose })
                         <div className="p-4 border-t border-slate-100 bg-white space-y-3">
                           <div className="space-y-2">
                             <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
-                              অর্ডারকৃত পণ্যসমূহ
+                              {language === 'bn' ? 'অর্ডারকৃত পণ্যসমূহ' : 'Ordered Items'}
                             </span>
                             {order.items?.map(item => {
                               const qty = item.quantity || 1;
@@ -203,16 +220,16 @@ export const MyOrdersModal: React.FC<MyOrdersModalProps> = ({ isOpen, onClose })
                                     <h5 className="font-bold text-slate-900">{item.productName}</h5>
                                     {item.tokenType && item.tokenType !== 'NONE' && (
                                       <span className="text-[10px] text-emerald-700 font-semibold block">
-                                        টোকেন ডিসকাউন্ট: {item.tokenType} (-৳{item.tokenDiscountAmount || 0})
+                                        {language === 'bn' ? `টোকেন ডিসকাউন্ট: ${item.tokenType} (-৳${formatNum(item.tokenDiscountAmount || 0)})` : `Token Discount: ${item.tokenType} (-৳${formatNum(item.tokenDiscountAmount || 0)})`}
                                       </span>
                                     )}
                                   </div>
                                   <div className="text-right shrink-0 ml-2">
                                     <span className="font-bold text-slate-900 block">
-                                      ৳{Math.round(unitPrice)} × {qty}
+                                      ৳{formatNum(Math.round(unitPrice))} × {formatNum(qty)}
                                     </span>
                                     <span className="text-xs font-extrabold text-emerald-700">
-                                      = ৳{Math.round(itemSubtotal)}
+                                      = ৳{formatNum(Math.round(itemSubtotal))}
                                     </span>
                                   </div>
                                 </div>
@@ -223,32 +240,32 @@ export const MyOrdersModal: React.FC<MyOrdersModalProps> = ({ isOpen, onClose })
                           {/* Financial Details */}
                           <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 space-y-1 text-xs text-slate-600">
                             <div className="flex justify-between">
-                              <span>পণ্যের মূল্য:</span>
-                              <span className="font-semibold text-slate-800">৳{orderProductPayable}</span>
+                              <span>{language === 'bn' ? 'পণ্যের মূল্য:' : 'Product Price:'}</span>
+                              <span className="font-semibold text-slate-800">৳{formatNum(orderProductPayable)}</span>
                             </div>
                             {order.couponCode && (order.couponDiscountAmount || 0) > 0 && (
                               <div className="flex justify-between text-rose-600">
-                                <span>কুপন ডিসকাউন্ট ({order.couponCode}):</span>
-                                <span className="font-semibold">-৳{order.couponDiscountAmount}</span>
+                                <span>{language === 'bn' ? `কুপন ডিসকাউন্ট (${order.couponCode}):` : `Coupon Discount (${order.couponCode}):`}</span>
+                                <span className="font-semibold">-৳{formatNum(order.couponDiscountAmount)}</span>
                               </div>
                             )}
                             <div className="flex justify-between">
-                              <span>ডেলিভারি চার্জ:</span>
-                              <span className="font-semibold text-slate-800">৳{orderDeliveryCharge}</span>
+                              <span>{language === 'bn' ? 'ডেলিভারি চার্জ:' : 'Delivery Charge:'}</span>
+                              <span className="font-semibold text-slate-800">৳{formatNum(orderDeliveryCharge)}</span>
                             </div>
                             <div className="border-t border-slate-200 pt-1 flex justify-between font-bold text-slate-900">
-                              <span>সর্বমোট (ক্যাশ অন ডেলিভারি):</span>
-                              <span className="text-emerald-700">৳{orderTotalPayable}</span>
+                              <span>{language === 'bn' ? 'সর্বমোট (ক্যাশ অন ডেলিভারি):' : 'Total (Cash On Delivery):'}</span>
+                              <span className="text-emerald-700">৳{formatNum(orderTotalPayable)}</span>
                             </div>
                           </div>
 
                           {/* Delivery info & Actions */}
                           <div className="text-[11px] text-slate-500 space-y-0.5 pt-1">
-                            <p><strong className="text-slate-700">প্রাপকের নাম:</strong> {order.customerName}</p>
-                            <p><strong className="text-slate-700">মোবাইল:</strong> {order.customerPhone}</p>
-                            <p><strong className="text-slate-700">ঠিকানা:</strong> {order.deliveryAddress}</p>
+                            <p><strong className="text-slate-700">{language === 'bn' ? 'প্রাপকের নাম:' : 'Recipient Name:'}</strong> {order.customerName}</p>
+                            <p><strong className="text-slate-700">{language === 'bn' ? 'মোবাইল:' : 'Phone:'}</strong> {formatNum(order.customerPhone)}</p>
+                            <p><strong className="text-slate-700">{language === 'bn' ? 'ঠিকানা:' : 'Address:'}</strong> {order.deliveryAddress}</p>
                             {order.deliveryNotes && (
-                              <p><strong className="text-slate-700">নোট:</strong> {order.deliveryNotes}</p>
+                              <p><strong className="text-slate-700">{language === 'bn' ? 'নোট:' : 'Notes:'}</strong> {order.deliveryNotes}</p>
                             )}
                           </div>
 
@@ -261,7 +278,7 @@ export const MyOrdersModal: React.FC<MyOrdersModalProps> = ({ isOpen, onClose })
                               className="px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
                             >
                               <FileText className="w-3.5 h-3.5" />
-                              ডিজিটাল ক্যাশ মেমো / ইনভয়েস
+                              {language === 'bn' ? 'ডিজিটাল ক্যাশ মেমো / ইনভয়েস' : 'Digital Cash Memo / Invoice'}
                             </button>
                           </div>
                         </div>
