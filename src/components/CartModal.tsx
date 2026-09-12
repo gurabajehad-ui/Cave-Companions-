@@ -1,0 +1,812 @@
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { ShoppingCart, X, Trash2, Plus, Minus, CheckCircle, Truck, AlertCircle, ShoppingBag, ArrowRight, Heart } from 'lucide-react';
+import { CartSummary, Order, User } from '../types';
+import { api } from '../services/api';
+import { BANGLADESH_DISTRICTS } from '../data/bangladeshGeo';
+
+interface CartModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  user: User | null;
+  onOrderSuccess?: (order: Order) => void;
+  onNavigateToOrders?: () => void;
+}
+
+export const CartModal: React.FC<CartModalProps> = ({
+  isOpen,
+  onClose,
+  user,
+  onOrderSuccess,
+  onNavigateToOrders
+}) => {
+  const [cart, setCart] = useState<CartSummary | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [updatingItemId, setUpdatingItemId] = useState<string | null>(null);
+  const [checkingOut, setCheckingOut] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [placedOrder, setPlacedOrder] = useState<Order | null>(null);
+
+  // Delivery Charges config from backend
+  const [districtCharges, setDistrictCharges] = useState<Record<string, number>>({});
+
+  // Districts and Upazilas state from API
+  const [districtsList, setDistrictsList] = useState<import('../data/bangladeshGeo').DistrictData[]>(BANGLADESH_DISTRICTS);
+
+  // Form Fields
+  const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [district, setDistrict] = useState('Dhaka');
+  const [upazila, setUpazila] = useState('Dhaka Sadar');
+  const [districtSearch, setDistrictSearch] = useState('Dhaka');
+  const [upazilaSearch, setUpazilaSearch] = useState('Dhaka Sadar');
+  const [isDistrictDropdownOpen, setIsDistrictDropdownOpen] = useState(false);
+  const [isUpazilaDropdownOpen, setIsUpazilaDropdownOpen] = useState(false);
+  const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [deliveryNotes, setDeliveryNotes] = useState('');
+
+  // Coupon fields
+  const [couponCodeInput, setCouponCodeInput] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountType: 'percentage' | 'amount'; discountValue: number } | null>(null);
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [couponSuccess, setCouponSuccess] = useState<string | null>(null);
+  const [validatingCoupon, setValidatingCoupon] = useState(false);
+
+  // Available upazilas for selected district
+  const selectedDistrictObj = districtsList.find(d => d.district === district) || districtsList[0] || BANGLADESH_DISTRICTS[0];
+  const availableUpazilas = selectedDistrictObj?.upazilas || [];
+
+  const filteredDistricts = districtsList.filter(d => 
+    d.district.toLowerCase().includes(districtSearch.toLowerCase()) ||
+    d.districtBn.includes(districtSearch)
+  );
+
+  const filteredUpazilas = availableUpazilas.filter(u =>
+    u.toLowerCase().includes(upazilaSearch.toLowerCase())
+  );
+
+  useEffect(() => {
+    if (isOpen) {
+      setError(null);
+      setPlacedOrder(null);
+      setCouponCodeInput('');
+      setAppliedCoupon(null);
+      setCouponError(null);
+      setCouponSuccess(null);
+      fetchCart();
+      fetchDeliveryConfig();
+      fetchDistricts();
+      if (user) {
+        if (!customerName) setCustomerName(user.fullName || '');
+        if (!customerPhone) setCustomerPhone(user.phone || '');
+      }
+    }
+  }, [isOpen]);
+
+  const handleApplyCoupon = async () => {
+    setCouponError(null);
+    setCouponSuccess(null);
+    if (!couponCodeInput.trim()) {
+      setCouponError('কুপন কোড লিখুন।');
+      return;
+    }
+    setValidatingCoupon(true);
+    try {
+      const res = await api.validateCoupon(couponCodeInput.trim().toUpperCase());
+      if (res.success && res.coupon) {
+        setAppliedCoupon(res.coupon);
+        setCouponSuccess(`"${res.coupon.code}" কুপনটি সফলভাবে প্রয়োগ করা হয়েছে!`);
+      } else {
+        setCouponError('কুপনটি সঠিক নয়।');
+      }
+    } catch (err: any) {
+      console.error('Error validating coupon:', err);
+      setCouponError(err.message || 'কুপনটি সঠিক নয় বা এর ব্যবহারের সীমা শেষ।');
+    } finally {
+      setValidatingCoupon(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponCodeInput('');
+    setCouponSuccess(null);
+    setCouponError(null);
+  };
+
+  const fetchDeliveryConfig = async () => {
+    try {
+      const res = await api.getDeliveryChargesConfig();
+      if (res.success) {
+        setDistrictCharges(res.charges || {});
+      }
+    } catch (err) {
+      console.error('Error fetching delivery config:', err);
+    }
+  };
+
+  const fetchDistricts = async () => {
+    try {
+      const res = await api.getBangladeshDistricts();
+      if (res.success && res.districts && res.districts.length > 0) {
+        setDistrictsList(res.districts);
+      }
+    } catch (err) {
+      console.error('Error fetching districts:', err);
+    }
+  };
+
+  const fetchCart = async () => {
+    setLoading(true);
+    try {
+      const res = await api.getCart();
+      if (res.success) {
+        setCart(res.cart);
+      }
+    } catch (err: any) {
+      console.error('Error fetching cart:', err);
+      setError(err.message || 'কার্টের তথ্য লোড করা যায়নি।');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDistrictChange = (newDistrict: string) => {
+    setDistrict(newDistrict);
+    setDistrictSearch(newDistrict);
+    setIsDistrictDropdownOpen(false);
+    // Clear upazila when district changes, requiring user to select a new one
+    setUpazila('');
+    setUpazilaSearch('');
+  };
+
+  const handleUpdateQuantity = async (itemId: string, currentQty: number, delta: number) => {
+    const newQty = currentQty + delta;
+    if (newQty < 1) return;
+    setUpdatingItemId(itemId);
+    try {
+      const res = await api.updateCartItemQuantity(itemId, newQty);
+      if (res.success) {
+        setCart(res.cart);
+      }
+    } catch (err: any) {
+      setError(err.message || 'পরিমাণ পরিবর্তন করা যায়নি।');
+    } finally {
+      setUpdatingItemId(null);
+    }
+  };
+
+  const handleRemoveItem = async (itemId: string) => {
+    setUpdatingItemId(itemId);
+    try {
+      const res = await api.removeCartItem(itemId);
+      if (res.success) {
+        setCart(res.cart);
+      }
+    } catch (err: any) {
+      setError(err.message || 'পণ্য মোছা যায়নি।');
+    } finally {
+      setUpdatingItemId(null);
+    }
+  };
+
+  const handleClearCart = async () => {
+    if (!confirm('আপনি কি নিশ্চিত যে কার্টের সব পণ্য মুছে ফেলতে চান?')) return;
+    setLoading(true);
+    try {
+      const res = await api.clearCart();
+      if (res.success) {
+        setCart(res.cart);
+      }
+    } catch (err: any) {
+      setError(err.message || 'কার্ট খালি করা যায়নি।');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCheckout = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!customerName.trim() || !customerPhone.trim() || !deliveryAddress.trim() || !district || !upazila) {
+      setError('অনুগ্রহ করে নাম, মোবাইল নম্বর, জেলা, থানা/উপজেলা এবং সম্পূর্ণ ডেলিভারি ঠিকানা প্রদান করুন।');
+      return;
+    }
+
+    setCheckingOut(true);
+    setError(null);
+    try {
+      const res = await api.checkoutOrder({
+        customerName,
+        customerPhone,
+        deliveryAddress: `${deliveryAddress}, থানা: ${upazila}, জেলা: ${district}`,
+        district,
+        upazila,
+        deliveryNotes,
+        couponCode: appliedCoupon ? appliedCoupon.code : undefined
+      });
+
+      if (res.success) {
+        setPlacedOrder(res.order);
+        if (onOrderSuccess) {
+          onOrderSuccess(res.order);
+        }
+      }
+    } catch (err: any) {
+      setError(err.message || 'অর্ডার সম্পন্ন করতে সমস্যা হয়েছে।');
+    } finally {
+      setCheckingOut(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <AnimatePresence>
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.96, y: 15 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.96, y: 15 }}
+          className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-100 flex flex-col max-h-[92vh]"
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100 bg-slate-50/80">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                <ShoppingCart className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">আমার শপিং কার্ট</h3>
+                <p className="text-[11px] text-slate-500 font-medium">
+                  {cart && cart.totalQuantity > 0 ? `${cart.totalQuantity} টি পণ্য নির্বাচিত` : 'কার্ট খালি'}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 rounded-full transition"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div className="p-4 sm:p-6 overflow-y-auto space-y-6">
+            {placedOrder ? (
+              /* Order Success View */
+              <div className="py-6 text-center space-y-4">
+                <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-inner">
+                  <CheckCircle className="w-9 h-9" />
+                </div>
+                <div>
+                  <span className="inline-block px-3 py-1 bg-emerald-100 text-emerald-800 text-xs font-bold rounded-full mb-2">
+                    ক্যাশ অন ডেলিভারি (COD)
+                  </span>
+                  <h3 className="text-xl font-extrabold text-slate-900">অর্ডার সফলভাবে গ্রহণ করা হয়েছে!</h3>
+                  <p className="text-xs text-slate-600 mt-1 max-w-sm mx-auto">
+                    আপনার অর্ডার নম্বর: <span className="font-extrabold text-slate-900">#{placedOrder.orderNumber}</span>
+                  </p>
+                </div>
+
+                <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 text-left max-w-md mx-auto space-y-2 text-xs">
+                  <div className="flex justify-between text-slate-600">
+                    <span>ডেলিভারি ঠিকানা:</span>
+                    <span className="font-semibold text-slate-900 text-right">{placedOrder.deliveryAddress}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-600">
+                    <span>মোবাইল নম্বর:</span>
+                    <span className="font-semibold text-slate-900">{placedOrder.customerPhone}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-600">
+                    <span>পণ্যের প্রদেয় মূল্য:</span>
+                    <span className="font-bold text-slate-900">৳{placedOrder.productTotalPayable ?? 0}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-600">
+                    <span>ডেলিভারি চার্জ:</span>
+                    <span className="font-bold text-slate-900">৳{placedOrder.deliveryCharge ?? 0}</span>
+                  </div>
+                  <div className="border-t border-slate-200 pt-2 flex justify-between text-sm font-extrabold text-slate-900">
+                    <span>সর্বমোট প্রদেয় (COD):</span>
+                    <span className="text-emerald-600">৳{placedOrder.totalCodAmount ?? 0}</span>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3 pt-3 justify-center">
+                  <button
+                    onClick={onClose}
+                    className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-xs sm:text-sm transition"
+                  >
+                    বন্ধ করুন
+                  </button>
+                  {onNavigateToOrders && (
+                    <button
+                      onClick={() => {
+                        onClose();
+                        onNavigateToOrders();
+                      }}
+                      className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-xs sm:text-sm transition flex items-center justify-center gap-2 shadow-sm"
+                    >
+                      <ShoppingBag className="w-4 h-4" />
+                      আমার সব অর্ডার দেখুন
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : loading ? (
+              <div className="py-12 text-center text-xs text-slate-400">
+                <ShoppingCart className="w-8 h-8 mx-auto mb-2 animate-bounce text-emerald-500 opacity-60" />
+                কার্টের তথ্য লোড হচ্ছে...
+              </div>
+            ) : !cart || cart.items.length === 0 ? (
+              <div className="py-12 text-center space-y-3">
+                <ShoppingBag className="w-12 h-12 text-slate-300 mx-auto" />
+                <h4 className="text-base font-bold text-slate-800">আপনার কার্ট বর্তমানে খালি</h4>
+                <p className="text-xs text-slate-500 max-w-xs mx-auto">
+                  পার্টনার শপগুলোর পণ্য তালিকা থেকে পছন্দের পণ্য কার্টে যোগ করুন।
+                </p>
+                <button
+                  onClick={onClose}
+                  className="mt-2 px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition"
+                >
+                  পণ্য ব্রাউজ করুন
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {/* Cart Items List */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                      কার্টের পণ্যসমূহ ({cart.items.length})
+                    </span>
+                    <button
+                      onClick={handleClearCart}
+                      className="text-xs text-rose-600 hover:text-rose-700 font-semibold flex items-center gap-1 transition"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      সব মুছুন
+                    </button>
+                  </div>
+
+                  <div className="space-y-2.5">
+                    {cart.items.map(item => {
+                      const isUpdating = updatingItemId === item.id;
+                      return (
+                        <div
+                          key={item.id}
+                          className="flex gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200/80 items-center justify-between"
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-14 h-14 bg-white rounded-lg border border-slate-200 overflow-hidden shrink-0 flex items-center justify-center">
+                              {item.productImage ? (
+                                <img
+                                  src={item.productImage}
+                                  alt={item.productName}
+                                  className="w-full h-full object-cover"
+                                  referrerPolicy="no-referrer"
+                                />
+                              ) : (
+                                <ShoppingBag className="w-6 h-6 text-slate-400" />
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <span className="text-[10px] text-slate-500 font-medium block truncate">
+                                {item.shopName}
+                              </span>
+                              <h4 className="text-xs sm:text-sm font-bold text-slate-900 truncate">
+                                {item.productName}
+                              </h4>
+                              {item.tokenType ? (
+                                item.isDonated ? (
+                                  <div className="flex items-center gap-1 mt-0.5">
+                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-rose-500/10 text-rose-600 text-[10px] font-extrabold rounded border border-rose-500/20">
+                                      <Heart className="w-3 h-3 fill-current text-rose-500 animate-pulse" />
+                                      মসজিদে দান ({item.normalDiscountPercent}% সমপরিমাণ)
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-1 mt-0.5">
+                                    <span className="px-1.5 py-0.2 bg-emerald-100 text-emerald-800 text-[10px] font-bold rounded">
+                                      {item.tokenType === 'GOLD' ? 'গোল্ড' : item.tokenType === 'SILVER' ? 'সিলভার' : 'ব্রোঞ্জ'} টোকেন ({item.tokenDiscountPercent}% ছাড়)
+                                    </span>
+                                  </div>
+                                )
+                              ) : (
+                                <span className="text-[10px] text-slate-400">রেগুলার মূল্য</span>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-3 shrink-0">
+                            {/* Price */}
+                            <div className="text-right">
+                              <span className="text-xs sm:text-sm font-extrabold text-slate-900 block">
+                                ৳{(Number(item.subtotalPayable || (item.finalPricePerUnit * item.quantity) || (item.productPrice * item.quantity) || 0)).toFixed(0)}
+                              </span>
+                              {item.isDonated ? (
+                                <span className="text-[9px] text-rose-600 font-bold block">
+                                  ৳{(item.donatedAmount || 0).toFixed(0)} দান হবে ❤️
+                                </span>
+                              ) : (
+                                (item.tokenDiscountAmount || 0) > 0 && (
+                                  <span className="text-[10px] text-slate-400 line-through block">
+                                    ৳{(Number(item.productPrice || 0) * Number(item.quantity || 1)).toFixed(0)}
+                                  </span>
+                                )
+                              )}
+                            </div>
+
+                            {/* Qty +/- */}
+                            <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-lg p-0.5">
+                              <button
+                                disabled={isUpdating || item.quantity <= 1}
+                                onClick={() => handleUpdateQuantity(item.id, item.quantity, -1)}
+                                className="w-6 h-6 flex items-center justify-center text-slate-600 hover:bg-slate-100 rounded disabled:opacity-30"
+                              >
+                                <Minus className="w-3 h-3" />
+                              </button>
+                              <span className="w-5 text-center text-xs font-bold text-slate-800">{item.quantity}</span>
+                              <button
+                                disabled={isUpdating}
+                                onClick={() => handleUpdateQuantity(item.id, item.quantity, 1)}
+                                className="w-6 h-6 flex items-center justify-center text-slate-600 hover:bg-slate-100 rounded"
+                              >
+                                <Plus className="w-3 h-3" />
+                              </button>
+                            </div>
+
+                            {/* Remove item */}
+                            <button
+                              disabled={isUpdating}
+                              onClick={() => handleRemoveItem(item.id)}
+                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Coupon Code Input Panel */}
+                <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                  <span className="text-xs font-bold text-slate-700 block">কুপন কোড ব্যবহার করুন (Coupon Code)</span>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="যেমন: SAVE10"
+                      className="flex-1 px-3 py-2 bg-white text-slate-900 border border-slate-300 rounded-lg text-xs font-bold uppercase focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      value={couponCodeInput}
+                      onChange={(e) => setCouponCodeInput(e.target.value)}
+                      disabled={validatingCoupon || !!appliedCoupon}
+                    />
+                    {appliedCoupon ? (
+                      <button
+                        type="button"
+                        onClick={handleRemoveCoupon}
+                        className="px-3 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-lg transition"
+                      >
+                        মুছে ফেলুন
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleApplyCoupon}
+                        disabled={validatingCoupon || !couponCodeInput.trim()}
+                        className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 disabled:bg-slate-200 disabled:text-slate-400 text-white text-xs font-bold rounded-lg transition flex items-center justify-center"
+                      >
+                        {validatingCoupon ? 'যাচাই হচ্ছে...' : 'প্রয়োগ করুন'}
+                      </button>
+                    )}
+                  </div>
+                  {couponError && (
+                    <p className="text-[11px] text-rose-600 font-bold flex items-center gap-1">
+                      <AlertCircle className="w-3.5 h-3.5" />
+                      <span>{couponError}</span>
+                    </p>
+                  )}
+                  {couponSuccess && (
+                    <p className="text-[11px] text-emerald-600 font-bold flex items-center gap-1">
+                      <CheckCircle className="w-3.5 h-3.5" />
+                      <span>{couponSuccess}</span>
+                    </p>
+                  )}
+                </div>
+
+                {/* Price Breakdown Calculation */}
+                {(() => {
+                  const originalTotal = Number(cart?.productOriginalTotal ?? cart?.subtotalOriginal ?? 0);
+                  const tokenDiscount = Number(cart?.tokenDiscountTotal ?? cart?.totalTokenDiscount ?? 0);
+                  const tokenDonation = Number(cart?.tokenDonationTotal ?? 0);
+                  const payableTotalBeforeCoupon = Number(cart?.productPayableTotal ?? cart?.subtotalPayable ?? 0);
+                  
+                  let couponDiscountAmount = 0;
+                  if (appliedCoupon) {
+                    const discountVal = Number(appliedCoupon.discountValue) || 0;
+                    if (appliedCoupon.discountType === 'percentage') {
+                      couponDiscountAmount = (payableTotalBeforeCoupon * discountVal) / 100;
+                    } else {
+                      couponDiscountAmount = discountVal;
+                    }
+                  }
+
+                  // Cap coupon discount so it doesn't exceed the remaining payable amount
+                  const actualCouponDiscount = Math.min(couponDiscountAmount, payableTotalBeforeCoupon);
+                  const payableTotal = Math.max(0, payableTotalBeforeCoupon - actualCouponDiscount);
+
+                  let delivery = district.toLowerCase().includes('dhaka') ? 60 : 120; // Default
+                  if (districtCharges[district] !== undefined) {
+                    delivery = districtCharges[district];
+                  } else if (districtCharges['dhaka'] !== undefined && district.toLowerCase().includes('dhaka')) {
+                    delivery = districtCharges['dhaka'];
+                  } else if (districtCharges['outside_dhaka'] !== undefined) {
+                    delivery = districtCharges['outside_dhaka'];
+                  }
+
+                  const codTotal = payableTotal + delivery;
+
+                  return (
+                    <div className="p-4 bg-slate-900 text-white rounded-xl space-y-2 text-xs">
+                      <div className="flex justify-between text-slate-300">
+                        <span>পণ্যের মূল মূল্য (মোট):</span>
+                        <span>৳{originalTotal.toLocaleString('bn-BD')}</span>
+                      </div>
+                      {tokenDiscount > 0 && (
+                        <div className="flex justify-between text-emerald-400 font-semibold">
+                          <span>টোকেন ডিসকাউন্ট সুবিধা:</span>
+                          <span>- ৳{tokenDiscount.toLocaleString('bn-BD')}</span>
+                        </div>
+                      )}
+                      {tokenDonation > 0 && (
+                        <div className="flex justify-between text-rose-400 font-semibold">
+                          <span>কল্যাণ তহবিলে দানকৃত (মসজিদ):</span>
+                          <span>৳{tokenDonation.toLocaleString('bn-BD')} ❤️</span>
+                        </div>
+                      )}
+                      {appliedCoupon && actualCouponDiscount > 0 && (
+                        <div className="flex justify-between text-amber-400 font-semibold">
+                          <span>কুপন ডিসকাউন্ট সুবিধা ({appliedCoupon.code}):</span>
+                          <span>- ৳{actualCouponDiscount.toLocaleString('bn-BD')}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between text-slate-300 border-t border-slate-800 pt-1.5">
+                        <span>পণ্যের প্রদেয় মূল্য (ক্যাশ অন ডেলিভারি):</span>
+                        <span className="font-bold text-white text-sm">৳{payableTotal.toLocaleString('bn-BD')}</span>
+                      </div>
+                      <div className="flex justify-between text-amber-300 border-t border-slate-800 pt-2">
+                        <span className="flex items-center gap-1">
+                          <Truck className="w-3.5 h-3.5" />
+                          ডেলিভারি চার্জ ({district}):
+                        </span>
+                        <span className="font-bold">৳{delivery.toLocaleString('bn-BD')}</span>
+                      </div>
+                      <div className="border-t border-slate-700 pt-2 flex justify-between text-sm font-extrabold text-white">
+                        <span>সর্বমোট প্রদেয় ক্যাশ অন ডেলিভারি (COD):</span>
+                        <span className="text-emerald-400 font-black text-base">৳{codTotal.toLocaleString('bn-BD')}</span>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Checkout Form */}
+                <form onSubmit={handleCheckout} className="relative z-50 pointer-events-auto space-y-3 pt-2">
+                  <div className="flex items-center gap-2 pb-1 border-b border-slate-100">
+                    <Truck className="w-4 h-4 text-emerald-600" />
+                    <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">ডেলিভারি তথ্য ও ঠিকানা</h4>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="relative z-50 pointer-events-auto">
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">গ্রাহকের নাম *</label>
+                      <input
+                        type="text"
+                        required
+                        value={customerName}
+                        onChange={e => setCustomerName(e.target.value)}
+                        placeholder="আপনার পূর্ণ নাম"
+                        className="w-full px-3 py-2 bg-white text-slate-900 placeholder:text-slate-400 border border-slate-300 rounded-lg text-xs font-medium focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white focus:text-slate-900 focus:outline-none touch-manipulation relative z-50 pointer-events-auto"
+                      />
+                    </div>
+                    <div className="relative z-50 pointer-events-auto">
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">মোবাইল নম্বর *</label>
+                      <input
+                        type="tel"
+                        required
+                        inputMode="numeric"
+                        value={customerPhone}
+                        onChange={e => setCustomerPhone(e.target.value)}
+                        placeholder="01XXXXXXXXX"
+                        className="w-full px-3 py-2 bg-white text-slate-900 placeholder:text-slate-400 border border-slate-300 rounded-lg text-xs font-medium focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white focus:text-slate-900 focus:outline-none touch-manipulation relative z-50 pointer-events-auto"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 relative pointer-events-auto">
+                    {/* District Searchable Dropdown */}
+                    <div className={`relative pointer-events-auto ${isDistrictDropdownOpen ? 'z-[100]' : 'z-20'}`}>
+                      <label className="block text-xs font-bold text-slate-800 mb-1">জেলা (District) *</label>
+                      <input
+                        type="text"
+                        value={districtSearch}
+                        onFocus={() => {
+                          setDistrictSearch(''); // clear to show all
+                          setIsDistrictDropdownOpen(true);
+                          setIsUpazilaDropdownOpen(false);
+                        }}
+                        onBlur={() => setTimeout(() => setIsDistrictDropdownOpen(false), 200)}
+                        onChange={e => {
+                          setDistrictSearch(e.target.value);
+                          setIsDistrictDropdownOpen(true);
+                          setIsUpazilaDropdownOpen(false);
+                        }}
+                        placeholder={district ? `${districtsList.find(d => d.district === district)?.districtBn || district} (Selected)` : "জেলা খুঁজুন (যেমন: Dhaka, চট্টগ্রাম)..."}
+                        className="w-full px-3 py-2.5 bg-white text-slate-900 placeholder:text-slate-500 border-2 border-slate-300 rounded-lg text-xs font-bold focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white focus:text-slate-900 focus:outline-none touch-manipulation shadow-xs"
+                      />
+                      {isDistrictDropdownOpen && (
+                        <div className="absolute z-[110] left-0 right-0 top-full mt-1 max-h-60 overflow-y-auto bg-slate-900 border-2 border-emerald-500 rounded-xl shadow-2xl text-xs divide-y divide-slate-800 ring-1 ring-black/20">
+                          {filteredDistricts.length > 0 ? (
+                            filteredDistricts.map(d => {
+                              const isSelected = district === d.district;
+                              return (
+                                <div
+                                  key={d.district}
+                                  onMouseDown={(e) => e.preventDefault()} // prevent blur
+                                  onClick={() => {
+                                    handleDistrictChange(d.district);
+                                  }}
+                                  className={`px-4 py-3 cursor-pointer transition-colors flex items-center justify-between text-xs ${
+                                    isSelected
+                                      ? 'bg-emerald-600 text-white font-bold'
+                                      : 'bg-slate-900 text-slate-100 hover:bg-emerald-800 hover:text-white font-semibold'
+                                  }`}
+                                >
+                                  <span>{d.districtBn} ({d.district})</span>
+                                  {isSelected && <span className="text-amber-300 font-extrabold text-sm">✓</span>}
+                                </div>
+                              );
+                            })
+                          ) : (
+                            <div className="px-4 py-3 text-slate-400 text-center bg-slate-900">কোনো জেলা পাওয়া যায়নি</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Upazila Searchable Dropdown */}
+                    <div className={`relative pointer-events-auto ${isUpazilaDropdownOpen ? 'z-[100]' : 'z-10'}`}>
+                      <label className="block text-xs font-bold text-slate-800 mb-1">থানা / উপজেলা (Upazila) *</label>
+                      <input
+                        type="text"
+                        value={upazilaSearch}
+                        onFocus={() => {
+                          setUpazilaSearch(''); // clear to show all
+                          setIsUpazilaDropdownOpen(true);
+                          setIsDistrictDropdownOpen(false);
+                        }}
+                        onBlur={() => setTimeout(() => setIsUpazilaDropdownOpen(false), 200)}
+                        onChange={e => {
+                          setUpazilaSearch(e.target.value);
+                          setIsUpazilaDropdownOpen(true);
+                          setIsDistrictDropdownOpen(false);
+                        }}
+                        placeholder={upazila ? `${upazila} (Selected)` : "থানা খুঁজুন..."}
+                        className="w-full px-3 py-2.5 bg-white text-slate-900 placeholder:text-slate-500 border-2 border-slate-300 rounded-lg text-xs font-bold focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white focus:text-slate-900 focus:outline-none touch-manipulation shadow-xs"
+                      />
+                      {isUpazilaDropdownOpen && (
+                        <div className="absolute z-[110] left-0 right-0 top-full mt-1 max-h-60 overflow-y-auto bg-slate-900 border-2 border-emerald-500 rounded-xl shadow-2xl text-xs divide-y divide-slate-800 ring-1 ring-black/20">
+                          {filteredUpazilas.length > 0 ? (
+                            filteredUpazilas.map(u => {
+                              const isSelected = upazila === u;
+                              return (
+                                <div
+                                  key={u}
+                                  onMouseDown={(e) => e.preventDefault()} // prevent blur
+                                  onClick={() => {
+                                    setUpazila(u);
+                                    setUpazilaSearch(u);
+                                    setIsUpazilaDropdownOpen(false);
+                                  }}
+                                  className={`px-4 py-3 cursor-pointer transition-colors flex items-center justify-between text-xs ${
+                                    isSelected
+                                      ? 'bg-emerald-600 text-white font-bold'
+                                      : 'bg-slate-900 text-slate-100 hover:bg-emerald-800 hover:text-white font-semibold'
+                                  }`}
+                                >
+                                  <span>{u}</span>
+                                  {isSelected && <span className="text-amber-300 font-extrabold text-sm">✓</span>}
+                                </div>
+                              );
+                            })
+                          ) : (
+                            <div className="px-4 py-3 text-slate-400 text-center bg-slate-900">কোনো থানা পাওয়া যায়নি</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="relative z-0 pointer-events-auto">
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">বিস্তারিত ঠিকানা (রোড/বাসা/এলাকা) *</label>
+                    <textarea
+                      required
+                      rows={2}
+                      value={deliveryAddress}
+                      onChange={e => setDeliveryAddress(e.target.value)}
+                      placeholder="যেমন: বাসা নং ১২, রোড নং ৫, ব্লক সি"
+                      className="w-full px-3 py-2 bg-white text-slate-900 placeholder:text-slate-400 border border-slate-300 rounded-lg text-xs font-medium focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white focus:text-slate-900 focus:outline-none resize-none touch-manipulation"
+                    />
+                  </div>
+
+                  <div className="relative z-0 pointer-events-auto">
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">বিশেষ নির্দেশাবলী (ঐচ্ছিক)</label>
+                    <input
+                      type="text"
+                      value={deliveryNotes}
+                      onChange={e => setDeliveryNotes(e.target.value)}
+                      placeholder="যেমন: বিকেলে ডেলিভারি করবেন..."
+                      className="w-full px-3 py-2 bg-white text-slate-900 placeholder:text-slate-400 border border-slate-300 rounded-lg text-xs font-medium focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white focus:text-slate-900 focus:outline-none touch-manipulation"
+                    />
+                  </div>
+
+                  {error && (
+                    <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 shrink-0" />
+                      <span>{error}</span>
+                    </div>
+                  )}
+
+                  <div className="pt-2">
+                    {(() => {
+                      let delivery = district.toLowerCase().includes('dhaka') ? 60 : 120; // Default
+                      if (districtCharges[district] !== undefined) {
+                        delivery = districtCharges[district];
+                      } else if (districtCharges['dhaka'] !== undefined && district.toLowerCase().includes('dhaka')) {
+                        delivery = districtCharges['dhaka'];
+                      } else if (districtCharges['outside_dhaka'] !== undefined) {
+                        delivery = districtCharges['outside_dhaka'];
+                      }
+
+                      const payableTotalBeforeCoupon = Number(cart?.productPayableTotal ?? cart?.subtotalPayable ?? 0);
+                      let couponDiscountAmount = 0;
+                      if (appliedCoupon) {
+                        if (appliedCoupon.discountType === 'percentage') {
+                          couponDiscountAmount = (payableTotalBeforeCoupon * appliedCoupon.discountValue) / 100;
+                        } else {
+                          couponDiscountAmount = appliedCoupon.discountValue;
+                        }
+                      }
+                      const payableTotal = Math.max(0, payableTotalBeforeCoupon - couponDiscountAmount);
+                      const finalCod = payableTotal + delivery;
+                      return (
+                        <>
+                          <button
+                            type="submit"
+                            disabled={checkingOut}
+                            className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-bold text-sm rounded-xl shadow-md transition flex items-center justify-center gap-2"
+                          >
+                            {checkingOut ? (
+                              <span className="animate-pulse">অর্ডার প্রসেস হচ্ছে...</span>
+                            ) : (
+                              <>
+                                <CheckCircle className="w-4 h-4" />
+                                অর্ডার কনফার্ম করুন (ক্যাশ অন ডেলিভারি - ৳{finalCod.toLocaleString('bn-BD')})
+                              </>
+                            )}
+                          </button>
+                          <p className="text-[11px] text-center text-slate-500 mt-2">
+                            * পণ্য হাতে পেয়ে সম্পূর্ণ মূল্য (৳{finalCod.toLocaleString('bn-BD')}) ডেলিভারি ম্যানের কাছে পরিশোধ করবেন।
+                          </p>
+                        </>
+                      );
+                    })()}
+                  </div>
+                </form>
+              </div>
+            )}
+          </div>
+        </motion.div>
+      </div>
+    </AnimatePresence>
+  );
+};
